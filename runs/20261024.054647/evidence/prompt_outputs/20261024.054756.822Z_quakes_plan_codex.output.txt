@@ -1,0 +1,494 @@
+=== BEGIN ARTIFACT ARCHITECTURE.md ===
+# ARCHITECTURE: Quakes Application
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Defines the Python command-line application structure and module boundaries. |
+| Depends On  | |
+| Provides    | cli.main |
+
+## Questions
+
+- None.
+
+## Purpose
+
+The application is a Python 3.11+ command-line executable named `quakes`. It reads saved USGS GeoJSON for reports and uses the USGS FDSN event service for fetches. The application does not read the grader or embed report answers.
+
+## Technology Stack
+
+| Technology | Application |
+|---|---|
+| Python | Application code, tests, and command entry point; standard library only. |
+| CLI | Root `quakes` executable and command parsing. |
+| pytest | Automated project test suite. |
+| USGS GeoJSON | Feed responses and saved report inputs. |
+| Shell | POSIX test runner and supplied grader. |
+
+## Modules and boundaries
+
+- `cli.main(argv: list[str] | None = None) -> int` is the in-process entry point. The root executable delegates to it and uses its return value as the process exit status.
+- `cli.testing.cli_runner(*args: str) -> tuple[int, str, str]` invokes `cli.main` without spawning a process.
+- CLI parsing and help belong to `FEATURE-CLI.md`.
+- GeoJSON reading, event normalization, and magnitude filtering belong to `FEATURE-EVENT-DATA.md`.
+- Network access and fetch-file writing belong to `FEATURE-FETCH.md`.
+- Each report calculation and CSV formatting belongs to its report feature.
+- Diagnostics go to standard error. A failing command writes no standard output.
+
+## Module ownership
+
+| Boundary | Owner | Allowed access |
+|---|---|---|
+| Configuration | Command and feature modules | Command arguments only; no external configuration is required by the source contract. |
+| File reads | Event data module | Read the supplied saved GeoJSON file. |
+| File writes | Fetch module | Write a successful, validated response to the requested output file. |
+| External service | Fetch module | Standard-library `urllib.request` for the USGS FDSN event service. |
+| Persistence | None | The application has no database or other persistent store. |
+
+## Programmatic Acceptance
+
+=== AC architecture-entry ===
+Intent: The application entry point is callable with the published argument contract.
+
+from cli import main
+import inspect
+
+signature = inspect.signature(main)
+assert callable(main)
+assert signature.parameters["argv"].default is None
+=== END AC architecture-entry ===
+
+=== AC cli-runner ===
+Intent: The published in-process CLI runner returns an exit code and captured streams.
+
+from cli.testing import cli_runner
+
+result = cli_runner("--help")
+assert isinstance(result, tuple)
+assert len(result) == 3
+assert isinstance(result[0], int)
+assert isinstance(result[1], str)
+assert isinstance(result[2], str)
+=== END AC cli-runner ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Do not read or modify `sources/run.sh` or embed its expected report rows in application code.
+- Keep network access confined to fetch; reports operate on saved files.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-CLI.md ===
+# FEATURE: Command Line Interface
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Defines the quakes commands, their options, help, and argument validation. |
+| Depends On  | ARCHITECTURE.md |
+| Provides    | quakes fetch, quakes summary, quakes top, quakes daily, quakes regions, quakes near |
+| Consumes    | cli.main |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Users invoke `./quakes <command>`. The command name follows the executable, options may follow in any order, and report input files are positional. An option not listed for a command, a missing value, or an extra file is a usage error.
+
+## Command interface
+
+```text
+quakes fetch --start <YYYY-MM-DD> --end <YYYY-MM-DD> [--min-mag <m>] --out <file>
+quakes summary [--min-mag <m>] <file>
+quakes top [--min-mag <m>] [--n <count>] <file>
+quakes daily [--min-mag <m>] <file>
+quakes regions [--min-mag <m>] <file>
+quakes near --lat <deg> --lon <deg> --radius <km> [--min-mag <m>] <file>
+```
+
+- Decimal values match `-?[0-9]+(\.[0-9]+)?`.
+- `--min-mag` defaults to `2.5` for fetch and applies to every report.
+- `--n` is a positive integer and defaults to `10`.
+- `near` requires all of `--lat`, `--lon`, and `--radius`; latitude is within −90 to 90, longitude within −180 to 180, and radius is positive.
+- Each command and sub-verb provides help describing its usage.
+- Malformed arguments, unknown commands, unsupported options, and missing or extra files return exit code `2`.
+
+## Operational behavior
+
+Usage diagnostics are written to standard error. A usage failure writes nothing to standard output. Operational failures use exit code `1`; success, including an empty report, uses exit code `0`.
+
+## Programmatic Acceptance
+
+=== AC command-help ===
+Intent: The executable interface accepts help requests for its commands and near sub-verb.
+
+from cli.testing import cli_runner
+
+for args in (
+    ("--help",),
+    ("fetch", "--help"),
+    ("summary", "--help"),
+    ("top", "--help"),
+    ("daily", "--help"),
+    ("regions", "--help"),
+    ("near", "--help"),
+):
+    code, stdout, stderr = cli_runner(*args)
+    assert code == 0
+=== END AC command-help ===
+
+=== AC usage-status ===
+Intent: Malformed command arguments return the documented usage status and no output.
+
+from cli.testing import cli_runner
+
+for args in (
+    (),
+    ("frobnicate",),
+    ("summary",),
+    ("top", "--n", "0", "unused.geojson"),
+    ("summary", "--min-mag", "big", "unused.geojson"),
+    ("summary", "--n", "3", "unused.geojson"),
+):
+    code, stdout, stderr = cli_runner(*args)
+    assert code == 2
+    assert stdout == ""
+=== END AC usage-status ===
+
+=== AC near-validation ===
+Intent: Near requires all coordinate and radius options and rejects out-of-range coordinates.
+
+from cli.testing import cli_runner
+
+for args in (
+    ("near", "--lat", "27.72", "--lon", "85.32", "unused.geojson"),
+    ("near", "--lat", "95", "--lon", "0", "--radius", "10", "unused.geojson"),
+    ("near", "--lat", "0", "--lon", "181", "--radius", "10", "unused.geojson"),
+    ("near", "--lat", "0", "--lon", "0", "--radius", "0", "unused.geojson"),
+):
+    code, stdout, stderr = cli_runner(*args)
+    assert code == 2
+    assert stdout == ""
+=== END AC command-help ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Keep usage errors distinct from operational failures.
+- Do not accept options that are not listed for the invoked command.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-EVENT-DATA.md ===
+# FEATURE: Earthquake Event Data
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Defines saved GeoJSON loading, event normalization, validation, and magnitude filtering. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CLI.md |
+| Provides    | event loading, event normalization, magnitude filtering |
+| Consumes    | cli.main |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Report commands share one event-loading and filtering contract. Each GeoJSON feature is one event. The loader uses the feature `id`, `properties.mag`, `properties.place`, `properties.time`, `properties.tsunami`, and `geometry.coordinates` (`[longitude, latitude, depth_km]`), ignoring other fields.
+
+## Event semantics
+
+- A null magnitude excludes the event from every report.
+- `--min-mag` retains events whose magnitude is at least the threshold.
+- Times are UTC `YYYY-MM-DDTHH:MM:SSZ`, truncated to whole seconds. The event date is the first ten characters.
+- The region is the text after the last `, ` in `place`, or all of `place` if there is no such separator. A null place normalizes to `Unknown`, also its region.
+- Invalid JSON, unreadable files, and documents that are not objects with `"type": "FeatureCollection"` and a `features` array are operational failures: exit `1`, diagnostic on standard error, and no standard output.
+
+## Shared interface
+
+Provide `read_events(path)` to load normalized event records and `filter_events(events, min_mag)` to apply the threshold. A normalized record exposes `id`, `mag`, `place`, `time`, `date`, `tsunami`, `longitude`, `latitude`, `depth_km`, and `region`. Reports and fetch count handling use these shared semantics.
+
+## Programmatic Acceptance
+
+=== AC event-loading ===
+Intent: A valid feature is normalized from the supplied GeoJSON values.
+
+import json
+from pathlib import Path
+from event_data import read_events
+
+event_id = "event-from-input"
+place = "12 km north, Test Region"
+payload = {
+    "type": "FeatureCollection",
+    "features": [{
+        "type": "Feature",
+        "id": event_id,
+        "properties": {
+            "mag": 4.2,
+            "place": place,
+            "time": 1735689600999,
+            "tsunami": 1,
+        },
+        "geometry": {"type": "Point", "coordinates": [12.5, -3.25, 8]},
+    }],
+}
+path = Path("acceptance-events.geojson")
+path.write_text(json.dumps(payload), encoding="utf-8")
+events = read_events(path)
+assert len(events) == 1
+event = events[0]
+assert event["id"] == event_id
+assert event["place"] == place
+assert event["region"] == place.rsplit(", ", 1)[-1]
+assert event["longitude"] == 12.5
+assert event["latitude"] == -3.25
+assert event["depth_km"] == 8
+assert event["tsunami"] == 1
+=== END AC event-loading ===
+
+=== AC magnitude-filter ===
+Intent: Magnitude filtering retains qualifying events and excludes null and lower magnitudes.
+
+from event_data import filter_events
+
+events = [
+    {"id": "low", "mag": 2.4},
+    {"id": "equal", "mag": 2.5},
+    {"id": "high", "mag": 3.1},
+    {"id": "null", "mag": None},
+]
+kept = filter_events(events, 2.5)
+assert [event["id"] for event in kept] == ["equal", "high"]
+=== END AC magnitude-filter ===
+
+=== AC invalid-file-status ===
+Intent: Invalid GeoJSON input returns the documented operational status without output.
+
+from cli.testing import cli_runner
+from pathlib import Path
+
+path = Path("acceptance-invalid.geojson")
+path.write_text("not json", encoding="utf-8")
+code, stdout, stderr = cli_runner("summary", str(path))
+assert code == 1
+assert stdout == ""
+=== END AC invalid-file-status ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Ignore GeoJSON fields outside the documented event inputs.
+- Do not embed report answers or read the grader from application code.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-FETCH.md ===
+# FEATURE: Fetch USGS Feed
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Defines fetching, validating, and saving a USGS GeoJSON response. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CLI.md |
+| Provides    | quakes fetch |
+| Consumes    | cli.main |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes fetch` requests a date range from the USGS FDSN event service as GeoJSON and saves the response body unchanged after validating it as a GeoJSON FeatureCollection.
+
+## Request and response
+
+Use `urllib.request` with this query shape:
+
+```text
+https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=<start>&endtime=<end>&minmagnitude=<m>&orderby=time-asc
+```
+
+`--min-mag` defaults to `2.5`. A successful response has HTTP status `200` and a FeatureCollection `features` array. Write the original response bytes unchanged to `--out` and report `fetched,<feature-count>` on standard output. Network errors, non-200 HTTP status, or invalid response content are operational failures: exit `1`, diagnostic on standard error, and no output file is written.
+
+## Programmatic Acceptance
+
+=== AC fetch-round-trip ===
+Intent: Fetch writes the valid stub response bytes unchanged and creates the requested file.
+
+import json
+from pathlib import Path
+from unittest.mock import patch
+from cli.testing import cli_runner
+
+body = json.dumps({
+    "type": "FeatureCollection",
+    "features": [],
+}, separators=(",", ":")).encode("utf-8")
+out = Path("acceptance-fetch.geojson")
+with patch("urllib.request.urlopen") as urlopen:
+    response = type("Response", (), {
+        "status": 200,
+        "read": lambda self: body,
+        "__enter__": lambda self: self,
+        "__exit__": lambda self, *args: None,
+    })()
+    urlopen.return_value = response
+    code, stdout, stderr = cli_runner(
+        "fetch", "--start", "2025-01-01", "--end", "2025-01-02", "--out", str(out)
+    )
+assert code == 0
+assert out.read_bytes() == body
+=== END AC fetch-round-trip ===
+
+=== AC fetch-no-write-on-failure ===
+Intent: A failed HTTP request returns operational status and leaves no output file.
+
+from pathlib import Path
+from unittest.mock import patch
+from urllib.error import URLError
+from cli.testing import cli_runner
+
+out = Path("acceptance-fetch-failure.geojson")
+if out.exists():
+    out.unlink()
+with patch("urllib.request.urlopen", side_effect=URLError("stub failure")):
+    code, stdout, stderr = cli_runner(
+        "fetch", "--start", "2025-01-01", "--end", "2025-01-02", "--out", str(out)
+    )
+assert code == 1
+assert stdout == ""
+assert not out.exists()
+=== END AC fetch-no-write-on-failure ===
+
+=== AC fetch-invalid-response ===
+Intent: A non-FeatureCollection response returns operational status and does not create the output file.
+
+import json
+from pathlib import Path
+from unittest.mock import patch
+from cli.testing import cli_runner
+
+body = json.dumps({"type": "Feature", "features": []}).encode("utf-8")
+out = Path("acceptance-fetch-invalid.geojson")
+if out.exists():
+    out.unlink()
+with patch("urllib.request.urlopen") as urlopen:
+    response = type("Response", (), {
+        "status": 200,
+        "read": lambda self: body,
+        "__enter__": lambda self: self,
+        "__exit__": lambda self, *args: None,
+    })()
+    urlopen.return_value = response
+    code, stdout, stderr = cli_runner(
+        "fetch", "--start", "2025-01-01", "--end", "2025-01-02", "--out", str(out)
+    )
+assert code == 1
+assert stdout == ""
+assert not out.exists()
+=== END AC fetch-invalid-response ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Tests replace HTTP with a stub and never use the network.
+- Do not create or truncate the output file until the response has passed validation.
+- Do not modify the response body before writing it.
+=== END ARTIFACT===
+=== BEGIN ARTIFACT FEATURE-SUMMARY.md ===
+# FEATURE: Summary Report
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Defines the summary report over filtered earthquake events. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CLI.md, FEATURE-EVENT-DATA.md |
+| Provides    | quakes summary |
+| Consumes    | event loading, magnitude filtering |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes summary [--min-mag <m>] <file>` emits a CSV summary with event count, first and last UTC event times, minimum and maximum magnitude, mean magnitude rounded half up to two decimal places, and tsunami count.
+
+## Report contract
+
+The header is `events,first,last,min_mag,max_mag,mean_mag,tsunami`. Events are ordered by time for determining `first` and `last`. Magnitudes use one decimal place. With no matching events, the data row is `0,,,,,,0`. Output is CSV with newline line endings.
+
+Provide `summarize(events)` as a calculation function returning the summary fields, and `format_summary(summary)` as the CSV formatter used by the CLI.
+
+## Programmatic Acceptance
+
+=== AC summary-calculation ===
+Intent: Summary calculation derives its count, extrema, mean, and tsunami total from the supplied events.
+
+from summary_report import summarize
+
+events = [
+    {"id": "a", "mag": 2.0, "time": "2025-01-01T00:00:00Z", "tsunami": 1},
+    {"id": "b", "mag": 4.0, "time": "2025-01-02T00:00:00Z", "tsunami": 0},
+]
+summary = summarize(events)
+assert summary["events"] == len(events)
+assert summary["first"] == min(event["time"] for event in events)
+assert summary["last"] == max(event["time"] for event in events)
+assert summary["min_mag"] == min(event["mag"] for event in events)
+assert summary["max_mag"] == max(event["mag"] for event in events)
+assert summary["mean_mag"] == sum(event["mag"] for event in events) / len(events)
+assert summary["tsunami"] == sum(event["tsunami"] == 1 for event in events)
+=== END AC summary-calculation ===
+
+=== AC summary-empty ===
+Intent: Empty input yields zero events and zero tsunami events.
+
+from summary_report import summarize
+
+summary = summarize([])
+assert summary["events"] == 0
+assert summary["first"] is None
+assert summary["last"] is None
+assert summary["min_mag"] is None
+assert summary["max_mag"] is None
+assert summary["mean_mag"] is None
+assert summary["tsunami"] == 0
+=== END AC summary-empty ===
+
+=== AC summary-cli ===
+Intent: The summary command accepts a valid saved FeatureCollection and succeeds.
+
+import json
+from pathlib import Path
+from cli.testing import cli_runner
+
+path = Path("acceptance-summary.geojson")
+path.write_text(json.dumps({"type": "FeatureCollection", "features": []}), encoding="utf-8")
+code, stdout, stderr = cli_runner("summary", str(path))
+assert code == 0
+=== END AC summary-cli ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Compute the report only from the supplied file and its filtered events.
+- Do not embed known report rows from the grader.
+=== END ARTIFACT

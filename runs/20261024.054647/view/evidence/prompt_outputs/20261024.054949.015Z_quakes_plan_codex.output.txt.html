@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompt_outputs/20261024.054949.015Z_quakes_plan_codex.output.txt</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompt_outputs/20261024.054949.015Z_quakes_plan_codex.output.txt</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompt_outputs/20261024.054949.015Z_quakes_plan_codex.output.txt">Raw file</a></div></header>
+<article class="doc"><pre>=== BEGIN ARTIFACT VERIFICATION.md ===
+# FEATURE: Release Verification
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Defines the terminal verification of the completed Quakes application against the supplied grader. |
+| Depends On  | FEATURE-CLI.md, FEATURE-EVENT-DATA.md, FEATURE-FETCH.md, FEATURE-SUMMARY.md, FEATURE-TOP.md, FEATURE-DAILY.md, FEATURE-REGIONS.md, FEATURE-NEAR.md, FEATURE-TEST-RUNNER.md |
+| Provides    | Full conformance verification |
+| Consumes    | `sh sources/run.sh`, `bin/test.sh` |
+
+## Questions
+
+- None.
+
+## Purpose
+
+This is the terminal verification story. After every implementation and test-runner story is complete, run the supplied grader from the application root. Its exit status is the acceptance verdict. The grader and frozen snapshot are staged under `sources/` and must remain unchanged.
+
+## Verification
+
+- Run `sh sources/run.sh` from the completed application root.
+- The executable must be available as `./quakes`.
+- The grader checks report behavior against its frozen snapshot and exits successfully only when every check passes.
+- Do not modify application behavior or the grader as part of this verification story; fix implementation defects in their owning feature stories.
+
+## Programmatic Acceptance
+
+=== AC supplied-grader ===
+Intent: The supplied grader passes against the completed application.
+
+import subprocess
+
+result = subprocess.run(
+    [&quot;sh&quot;, &quot;sources/run.sh&quot;],
+    capture_output=True,
+    text=True,
+)
+print(result.stdout)
+print(result.stderr)
+assert result.returncode == 0
+=== END AC supplied-grader ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Do not modify, rewrite, regenerate, or substitute `sources/run.sh` or `sources/quakes_2025-01-01_07.geojson`.
+- Application code must compute report values from the supplied GeoJSON and must not read the grader or embed report answers.
+=== END ARTIFACT</pre></article>
+</main>
+</body>
+</html>

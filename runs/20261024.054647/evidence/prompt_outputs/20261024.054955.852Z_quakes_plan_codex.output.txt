@@ -1,0 +1,51 @@
+=== BEGIN ARTIFACT VERIFICATION.md ===
+# FEATURE: Release Verification
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Defines the terminal verification of the completed Quakes application against the supplied grader. |
+| Depends On  | FEATURE-CLI.md, FEATURE-EVENT-DATA.md, FEATURE-FETCH.md, FEATURE-SUMMARY.md, FEATURE-TOP.md, FEATURE-DAILY.md, FEATURE-REGIONS.md, FEATURE-NEAR.md, FEATURE-TEST-RUNNER.md |
+| Provides    | Full application conformance verification |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Run the supplied grader only after all implementation and test-runner stories are complete. It is the terminal, full-project conformance gate. The grader exercises the report commands against the frozen snapshot, including expected operational and usage failures. It does not test `fetch` or use the network.
+
+## Verification
+
+Run `sh sources/run.sh` from the completed application root. Do not modify the grader or snapshot. A zero exit status means every grader check passed.
+
+## Programmatic Acceptance
+
+=== AC full-conformance ===
+Intent: The supplied grader passes all 26 checks against its frozen snapshot.
+Suite: full
+
+import subprocess
+
+result = subprocess.run(
+    ["sh", "sources/run.sh"],
+    capture_output=True,
+    text=True,
+)
+print(result.stdout)
+print(result.stderr)
+assert result.returncode == 0
+=== END AC full-conformance ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Do not modify, rewrite, regenerate, or substitute any file under `sources/`.
+- Do not have application code read `sources/run.sh` or hardcode grader answers.
+- This verification runs only after the implementation and project test-runner stories have closed.
+- The grader exit status is the full release verification verdict.
+=== END ARTIFACT

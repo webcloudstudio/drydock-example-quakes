@@ -1,0 +1,452 @@
+=== BEGIN ARTIFACT FEATURE-SUMMARY.md ===
+# FEATURE: Earthquake Summary Report
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Computes a CSV summary of earthquake events from a saved GeoJSON file. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CLI.md, FEATURE-EVENT-DATA.md |
+| Provides    | quakes summary |
+| Consumes    | event loading, magnitude filtering |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Report the event count, earliest and latest event times, magnitude range and mean, and tsunami count for the events in a saved GeoJSON FeatureCollection. Apply the shared `--min-mag` filter before calculating any values.
+
+## Workflow
+
+1. Parse `summary [--min-mag <m>] <file>` through the CLI.
+2. Load and normalize events using the shared event data behavior.
+3. Exclude null-magnitude events and keep events whose magnitude is at least the selected minimum.
+4. Write the summary as CSV to standard output.
+
+## CSV contract
+
+Header: `events,first,last,min_mag,max_mag,mean_mag,tsunami`
+
+Write exactly one data row. Format event times as UTC `YYYY-MM-DDTHH:MM:SSZ`; magnitudes with one decimal place; mean magnitude with two decimal places, rounded half up. Count tsunami events whose tsunami value is `1`. If no events match, write `0,,,,,,0`. Write CSV with `\n` line endings using Python's `csv` module.
+
+A failure writes no standard output and one diagnostic line to standard error. Operational file failures exit `1`; malformed command usage exits `2`.
+
+## Programmatic Acceptance
+
+=== AC summary-empty ===
+Intent: An empty filtered event set produces a successful summary command and one data row.
+import csv
+import io
+from pathlib import Path
+from cli.testing import cli_runner
+
+path = Path("summary-empty.geojson")
+path.write_text('{"type":"FeatureCollection","features":[]}', encoding="utf-8")
+code, out, err = cli_runner("summary", "--min-mag", "9", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert len(rows) == 2
+assert rows[1][0] == "0"
+assert rows[1][1:6] == [""] * 5
+assert rows[1][6] == "0"
+=== END AC summary-empty ===
+
+=== AC summary-filter ===
+Intent: The summary counts only events meeting its supplied magnitude threshold.
+import csv
+import io
+from pathlib import Path
+from cli.testing import cli_runner
+
+features = [
+    {"type": "Feature", "id": "below", "properties": {"mag": 4.9, "place": "A", "time": 1735689600000, "tsunami": 1}, "geometry": {"coordinates": [0, 0, 10]}},
+    {"type": "Feature", "id": "kept", "properties": {"mag": 5.0, "place": "B", "time": 1735689600000, "tsunami": 1}, "geometry": {"coordinates": [0, 0, 10]}},
+]
+path = Path("summary-filter.geojson")
+path.write_text(__import__("json").dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+code, out, err = cli_runner("summary", "--min-mag", "5.0", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows[1][0] == "1"
+assert rows[1][3:5] == ["5.0", "5.0"]
+assert rows[1][6] == "1"
+=== END AC summary-filter ===
+
+=== AC summary-invalid-file ===
+Intent: An unreadable or invalid GeoJSON input returns the operational failure status.
+from cli.testing import cli_runner
+
+code, out, err = cli_runner("summary", "summary-no-such-file.geojson")
+assert code == 1
+assert out == ""
+=== END AC summary-invalid-file ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Derive all reported values from the supplied file; do not embed report rows, counts, or answers.
+- Do not read or modify the supplied grader or frozen snapshot from application code.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-TOP.md ===
+# FEATURE: Largest Earthquake Events
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Lists the largest earthquake events as CSV ordered by magnitude and time. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CLI.md, FEATURE-EVENT-DATA.md |
+| Provides    | quakes top |
+| Consumes    | event loading, magnitude filtering |
+
+## Questions
+
+- None.
+
+## Purpose
+
+List up to the requested number of largest events from a saved GeoJSON FeatureCollection. Apply the shared `--min-mag` filter first.
+
+## Workflow
+
+1. Parse `top [--min-mag <m>] [--n <count>] <file>` through the CLI.
+2. Load and normalize events using the shared event data behavior.
+3. Exclude null-magnitude events and filter to magnitudes at or above the requested minimum.
+4. Sort by magnitude descending, then event time ascending.
+5. Return at most `--n` rows, defaulting to 10.
+
+## CSV contract
+
+Header: `time,mag,depth_km,place,id`
+
+Times use UTC `YYYY-MM-DDTHH:MM:SSZ`, magnitudes and depths use one decimal place, rounded half up. CSV uses `\n` line endings and Python's `csv` module.
+
+A failure writes no standard output and one diagnostic line to standard error. Operational file failures exit `1`; malformed command usage exits `2`.
+
+## Programmatic Acceptance
+
+=== AC top-count ===
+Intent: The top command limits its output to the supplied positive count.
+import csv
+import io
+import json
+from pathlib import Path
+from cli.testing import cli_runner
+
+features = []
+for ident, mag, stamp in [("first", 6.0, 1735689600000), ("second", 7.0, 1735689700000), ("third", 5.0, 1735689800000)]:
+    features.append({"type": "Feature", "id": ident, "properties": {"mag": mag, "place": ident, "time": stamp, "tsunami": 0}, "geometry": {"coordinates": [0, 0, 10]}})
+path = Path("top-count.geojson")
+path.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+code, out, err = cli_runner("top", "--n", "2", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert len(rows) == 3
+assert [row[4] for row in rows[1:]] == ["second", "first"]
+=== END AC top-count ===
+
+=== AC top-order-filter ===
+Intent: The top command orders by descending magnitude and applies the supplied filter.
+import csv
+import io
+import json
+from pathlib import Path
+from cli.testing import cli_runner
+
+features = [
+    {"type": "Feature", "id": "lower", "properties": {"mag": 4.9, "place": "lower", "time": 1735689600000}, "geometry": {"coordinates": [0, 0, 10]}},
+    {"type": "Feature", "id": "higher", "properties": {"mag": 5.1, "place": "higher", "time": 1735689700000}, "geometry": {"coordinates": [0, 0, 10]}},
+]
+path = Path("top-filter.geojson")
+path.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+code, out, err = cli_runner("top", "--min-mag", "5.0", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows[1][4] == "higher"
+assert len(rows) == 2
+=== END AC top-order-filter ===
+
+=== AC top-empty ===
+Intent: A valid file with no events returns a header-only top report.
+import csv
+import io
+from pathlib import Path
+from cli.testing import cli_runner
+
+path = Path("top-empty.geojson")
+path.write_text('{"type":"FeatureCollection","features":[]}', encoding="utf-8")
+code, out, err = cli_runner("top", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert len(rows) == 1
+assert rows[0] == ["time", "mag", "depth_km", "place", "id"]
+=== END AC summary-empty ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Compute rankings from the input events; never hardcode a ranked row or report answer.
+- Do not read or modify the supplied grader or frozen snapshot from application code.
+=== END ARTIFACT=== BEGIN ARTIFACT FEATURE-DAILY.md ===
+# FEATURE: Earthquakes by Day
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Reports earthquake counts and maximum magnitudes for each UTC date. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CLI.md, FEATURE-EVENT-DATA.md |
+| Provides    | quakes daily |
+| Consumes    | event loading, magnitude filtering |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Group qualifying events by their UTC calendar date and report each day's count and maximum magnitude.
+
+## Workflow
+
+1. Parse `daily [--min-mag <m>] <file>` through the CLI.
+2. Load and normalize events using shared event data behavior.
+3. Exclude null-magnitude events and apply the shared `--min-mag` threshold.
+4. Group events by the first ten characters of their normalized UTC timestamp.
+5. Output date rows in ascending date order, followed by the `TOTAL` row.
+
+## CSV contract
+
+Header: `date,events,max_mag`
+
+Each date row contains its event count and maximum magnitude, with magnitude to one decimal place rounded half up. The total row is `TOTAL,<events>,<max_mag>`. With no events, the total maximum magnitude is empty: `TOTAL,0,`. Use Python's `csv` module and `\n` line endings.
+
+Operational file failures exit `1`; usage errors exit `2`. Failures produce no stdout and one diagnostic line on stderr.
+
+## Programmatic Acceptance
+
+=== AC daily-groups ===
+Intent: Daily output groups events by UTC date and reports counts and maximum magnitudes.
+import csv
+import io
+import json
+from pathlib import Path
+from cli.testing import cli_runner
+
+features = []
+for ident, stamp, mag in [("a", 1735689600000, 5.0), ("b", 1735693200000, 6.0), ("c", 1735776000000, 4.0)]:
+    features.append({"type": "Feature", "id": ident, "properties": {"mag": mag, "place": ident, "time": stamp}, "geometry": {"coordinates": [0, 0, 1]}})
+path = Path("daily-groups.geojson")
+path.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+code, out, err = cli_runner("daily", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert [row[0] for row in rows[1:-1]] == ["2025-01-01", "2025-01-02"]
+assert [row[1] for row in rows[1:-1]] == ["2", "1"]
+assert [row[2] for row in rows[1:-1]] == ["6.0", "4.0"]
+assert rows[-1][0] == "TOTAL"
+assert rows[-1][1] == "3"
+=== END AC daily-groups ===
+
+=== AC daily-filter-empty ===
+Intent: The magnitude filter can produce an empty daily result with the documented total row.
+import csv
+import io
+from pathlib import Path
+from cli.testing import cli_runner
+
+path = Path("daily-empty.geojson")
+path.write_text('{"type":"FeatureCollection","features":[]}', encoding="utf-8")
+code, out, err = cli_runner("daily", "--min-mag", "9", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows[-1][0] == "TOTAL"
+assert rows[-1][1] == "0"
+assert rows[-1][2] == ""
+=== END AC=== BEGIN ARTIFACT FEATURE-REGIONS.md ===
+# FEATURE: Events by Region
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Summarizes earthquake event counts and maximum magnitudes by region. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CLI.md, FEATURE-EVENT-DATA.md |
+| Provides    | quakes regions |
+| Consumes    | event loading, magnitude filtering |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Group qualifying events by their normalized region and report count and maximum magnitude for each region.
+
+## Workflow
+
+1. Parse `regions [--min-mag <m>] <file>` through the CLI.
+2. Load and normalize events using shared event data behavior.
+3. Exclude null-magnitude events and apply the shared magnitude threshold.
+4. Group by normalized region.
+5. Order regions by event count descending, then region ascending.
+
+## CSV contract
+
+Header: `region,events,max_mag`
+
+Each row contains region name, event count, and maximum magnitude to one decimal place rounded half up. Use Python's `csv` module and `\n` line endings. Region extraction follows FEATURE-EVENT-DATA.md; null place becomes `Unknown`.
+
+Operational failures exit `1`; usage failures exit `2`. Failures produce no stdout and one diagnostic line on stderr.
+
+## Programmatic Acceptance
+
+=== AC regions-groups ===
+Intent: The regions report aggregates by normalized region and orders ties by region name.
+import csv
+import io
+import json
+from pathlib import Path
+from cli.testing import cli_runner
+
+features = []
+for ident, place, mag in [("a", "Place A, Zeta", 5.0), ("b", "Place B, Alpha", 6.0), ("c", "Other, Zeta", 5.5)]:
+    features.append({"type": "Feature", "id": ident, "properties": {"mag": mag, "place": place, "time": 1735689600000}, "geometry": {"coordinates": [0, 0, 1]}})
+path = Path("regions-groups.geojson")
+path.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+code, out, err = cli_runner("regions", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert [row[0] for row in rows[1:]] == ["Zeta", "Alpha"]
+=== END AC regions-groups ===
+
+=== AC regions-filter ===
+Intent: The shared magnitude filter limits events included in region counts.
+import csv
+import io
+import json
+from pathlib import Path
+from cli.testing import cli_runner
+
+features = []
+for ident, place, mag in [("a", "Town, Area", 4.0), ("b", "City, Area", 5.0)]:
+    features.append({"type": "Feature", "id": ident, "properties": {"mag": mag, "place": place, "time": 1735689600000}, "geometry": {"coordinates": [0, 0, 1]}})
+path = Path("regions-filter.geojson")
+path.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+code, out, err = cli_runner("regions", "--min-mag", "5.0", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert len(rows) == 2
+assert rows[1][1] == "1"
+=== END AC ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Derive region groups and maxima from the supplied event file.
+- Do not read or modify the supplied grader or frozen snapshot from application code.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-NEAR.md ===
+# FEATURE: Events Near a Point
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Finds earthquake events within a specified haversine radius of a point. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CLI.md, FEATURE-EVENT-DATA.md |
+| Provides    | quakes near |
+| Consumes    | event loading, magnitude filtering |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Find qualifying earthquake events within a supplied radius of a latitude and longitude, inclusive, and sort them by increasing distance then event time.
+
+## Workflow
+
+1. Parse `near --lat <deg> --lon <deg> --radius <km> [--min-mag <m>] <file>` through the CLI.
+2. Validate latitude from -90 through 90, longitude from -180 through 180, and require radius greater than zero.
+3. Load and normalize events using shared event data behavior, excluding null magnitudes and applying the shared magnitude filter.
+4. Compute haversine distance in kilometers on a 6371.0 km sphere.
+5. Include events whose distance is at most the requested radius, ordered by distance ascending, then time ascending.
+6. Write matching rows as CSV.
+
+## Distance
+
+For event coordinates `(lon2, lat2)` and query point `(lon1, lat1)`, convert angles to radians and compute:
+
+`h = sin²((lat2 − lat1) / 2) + cos(lat1) · cos(lat2) · sin²((lon2 − lon1) / 2)`
+
+`d = 2 · 6371.0 · asin(√h)`
+
+Clamp floating point `h` to `[0, 1]` before square root.
+
+## CSV contract
+
+Header: `distance_km,time,mag,place,id`
+
+Format distance and magnitude to one decimal place, rounded half up; format time as UTC `YYYY-MM-DDTHH:MM:SSZ`. Use Python's `csv` module and `\n` line endings.
+
+A successful query with no matches returns the header only. Operational file errors exit `1`; usage errors exit `2`. Failures produce no stdout and one diagnostic line on stderr.
+
+## Programmatic Acceptance
+
+=== AC near-radius ===
+Intent: Near reports events within the inclusive supplied radius, ordered nearest first.
+import csv
+import io
+import json
+from pathlib import Path
+from cli.testing import cli_runner
+
+features = [
+    {"type": "Feature", "id": "origin", "properties": {"mag": 5.0, "place": "origin", "time": 1735689600000}, "geometry": {"coordinates": [0, 0, 1]}},
+    {"type": "Feature", "id": "east", "properties": {"mag": 5.0, "place": "east", "time": 1735689601000}, "geometry": {"coordinates": [1, 0, 1]}},
+    {"type": "Feature", "id": "far", "properties": {"mag": 5.0, "place": "far", "time": 1735689602000}, "geometry": {"coordinates": [3, 0, 1]}},
+]
+path = Path("near-radius.geojson")
+path.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+code, out, err = cli_runner("near", "--lat", "0", "--lon", "0", "--radius", "112", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert [row[4] for row in rows[1:]] == ["origin", "east"]
+=== END AC ===
+
+=== AC near-filter-empty ===
+Intent: Near applies magnitude filtering and returns header only when nothing qualifies.
+import csv
+import io
+import json
+from pathlib import Path
+from cli.testing import cli_runner
+
+features = [{"type": "Feature", "id": "small", "properties": {"mag": 4.0, "place": "small", "time": 1735689600000}, "geometry": {"coordinates": [0, 0, 1]}}]
+path = Path("near-empty.geojson")
+path.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+code, out, err = cli_runner("near", "--lat", "0", "--lon", "0", "--radius", "10", "--min-mag", "5", str(path))
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert len(rows) == 1
+assert rows[0] == ["distance_km", "time", "mag", "place", "id"]
+=== END AC ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Use the specified haversine formula and Earth radius of 6371.0 km.
+- Derive distances from event coordinates and the requested point; never embed distances or ranked rows.
+- Do not read or modify the supplied grader or frozen snapshot from application code.
+=== END ARTIFACT

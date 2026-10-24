@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/provider_raw/20261024.054955.852Z_quakes_plan_codex.raw.jsonl</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/provider_raw/20261024.054955.852Z_quakes_plan_codex.raw.jsonl</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/provider_raw/20261024.054955.852Z_quakes_plan_codex.raw.jsonl">Raw file</a></div></header>
+<article class="doc"><pre>{&quot;type&quot;:&quot;thread.started&quot;,&quot;thread_id&quot;:&quot;01a16c75-680f-7573-980b-9668d01b2c38&quot;}
+{&quot;type&quot;:&quot;turn.started&quot;}
+{&quot;type&quot;:&quot;item.completed&quot;,&quot;item&quot;:{&quot;id&quot;:&quot;item_0&quot;,&quot;type&quot;:&quot;agent_message&quot;,&quot;text&quot;:&quot;=== BEGIN ARTIFACT VERIFICATION.md ===\n# FEATURE: Release Verification\n\n| Field       | Value |\n|-------------|-------|\n| Version     | 20261024 V1 |\n| Description | Defines the terminal verification of the completed Quakes application against the supplied grader. |\n| Depends On  | FEATURE-CLI.md, FEATURE-EVENT-DATA.md, FEATURE-FETCH.md, FEATURE-SUMMARY.md, FEATURE-TOP.md, FEATURE-DAILY.md, FEATURE-REGIONS.md, FEATURE-NEAR.md, FEATURE-TEST-RUNNER.md |\n| Provides    | Full application conformance verification |\n\n## Questions\n\n- None.\n\n## Purpose\n\nRun the supplied grader only after all implementation and test-runner stories are complete. It is the terminal, full-project conformance gate. The grader exercises the report commands against the frozen snapshot, including expected operational and usage failures. It does not test `fetch` or use the network.\n\n## Verification\n\nRun `sh sources/run.sh` from the completed application root. Do not modify the grader or snapshot. A zero exit status means every grader check passed.\n\n## Programmatic Acceptance\n\n=== AC full-conformance ===\nIntent: The supplied grader passes all 26 checks against its frozen snapshot.\nSuite: full\n\nimport subprocess\n\nresult = subprocess.run(\n    [\&quot;sh\&quot;, \&quot;sources/run.sh\&quot;],\n    capture_output=True,\n    text=True,\n)\nprint(result.stdout)\nprint(result.stderr)\nassert result.returncode == 0\n=== END AC full-conformance ===\n\n## User Acceptance\n\n- None.\n\n## Guardrails\n\n- Do not modify, rewrite, regenerate, or substitute any file under `sources/`.\n- Do not have application code read `sources/run.sh` or hardcode grader answers.\n- This verification runs only after the implementation and project test-runner stories have closed.\n- The grader exit status is the full release verification verdict.\n=== END ARTIFACT&quot;}}
+{&quot;type&quot;:&quot;turn.completed&quot;,&quot;usage&quot;:{&quot;input_tokens&quot;:61999,&quot;cached_input_tokens&quot;:11520,&quot;cache_write_input_tokens&quot;:0,&quot;output_tokens&quot;:393,&quot;reasoning_output_tokens&quot;:0}}
+</pre></article>
+</main>
+</body>
+</html>

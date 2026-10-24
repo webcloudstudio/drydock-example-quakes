@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/provider_raw/20261024.054949.015Z_quakes_plan_codex.raw.jsonl</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/provider_raw/20261024.054949.015Z_quakes_plan_codex.raw.jsonl</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/provider_raw/20261024.054949.015Z_quakes_plan_codex.raw.jsonl">Raw file</a></div></header>
+<article class="doc"><pre>{&quot;type&quot;:&quot;thread.started&quot;,&quot;thread_id&quot;:&quot;01a16c75-4db3-73f3-b2fb-43c58604cf34&quot;}
+{&quot;type&quot;:&quot;turn.started&quot;}
+{&quot;type&quot;:&quot;item.completed&quot;,&quot;item&quot;:{&quot;id&quot;:&quot;item_0&quot;,&quot;type&quot;:&quot;agent_message&quot;,&quot;text&quot;:&quot;=== BEGIN ARTIFACT VERIFICATION.md ===\n# FEATURE: Release Verification\n\n| Field       | Value |\n|-------------|-------|\n| Version     | 20261024 V1 |\n| Description | Defines the terminal verification of the completed Quakes application against the supplied grader. |\n| Depends On  | FEATURE-CLI.md, FEATURE-EVENT-DATA.md, FEATURE-FETCH.md, FEATURE-SUMMARY.md, FEATURE-TOP.md, FEATURE-DAILY.md, FEATURE-REGIONS.md, FEATURE-NEAR.md, FEATURE-TEST-RUNNER.md |\n| Provides    | Full conformance verification |\n| Consumes    | `sh sources/run.sh`, `bin/test.sh` |\n\n## Questions\n\n- None.\n\n## Purpose\n\nThis is the terminal verification story. After every implementation and test-runner story is complete, run the supplied grader from the application root. Its exit status is the acceptance verdict. The grader and frozen snapshot are staged under `sources/` and must remain unchanged.\n\n## Verification\n\n- Run `sh sources/run.sh` from the completed application root.\n- The executable must be available as `./quakes`.\n- The grader checks report behavior against its frozen snapshot and exits successfully only when every check passes.\n- Do not modify application behavior or the grader as part of this verification story; fix implementation defects in their owning feature stories.\n\n## Programmatic Acceptance\n\n=== AC supplied-grader ===\nIntent: The supplied grader passes against the completed application.\n\nimport subprocess\n\nresult = subprocess.run(\n    [\&quot;sh\&quot;, \&quot;sources/run.sh\&quot;],\n    capture_output=True,\n    text=True,\n)\nprint(result.stdout)\nprint(result.stderr)\nassert result.returncode == 0\n=== END AC supplied-grader ===\n\n## User Acceptance\n\n- None.\n\n## Guardrails\n\n- Do not modify, rewrite, regenerate, or substitute `sources/run.sh` or `sources/quakes_2025-01-01_07.geojson`.\n- Application code must compute report values from the supplied GeoJSON and must not read the grader or embed report answers.\n=== END ARTIFACT&quot;}}
+{&quot;type&quot;:&quot;turn.completed&quot;,&quot;usage&quot;:{&quot;input_tokens&quot;:61999,&quot;cached_input_tokens&quot;:11520,&quot;cache_write_input_tokens&quot;:0,&quot;output_tokens&quot;:426,&quot;reasoning_output_tokens&quot;:0}}
+</pre></article>
+</main>
+</body>
+</html>

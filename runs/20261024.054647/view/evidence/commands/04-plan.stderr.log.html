@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/commands/04-plan.stderr.log</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/commands/04-plan.stderr.log</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/commands/04-plan.stderr.log">Raw file</a></div></header>
+<article class="doc"><pre>========================================================================
+POST-LLM FAILURE  ·  plan  ·  plan generation stalled
+========================================================================
+
+  Blueprint generation stalled after TOPOLOGY.md was accepted and
+  frozen, after 7 Stage 2 pass(es).
+  topology:  1  (11 stories declared)
+  specs:     10 / 11  accepted
+  manifest:  0  (not serialized)
+  missing:   accept-001 -&gt; VERIFICATION.md
+    last rejection: the response completed no Current batch Blueprint
+    execution ids: 20261024.054730.799Z-19528cd6, 20261024.054756.822Z-269da073, 20261024.054837.406Z-dd33d6bb, 20261024.054908.034Z-c1041b5d, 20261024.054934.288Z-3c41c275, 20261024.054942.649Z-6dbb6bf7, 20261024.054949.015Z-b7cc047c, 20261024.054955.852Z-820d4d0a
+    No Blueprint or Manifest artifacts were written.
+
+  Recovery
+    Inspect the failed Stage 2 batch, then run: drydock plan Quakes
+
+========================================================================
+</pre></article>
+</main>
+</body>
+</html>

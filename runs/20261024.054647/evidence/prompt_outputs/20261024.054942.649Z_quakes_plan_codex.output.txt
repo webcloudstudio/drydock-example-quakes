@@ -1,0 +1,50 @@
+=== BEGIN ARTIFACT VERIFICATION.md ===
+# FEATURE: Release Verification
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Defines the terminal conformance check for the completed Quakes application. |
+| Depends On  | FEATURE-CLI.md, FEATURE-EVENT-DATA.md, FEATURE-FETCH.md, FEATURE-SUMMARY.md, FEATURE-TOP.md, FEATURE-DAILY.md, FEATURE-REGIONS.md, FEATURE-NEAR.md, FEATURE-TEST-RUNNER.md |
+| Provides    | supplied Quakes conformance verification |
+| Consumes    | quakes summary, quakes top, quakes daily, quakes regions, quakes near |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Run the supplied grader after all implementation and test-runner stories have completed. It checks the five report commands against the frozen USGS snapshot and determines whether the completed application conforms.
+
+## Verification
+
+The grader is staged at `sources/run.sh`; the snapshot is staged alongside it. Run it from the application root with `sh sources/run.sh`. Do not modify or replace either staged asset. The grader checks exit codes and standard output for its 26 cases; standard error is diagnostic only. Fetch is not exercised by this grader.
+
+## Programmatic Acceptance
+
+=== AC full-conformance ===
+Intent: The supplied grader passes all 26 conformance cases for the completed application.
+Suite: full
+
+import subprocess
+
+result = subprocess.run(
+    ["sh", "sources/run.sh"],
+    capture_output=True,
+    text=True,
+)
+print(result.stdout)
+print(result.stderr)
+assert result.returncode == 0
+=== END AC full-conformance ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Do not modify, rewrite, regenerate, or substitute any file under `sources/`.
+- Application code must not read `sources/run.sh` or hardcode report answers.
+=== END ARTIFACT

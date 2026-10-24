@@ -1,0 +1,130 @@
+{
+  "acceptance_status": "NOT_RUN",
+  "assertions": {
+    "failed": 0,
+    "harness_defects": 0,
+    "passed": 0,
+    "product_defects": 0,
+    "unverified": 0
+  },
+  "attestations": [],
+  "build_passes": 0,
+  "commands": [
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "init",
+        "Quakes"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 2334,
+      "label": "01-init",
+      "llm_executions": [],
+      "returncode": 0,
+      "stderr_path": "evidence/commands/01-init.stderr.log",
+      "stdout_path": "evidence/commands/01-init.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "import",
+        "Quakes",
+        "sources",
+        "--format",
+        "markdown"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 5608,
+      "label": "02-import-sources",
+      "llm_executions": [],
+      "returncode": 0,
+      "stderr_path": "evidence/commands/02-import-sources.stderr.log",
+      "stdout_path": "evidence/commands/02-import-sources.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "analyze",
+        "Quakes"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 33017,
+      "label": "03-analyze",
+      "llm_executions": [
+        "20261024.054656.819Z-d29213f6"
+      ],
+      "returncode": 0,
+      "stderr_path": "evidence/commands/03-analyze.stderr.log",
+      "stdout_path": "evidence/commands/03-analyze.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "plan",
+        "Quakes",
+        "--override"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 153251,
+      "label": "04-plan",
+      "llm_executions": [
+        "20261024.054730.799Z-19528cd6",
+        "20261024.054756.822Z-269da073",
+        "20261024.054837.406Z-dd33d6bb",
+        "20261024.054908.034Z-c1041b5d",
+        "20261024.054934.288Z-3c41c275",
+        "20261024.054942.649Z-6dbb6bf7",
+        "20261024.054949.015Z-b7cc047c",
+        "20261024.054955.852Z-820d4d0a"
+      ],
+      "returncode": 1,
+      "stderr_path": "evidence/commands/04-plan.stderr.log",
+      "stdout_path": "evidence/commands/04-plan.stdout.log"
+    }
+  ],
+  "degraded": [],
+  "elapsed_ms": 197518,
+  "environment": {
+    "drydock_version": "0.8.0",
+    "effort": "",
+    "finished_at": "2026-10-24T05:50:05.073359Z",
+    "git_commit": "20f9d392af1aef4fdabdd72d79158baac77fa7ac",
+    "model": "gpt-6-luna",
+    "plan_model": "",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+    "provider": "codex",
+    "python_version": "3.12.13",
+    "requested_model": "gpt-6-luna",
+    "started_at": "2026-10-24T05:46:47.513734Z"
+  },
+  "error": "Quakes: plan exited 1",
+  "evidence_dir": "evidence",
+  "execution_status": "ERROR",
+  "expected_verdict": "PASSED",
+  "fixture": "Quakes",
+  "observed_verdict": "ERROR",
+  "output_dir": ".",
+  "release_verdict": "",
+  "resumed_from": "",
+  "run_id": "20261024.054647",
+  "score_exit_codes": {},
+  "status": "failed",
+  "target": "Quakes",
+  "usage": {
+    "cached_input_tokens": 103680,
+    "calls": 9,
+    "fresh_input_tokens": 430972,
+    "input_tokens": 534652,
+    "invalid_records": 0,
+    "llm_elapsed_ms": 179904,
+    "output_tokens": 20555
+  }
+}

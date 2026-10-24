@@ -1,0 +1,5 @@
+{"label": "INITIALIZED", "result": "pass", "at": "2026-10-24T05:46:49.378+00:00", "detail": "", "command": "drydock init Quakes", "attempts": 1}
+{"label": "IMPORTED", "result": "pass", "at": "2026-10-24T05:46:54.925+00:00", "detail": "", "command": "drydock import Quakes", "attempts": 1}
+{"label": "ANALYZED", "result": "pass", "at": "2026-10-24T05:47:27.829+00:00", "detail": "", "command": "drydock analyze Quakes", "attempts": 1}
+{"label": "PLAN CREATED", "result": "fail", "at": "2026-10-24T05:50:02.239+00:00", "detail": "plan generation stalled", "command": "drydock plan Quakes", "attempts": 1}
+{"state": "PLAN CREATED", "result": "fail", "at": "2026-10-24T05:50:02.239+00:00", "attempts": 1}

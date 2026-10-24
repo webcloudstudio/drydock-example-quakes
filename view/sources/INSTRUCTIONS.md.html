@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sources/INSTRUCTIONS.md</title>
+<link rel="stylesheet" href="../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Project document</div><h1>sources/INSTRUCTIONS.md</h1><div class="filenav"><a href="../../index.html">&larr; Report</a><a href="../../sources/INSTRUCTIONS.md">Raw file</a></div></header>
+<article class="doc"><h1>Build Instructions: An Earthquake Feed Reporter</h1>
+<h2>Objective</h2>
+<p>Build a command-line tool that downloads earthquake data from the United States Geological Survey (USGS) and reports on it. <code>quakes fetch</code> saves a period of the USGS event feed as a GeoJSON file. Five report commands then read a saved file and answer common questions: how many events and how strong, the largest events, events per day, the most active regions, and the events within a distance of a point.</p>
+<h2>Stack</h2>
+<p>Implement in Python 3.11 or newer using only the standard library (<code>urllib.request</code> for HTTP). Tests run under pytest. The product is an executable named <code>quakes</code> at the application root.</p>
+<h2>Run Harness</h2>
+<p><code>sources/run.sh</code> is the scoring entry point. It is supplied, not authored, and is staged verbatim into the application root with the snapshot. <code>drydock uat</code> runs <code>sh sources/run.sh</code> from the completed application root and takes its exit code and output as the score.</p>
+<p>The harness runs 26 checks of the report commands against the frozen snapshot. It never runs <code>fetch</code> and uses no network. Each check compares one command&#x27;s exit code and standard output with a known answer. Standard error is never compared. The harness prints <code>PASS</code> or <code>FAIL</code> per check and ends with:</p>
+<pre><code>Quakes: NN passed, NN failed (of 26)</code></pre>
+<h2>Read-only scoring assets</h2>
+<p>These files are the exam. Do not modify, rewrite, regenerate, or substitute them:</p>
+<ul><li><code>sources/run.sh</code> — the scoring entry point and its known answers</li><li><code>sources/quakes_2025-01-01_07.geojson</code> — a frozen USGS snapshot: the 44 events of magnitude 5.0</li></ul>
+<p>or greater from 2025-01-01 through 2025-01-07 UTC, one feature per line</p>
+<p>Application code never reads <code>sources/run.sh</code> and never embeds a report answer. Every value is computed from the file it is given.</p>
+<h2>Commands</h2>
+<pre><code>quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;
+quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;
+quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;
+quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;
+quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;
+quakes near --lat &lt;deg&gt; --lon &lt;deg&gt; --radius &lt;km&gt; [--min-mag &lt;m&gt;] &lt;file&gt;</code></pre>
+<p>The command comes first, options follow it in any order, and the file is last. An option that the command does not list is a usage error. <code>&lt;m&gt;</code>, <code>&lt;deg&gt;</code>, and <code>&lt;km&gt;</code> are decimals matching <code>-?[0-9]+(\.[0-9]+)?</code>. <code>&lt;count&gt;</code> is a positive integer, default <code>10</code>.</p>
+<h3>fetch</h3>
+<p><code>fetch</code> requests <code>https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&amp;starttime=&lt;start&gt;&amp;endtime=&lt;end&gt;&amp;minmagnitude=&lt;m&gt;&amp;orderby=time-asc</code> (<code>--min-mag</code> defaults to <code>2.5</code>) and writes the response body unchanged to <code>&lt;file&gt;</code>. It writes <code>fetched,&lt;count&gt;</code> to standard output, where <code>&lt;count&gt;</code> is the number of features. A network error, an HTTP status other than 200, or a body that is not a GeoJSON FeatureCollection is an operational failure, and no file is written. Tests of <code>fetch</code> replace the HTTP call with a stub; they never use the network.</p>
+<h2>Reading a file</h2>
+<ol><li>The file is a GeoJSON <code>FeatureCollection</code> as the USGS feed returns it. A file that cannot be</li></ol>
+<p>read, is not JSON, or is not an object with <code>&quot;type&quot;: &quot;FeatureCollection&quot;</code> and a <code>features</code> array is an operational failure.</p>
+<ol><li>Each feature is one event. The tool reads <code>id</code>, <code>properties.mag</code>, <code>properties.place</code>,</li></ol>
+<p><code>properties.time</code> (milliseconds since the Unix epoch), <code>properties.tsunami</code> (<code>1</code> or <code>0</code>), and <code>geometry.coordinates</code> (<code>[longitude, latitude, depth_km]</code>). Every other field is ignored.</p>
+<ol><li>A feature whose <code>mag</code> is <code>null</code> is excluded from every report.</li><li><code>--min-mag &lt;m&gt;</code> keeps only events with <code>mag &gt;= m</code>. It applies to every report.</li><li><strong>Time</strong> is written in UTC as <code>YYYY-MM-DDTHH:MM:SSZ</code>, truncated to whole seconds. An event&#x27;s</li></ol>
+<p>date is the first 10 characters.</p>
+<ol><li><strong>Region</strong> is the text after the last <code>,</code> (comma, space) in <code>place</code>, or the whole of <code>place</code></li></ol>
+<p>when it has none. A <code>null</code> place is <code>Unknown</code>, which is also its region.</p>
+<h2>Formatting</h2>
+<ul><li>Magnitudes are written with one decimal place: <code>5.0</code>, <code>7.1</code>.</li><li><code>mean_mag</code> is written with two decimal places, rounded half up.</li><li><code>depth_km</code> and <code>distance_km</code> are written with one decimal place, rounded half up.</li><li>Text is compared by byte value.</li><li>Output is CSV on standard output with <code>\n</code> line endings, written with Python&#x27;s <code>csv</code> module, so</li></ul>
+<p>a place containing a comma is quoted. Place names contain non-ASCII characters and are written as UTF-8.</p>
+<h2>Reports</h2>
+<div class="scroll"><table><thead><tr><th>Command</th><th>Header</th><th>Rows</th></tr></thead><tbody><tr><td><code>summary</code></td><td><code>events,first,last,min_mag,max_mag,mean_mag,tsunami</code></td><td>One row. <code>first</code> and <code>last</code> are the earliest and latest event times. <code>tsunami</code> counts events with <code>tsunami</code> equal to <code>1</code>. With no events: <code>0,,,,,,0</code>.</td></tr><tr><td><code>top</code></td><td><code>time,mag,depth_km,place,id</code></td><td>The <code>--n</code> largest events, by <code>mag</code> descending, then time ascending.</td></tr><tr><td><code>daily</code></td><td><code>date,events,max_mag</code></td><td>One row per date that has events, ascending, then <code>TOTAL,&lt;events&gt;,&lt;max_mag&gt;</code>. With no events, the max is empty: <code>TOTAL,0,</code>.</td></tr><tr><td><code>regions</code></td><td><code>region,events,max_mag</code></td><td>One row per region, by events descending, then region ascending.</td></tr><tr><td><code>near</code></td><td><code>distance_km,time,mag,place,id</code></td><td>Events whose distance from (<code>--lat</code>, <code>--lon</code>) is at most <code>--radius</code> km, by distance ascending, then time ascending.</td></tr></tbody></table></div>
+<p><strong>Distance</strong> is the haversine great-circle distance on a sphere of radius 6371.0 km:</p>
+<pre><code>h = sin²((lat2 − lat1) / 2) + cos(lat1) · cos(lat2) · sin²((lon2 − lon1) / 2)
+d = 2 · 6371.0 · asin(√h)          (angles in radians)</code></pre>
+<p>A failing command writes nothing to standard output and one diagnostic line to standard error.</p>
+<h2>Exit codes</h2>
+<div class="scroll"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody><tr><td><code>0</code></td><td>Success, including a report with no matching events.</td></tr><tr><td><code>1</code></td><td>Operational failure: file unreadable or not a FeatureCollection; <code>fetch</code> network or HTTP failure.</td></tr><tr><td><code>2</code></td><td>Usage error: unknown command or option, an option the command does not take, missing or malformed value, <code>--lat</code> outside −90 to 90, <code>--lon</code> outside −180 to 180, <code>--radius</code> not positive, <code>near</code> without all three of <code>--lat</code>, <code>--lon</code>, and <code>--radius</code>, missing or extra file.</td></tr></tbody></table></div>
+<h2>Tests</h2>
+<p>The completed application provides a POSIX-compatible <code>bin/test.sh</code> that runs its own pytest suite from the application root and exits zero only when every test passes. The suite covers each report, each option, the region and distance rules, <code>fetch</code> against a stubbed HTTP response, and each exit code, using files written by the tests.</p></article>
+</main>
+</body>
+</html>
