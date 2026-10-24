@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Near.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Near.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Near.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Near Earthquake Events</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Finds saved earthquake events within a requested distance of a point.</td></tr><tr><td>Depends On</td><td>ARCHITECTURE.md</td></tr><tr><td>Provides</td><td>quakes near</td></tr><tr><td>Consumes</td><td>saved GeoJSON FeatureCollection</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>The <code>near</code> command lists events within a radius of a latitude and longitude. It reads a saved GeoJSON FeatureCollection and writes a CSV report to standard output.</p>
+<h2>Trigger and inputs</h2>
+<pre><code>quakes near --lat &lt;deg&gt; --lon &lt;deg&gt; --radius &lt;km&gt; [--min-mag &lt;m&gt;] &lt;file&gt;</code></pre>
+<p>The file is the final argument. Options may follow the command in any order. <code>--min-mag</code> uses the shared report default when omitted. Decimal values match <code>-?[0-9]+(\.[0-9]+)?</code>.</p>
+<h2>Behavior</h2>
+<ul><li>Reject latitude outside −90 to 90, longitude outside −180 to 180, and radius that is not positive as usage errors.</li><li>Require all of <code>--lat</code>, <code>--lon</code>, and <code>--radius</code>; reject missing values, malformed decimals, extra files, and options not listed for this command.</li><li>Apply the magnitude filter before reporting. Events with null magnitude are excluded.</li><li>Compute great-circle distance with the haversine formula on a sphere of radius 6371.0 km. Include events whose distance is at most the requested radius.</li><li>Order matches by distance ascending, then event time ascending.</li><li>Write CSV with the header <code>distance_km,time,mag,place,id</code>. Format distance to one decimal place using round half up, magnitude to one decimal place, and event time in UTC as <code>YYYY-MM-DDTHH:MM:SSZ</code>, truncated to whole seconds.</li><li>A null place is <code>Unknown</code>. Use the standard region and event parsing rules described in <code>ARCHITECTURE.md</code>.</li><li>A valid request with no matching events succeeds and emits the header only.</li><li>On usage errors, return exit code 2. On unreadable or invalid GeoJSON input, return exit code 1. On failure, write no standard output and one diagnostic line to standard error.</li></ul>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC near-valid-request ===<br>Intent: A valid near request is accepted by the CLI.</p>
+<p>from cli.testing import cli_runner</p>
+<p>code, _, _ = cli_runner( &quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;1&quot;, &quot;sources/quakes_2025-01-01_07.geojson&quot; ) assert code == 0 === END AC near-valid-request ===</p>
+<p>=== AC near-required-options ===<br>Intent: A near request missing a required coordinate is rejected as a usage error.</p>
+<p>from cli.testing import cli_runner</p>
+<p>code, _, _ = cli_runner( &quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;sources/quakes_2025-01-01_07.geojson&quot; ) assert code == 2 === END AC near-required-options ===</p>
+<p>=== AC near-coordinate-bounds ===<br>Intent: A latitude outside the documented range is rejected as a usage error.</p>
+<p>from cli.testing import cli_runner</p>
+<p>code, _, _ = cli_runner( &quot;near&quot;, &quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;1&quot;, &quot;sources/quakes_2025-01-01_07.geojson&quot; ) assert code == 2 === END AC near-coordinate-bounds ===</p>
+<p>=== AC near-invalid-file ===<br>Intent: An invalid GeoJSON file is reported as an operational failure without standard output.</p>
+<p>from cli.testing import cli_runner from pathlib import Path</p>
+<p>invalid_file = Path(&quot;near-invalid.geojson&quot;) invalid_file.write_text(&quot;not json\n&quot;) try: code, stdout, _ = cli_runner( &quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;1&quot;, str(invalid_file) ) assert code == 1 assert stdout == &quot;&quot; finally: invalid_file.unlink(missing_ok=True) === END AC near-invalid-file ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Do not hardcode report rows, counts, or distances; derive every reported value from the input file.</li><li>Do not read or depend on <code>sources/run.sh</code> from application code.</li></ul></article>
+</main>
+</body>
+</html>

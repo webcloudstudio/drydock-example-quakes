@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Fetch.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Fetch.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Fetch.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Fetch</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Downloads a validated USGS earthquake feed and saves it unchanged.</td></tr><tr><td>Depends On</td><td></td></tr><tr><td>Provides</td><td>quakes fetch</td></tr><tr><td>Consumes</td><td></td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>Fetch earthquake events from the USGS FDSN event service for a requested date range and save the response as GeoJSON.</p>
+<h2>Workflow</h2>
+<ol><li>Accept <code>--start</code>, <code>--end</code>, optional <code>--min-mag</code>, and required <code>--out</code>.</li><li>Request <code>https://earthquake.usgs.gov/fdsnws/event/1/query</code> with <code>format=geojson</code>, the supplied start and end dates, <code>minmagnitude</code> (default <code>2.5</code>), and <code>orderby=time-asc</code>.</li><li>Require HTTP status 200 and a JSON GeoJSON <code>FeatureCollection</code> object with a <code>features</code> array.</li><li>Write the successful response body unchanged to the output file.</li><li>Write the fetched feature count to standard output.</li></ol>
+<p>The request uses the standard library <code>urllib.request</code>. The HTTP call is kept replaceable so tests can stub it without network access.</p>
+<h2>CLI Contract</h2>
+<p><code>quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;</code></p>
+<p>The magnitude is a decimal matching <code>-?[0-9]+(\.[0-9]+)?</code>. Invalid arguments use exit code 2. Network errors, non-200 HTTP status, and invalid response bodies use exit code 1, write no output file, and produce one diagnostic line on standard error. Success exits 0 and writes <code>fetched,&lt;count&gt;</code> as CSV to standard output.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC fetch-success ===<br>Intent: A stubbed HTTP response is saved byte for byte and reports its feature count.</p>
+<p>import json from pathlib import Path from cli.testing import cli_runner import quakes</p>
+<p>payload = b&#x27;{&quot;type&quot;:&quot;FeatureCollection&quot;,&quot;features&quot;:[{&quot;id&quot;:&quot;event-1&quot;}]}&#x27; expected = json.loads(payload)[&quot;features&quot;] output = Path(&quot;fetch-output.geojson&quot;) quakes.urlopen = lambda request: type(&quot;Response&quot;, (), { &quot;<strong>enter</strong>&quot;: lambda self: self, &quot;<strong>exit</strong>&quot;: lambda self, *args: None, &quot;status&quot;: lambda self: 200, &quot;read&quot;: lambda self: payload, })() code, stdout, stderr = cli_runner( &quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, str(output) ) assert code == 0 assert output.read_bytes() == payload assert len(expected) == 1</p>
+<p>=== END AC fetch-success ===</p>
+<p>=== AC fetch-failure ===<br>Intent: A failed HTTP request does not create its output file.</p>
+<p>from pathlib import Path from cli.testing import cli_runner import quakes</p>
+<p>output = Path(&quot;fetch-failure.geojson&quot;) quakes.urlopen = lambda request: (_ for _ in ()).throw(OSError()) code, stdout, stderr = cli_runner( &quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, str(output) ) assert code == 1 assert not output.exists()</p>
+<p>=== END AC fetch-failure ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Never modify or read <code>sources/run.sh</code> from application code.</li><li>Never embed report rows, counts, or distances; derive values from the fetched response.</li><li>Tests stub HTTP and do not use the network.</li></ul></article>
+</main>
+</body>
+</html>

@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"01a16caf-8b42-72a2-b665-19a3cf99925c"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"<requirement name=\"fetch-usgs-feed\" stories=\"fetch\">\nhttps://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2025-01-01&endtime=2025-01-08&minmagnitude=5.0&orderby=time-asc\n</requirement>\n<unattached story=\"summary\"/>\n<unattached story=\"daily\"/>\n<unattached story=\"top\"/>\n<unattached story=\"regions\"/>\n<unattached story=\"near\"/>\n<unattached story=\"verify\"/>"}}
+{"type":"turn.completed","usage":{"input_tokens":20422,"cached_input_tokens":11520,"cache_write_input_tokens":0,"output_tokens":573,"reasoning_output_tokens":454}}

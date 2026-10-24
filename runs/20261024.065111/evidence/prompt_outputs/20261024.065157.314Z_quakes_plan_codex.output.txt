@@ -1,0 +1,149 @@
+=== BEGIN ARTIFACT TOPOLOGY.md ===
+## Declarations
+
+## story fetch
+summary:      Fetch and save a validated USGS GeoJSON feed.
+type:         service
+kind:         capability
+phase:        1
+implements:   FEATURE-Fetch.md
+covers:       FETCH-001
+stack:        common.md, python.md, cli.md
+provides:     quakes fetch
+accepts:       st-006, st-008
+context:      sources/INSTRUCTIONS.md
+context_roles: |
+  sources/INSTRUCTIONS.md: author intent
+instructions: |
+  Implement the fetch command with the specified USGS request parameters, default magnitude,
+  response validation, unchanged file output, feature count, and operational failure behavior.
+  Keep HTTP access replaceable by a stub so tests do not use the network.
+acceptance:   yes
+state:        pending
+
+## story summary
+summary:      Summarize events from a saved GeoJSON FeatureCollection.
+type:         service
+kind:         capability
+phase:        1
+implements:   FEATURE-Summary.md
+covers:       REPORT-001
+stack:        common.md, python.md, cli.md
+provides:     quakes summary
+accepts:       st-003, st-005, st-007
+context:      sources/INSTRUCTIONS.md, sources/quakes_2025-01-01_07.geojson
+context_roles: |
+  sources/INSTRUCTIONS.md: author intent
+  sources/quakes_2025-01-01_07.geojson: asset
+instructions: |
+  Implement summary calculations and CSV output from the supplied file, including magnitude
+  filtering, time bounds, magnitude statistics, tsunami count, empty results, and the specified
+  operational and usage exit codes.
+acceptance:   yes
+state:        pending
+
+## story top
+summary:      List the largest events from a saved GeoJSON FeatureCollection.
+type:         service
+kind:         capability
+phase:        1
+implements:   FEATURE-Top.md
+covers:       REPORT-002
+stack:        common.md, python.md, cli.md
+provides:     quakes top
+accepts:       st-003, st-005
+context:      sources/INSTRUCTIONS.md, sources/quakes_2025-01-01_07.geojson
+context_roles: |
+  sources/INSTRUCTIONS.md: author intent
+  sources/quakes_2025-01-01_07.geojson: asset
+instructions: |
+  Implement top-event selection, ordering, count option, shared magnitude filtering, and CSV output
+  according to the source instructions.
+acceptance:   yes
+state:        pending
+
+## story daily
+summary:      Report event counts and maximum magnitudes by day.
+type:         service
+kind:         capability
+phase:        1
+implements:   FEATURE-Daily.md
+covers:       REPORT-003
+stack:        common.md, python.md, cli.md
+provides:     quakes daily
+accepts:       st-003, st-005
+context:      sources/INSTRUCTIONS.md, sources/quakes_2025-01-01_07.geojson
+context_roles: |
+  sources/INSTRUCTIONS.md: author intent
+  sources/quakes_2025-01-01_07.geojson: asset
+instructions: |
+  Implement daily grouping, ordering, maximum magnitudes, total row, shared magnitude filtering,
+  and CSV output according to the source instructions.
+acceptance:   yes
+state:        pending
+
+## story regions
+summary:      Report event counts and maximum magnitudes by region.
+type:         service
+kind:         capability
+phase:        1
+implements:   FEATURE-Regions.md
+covers:       REPORT-004
+stack:        common.md, python.md, cli.md
+provides:     quakes regions
+accepts:       st-003, st-005
+context:      sources/INSTRUCTIONS.md, sources/quakes_2025-01-01_07.geojson
+context_roles: |
+  sources/INSTRUCTIONS.md: author intent
+  sources/quakes_2025-01-01_07.geojson: asset
+instructions: |
+  Implement region extraction and grouping, ordering, maximum magnitudes, shared magnitude
+  filtering, and CSV output according to the source instructions.
+acceptance:   yes
+state:        pending
+
+## story near
+summary:      Find events within a haversine distance of a point.
+type:         service
+kind:         capability
+phase:        1
+implements:   FEATURE-Near.md
+covers:       REPORT-005
+stack:        common.md, python.md, cli.md
+provides:     quakes near
+accepts:       st-004, st-005
+context:      sources/INSTRUCTIONS.md, sources/quakes_2025-01-01_07.geojson
+context_roles: |
+  sources/INSTRUCTIONS.md: author intent
+  sources/quakes_2025-01-01_07.geojson: asset
+instructions: |
+  Implement coordinate and radius validation, haversine distance on the specified sphere,
+  inclusive radius matching, nearest-first ordering, shared magnitude filtering, and CSV output.
+acceptance:   yes
+state:        pending
+
+## story verify
+summary:      Provide the automated test suite and run final conformance verification.
+type:         service
+kind:         test harness
+phase:        1
+implements:   FEATURE-Verification.md
+covers:       VERIFY-001
+stack:        common.md, python.md, cli.md
+accepts:       st-001, st-002, st-008
+depends:      fetch, summary, top, daily, regions, near
+context:      sources/INSTRUCTIONS.md, sources/run.sh, sources/quakes_2025-01-01_07.geojson
+context_roles: |
+  sources/INSTRUCTIONS.md: author intent
+  sources/run.sh: conformance harness
+  sources/quakes_2025-01-01_07.geojson: asset
+instructions: |
+  Provide bin/test.sh and a pytest suite that covers the commands, options, failures, and stubbed
+  fetch behavior without network access. This is the terminal story: its acceptance runs the
+  supplied full conformance suite after all implementation stories close.
+acceptance:   yes
+state:        pending
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT DECISIONS.json ===
+[]
+=== END ARTIFACT ===

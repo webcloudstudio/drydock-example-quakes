@@ -1,0 +1,18 @@
+Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+2026-10-24 02:57:51 EDT  Calling CODEX/gpt-6-luna (score release)...
+  Completed CODEX/gpt-6-luna (score release)  rc=0
+
+Quakes: PASSED — 8 of 8
+
+  st-001  MET       ["sh", "sources/run.sh"] exited 0; governed gate: sh sources/run.sh exited 0; 26 passed, 0 failed
+  st-002  MET       bin/test.sh:1 has a #!/bin/sh shebang; probe: sh bin/test.sh exited 0; 11 passed, 2 subtests passed
+  st-003  MET       sources/run.sh: A1–A4 check summary, top, daily, and regions output against expected CSV; governed gate: 26 passed, 0 failed
+  st-004  MET       reports.py:149–167 computes haversine distance on a 6371.0 km sphere and sorts matches by distance; probe: near at (0,0), radius 120 km returned the 1° east event at 111.2 km and omitted the 2° event
+  st-005  MET       cli/__init__.py:27 applies filtered events before dispatching reports; probe: --min-mag 5.5 excluded the magnitude 5.0 event from near; --min-mag 6 excluded lower-magnitude events from top
+  st-006  MET       quakes.py:19–47 builds the USGS query, validates the response, and writes the response body bytes; probe: request parameters matched the expected URL and saved bytes matched the stub response exactly; tests/test_fetch.py:63–73 covers non-200 and invalid GeoJSON responses without creating output; probe confirmed a network failure creates no file
+  st-007  MET       sources/run.sh: E1–E3 check unreadable and invalid files; U1–U8 check malformed arguments; governed gate: all 26 checks passed
+  st-008  MET       tests/test_fetch.py:37–73 wraps each fetch call in patch.object(quakes, "urlopen", ...); tests/test_reports.py exercises report commands using local temporary GeoJSON files
+
+Scorecard: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/SCORECARD.md
+Evidence: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/evidence/score-release.json
+Target - committed project workspace git store

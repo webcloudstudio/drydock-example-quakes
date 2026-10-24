@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Top.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Top.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Top.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Top</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Lists the largest earthquake events from a saved GeoJSON FeatureCollection.</td></tr><tr><td>Depends On</td><td></td></tr><tr><td>Provides</td><td>quakes top</td></tr><tr><td>Consumes</td><td></td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>List up to the requested number of largest events, optionally filtered by minimum magnitude.</p>
+<h2>Workflow</h2>
+<ol><li>Read and normalize the events from the input FeatureCollection.</li><li>Exclude null magnitudes and apply <code>--min-mag</code>.</li><li>Sort by magnitude descending, then event time ascending.</li><li>Keep the first <code>--n</code> events (default 10) and write the defined CSV header and rows.</li></ol>
+<p>Magnitude and depth are formatted to one decimal place, with depth rounded half up.</p>
+<h2>CLI Contract</h2>
+<p><code>quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;</code></p>
+<p><code>&lt;count&gt;</code> is a positive integer. Success exits 0; unreadable or invalid input exits 1; malformed or unsupported arguments exit 2. Failures write no standard output and one diagnostic line to standard error.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC top-options ===<br>Intent: The top command accepts its count option and succeeds on a supplied event file.</p>
+<p>import json import tempfile from pathlib import Path from cli.testing import cli_runner</p>
+<p>event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: { &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0 }, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}} with tempfile.TemporaryDirectory() as directory: source = Path(directory) / &quot;events.json&quot; source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]})) code, stdout, stderr = cli_runner(&quot;top&quot;, &quot;--n&quot;, &quot;1&quot;, str(source)) assert code == 0</p>
+<p>=== END AC top-options ===</p>
+<p>=== AC top-invalid-count ===<br>Intent: A nonpositive count returns the usage exit code.</p>
+<p>import json import tempfile from pathlib import Path from cli.testing import cli_runner</p>
+<p>event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: { &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0 }, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}} with tempfile.TemporaryDirectory() as directory: source = Path(directory) / &quot;events.json&quot; source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]})) code, stdout, stderr = cli_runner(&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, str(source)) assert code == 2 assert stdout == &quot;&quot;</p>
+<p>=== END AC top-invalid-count ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Ordering is magnitude descending and then time ascending.</li><li>The count must be positive.</li><li>Event values come from the file; do not hardcode report output.</li></ul></article>
+</main>
+</body>
+</html>

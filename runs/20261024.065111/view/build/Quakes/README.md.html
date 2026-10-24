@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/README.md</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/README.md</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../build/Quakes/README.md">Raw file</a></div></header>
+<article class="doc"><h1>drydock Quakes Uat Case</h1>
+<p>Drydock uat - Quakes is the get-data-and-report kit. The source is an original brief for a Python command-line tool that downloads the USGS earthquake feed as GeoJSON and writes five CSV reports from a saved file: summary, largest events, events per day, events per region, and events within a haversine distance of a point. The supplied grader, sources/run.sh, runs 26 checks of exit code and output against a frozen real USGS snapshot of the 44 magnitude 5+ events of 2025-01-01 to 2025-01-07 (non-ASCII place names, quoted commas, the Tibet aftershock cluster). The grader never uses the network; fetch is tested against a stub. Run with drydock uat Quakes. Source Repo: none, the brief is original to this kit; data from the USGS FDSN event service.</p>
+<h2>Intent</h2>
+<p>Build a command-line earthquake feed reporter, an executable named <code>quakes</code> at the application root, as described in <code>sources/INSTRUCTIONS.md</code>. It downloads a period of the USGS event feed as GeoJSON and writes five CSV reports from a saved file: summary, largest events, events per day, events per region, and events within a haversine distance of a point.</p>
+<p>Correctness is measured by <code>sources/run.sh</code>: 26 checks of exit code and standard output against a frozen 44-event USGS snapshot. The goal is every check passing.</p>
+<h2>What It Does</h2>
+<p>Report the number of events and maximum magnitude for each UTC date in the input file.</p>
+<p>Fetch earthquake events from the USGS FDSN event service for a requested date range and save the response as GeoJSON.</p>
+<p>The <code>near</code> command lists events within a radius of a latitude and longitude. It reads a saved GeoJSON FeatureCollection and writes a CSV report to standard output.</p>
+<p>Report counts and maximum magnitudes grouped by the source-defined region of each event.</p>
+<p>Summarize the events in a saved GeoJSON file, optionally filtering by minimum magnitude.</p>
+<p>List up to the requested number of largest events, optionally filtered by minimum magnitude.</p>
+<p>The project provides a POSIX-compatible <code>bin/test.sh</code> that runs the project&#x27;s pytest suite from the application root and exits zero only when every test passes. The suite covers each report command, behavior-changing options, region and distance rules, fetch through a stubbed HTTP response, and exit codes. Tests use files written by the tests and never open a network connection.</p>
+<p>After all command capabilities are implemented, run the supplied grader from the application root as the final conformance check.</p>
+<h2>Stack</h2>
+<p>Python</p>
+<h2>Verification</h2>
+<pre><code>bash bin/test.sh</code></pre>
+<h2>Next Steps</h2>
+<ul><li>Complete the first-run checks above.</li><li>Run <code>bash bin/test.sh</code> before making release or deployment changes.</li></ul></article>
+</main>
+</body>
+</html>

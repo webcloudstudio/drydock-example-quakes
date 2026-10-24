@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/cli/parser.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/cli/parser.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/cli/parser.py">Raw file</a></div></header>
+<article class="doc"><pre>import argparse
+import re
+
+
+_DECIMAL = re.compile(r&quot;-?[0-9]+(?:\.[0-9]+)?\Z&quot;)
+
+
+def decimal(value: str) -&gt; str:
+    if not _DECIMAL.fullmatch(value):
+        raise argparse.ArgumentTypeError(&quot;must be a decimal number&quot;)
+    return value
+
+
+def positive_int(value: str) -&gt; int:
+    try:
+        number = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(&quot;must be a positive integer&quot;) from exc
+    if number &lt;= 0:
+        raise argparse.ArgumentTypeError(&quot;must be a positive integer&quot;)
+    return number
+
+
+def build_parser() -&gt; argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog=&quot;quakes&quot;)
+    sub = parser.add_subparsers(dest=&quot;command&quot;, required=True)
+    fetch = sub.add_parser(&quot;fetch&quot;, help=&quot;download a USGS GeoJSON feed&quot;)
+    fetch.add_argument(&quot;--start&quot;, required=True)
+    fetch.add_argument(&quot;--end&quot;, required=True)
+    fetch.add_argument(&quot;--min-mag&quot;, default=&quot;2.5&quot;)
+    fetch.add_argument(&quot;--out&quot;, required=True)
+    for name in (&quot;summary&quot;, &quot;daily&quot;, &quot;top&quot;, &quot;regions&quot;, &quot;near&quot;):
+        command = sub.add_parser(name)
+        if name in {&quot;summary&quot;, &quot;daily&quot;, &quot;top&quot;, &quot;regions&quot;, &quot;near&quot;}:
+            command.add_argument(&quot;--min-mag&quot;, type=decimal, default=None)
+        if name == &quot;top&quot;:
+            command.add_argument(&quot;--n&quot;, type=positive_int, default=10)
+        if name == &quot;near&quot;:
+            command.add_argument(&quot;--lat&quot;, type=decimal, required=True)
+            command.add_argument(&quot;--lon&quot;, type=decimal, required=True)
+            command.add_argument(&quot;--radius&quot;, type=decimal, required=True)
+        command.add_argument(&quot;file&quot;)
+    return parser
+</pre></article>
+</main>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/evidence/block-1.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/evidence/block-1.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/evidence/block-1.md">Raw file</a></div></header>
+<article class="doc"><h1>Evidence: Block 1 · Service (block-1)</h1>
+<ul><li>block type: block</li><li>date: 2026-10-24</li><li>resulting state: closed/verified</li><li>story points (combined assembled cost): 5612</li><li>execution id: 20261024.065434.361Z-75a9a6ae</li></ul>
+<h2>Stories built</h2>
+<ul><li>Fetch and save a validated USGS GeoJSON feed. (fetch) [story]</li></ul>
+<h2>Missing context</h2>
+<ul><li>context: INSTRUCTIONS.md</li></ul>
+<h2>Stacked context</h2>
+<ul><li>stack: python_compact.md (SP 601)</li><li>compass: COMPASS.md (SP 643)</li><li>implements: FEATURE-Fetch.md (SP 737)</li><li>stack: common.md (SP 1812)</li><li>stack: cli.md (SP 1755)</li></ul>
+<h2>Build directory changes</h2>
+<ul><li>cli/<strong>init</strong>.py</li><li>cli/<strong>main</strong>.py</li><li>cli/parser.py</li><li>cli/testing.py</li><li>quakes</li><li>quakes.py</li><li>tests/<strong>init</strong>.py</li><li>tests/test_fetch.py</li></ul>
+<h2>Pre-build acceptance observation</h2>
+<ul><li>RED: fetch-success (FEATURE-Fetch.md)</li></ul>
+<p>intent: A stubbed HTTP response is saved byte for byte and reports its feature count. error: foundation not built: <code>cli</code> is the package the cli foundation (cli.md) builds, and the build directory has no <code>cli/</code>. The criterion exercises the built application, so it was not run.</p>
+<ul><li>RED: fetch-failure (FEATURE-Fetch.md)</li></ul>
+<p>intent: A failed HTTP request does not create its output file. error: foundation not built: <code>cli</code> is the package the cli foundation (cli.md) builds, and the build directory has no <code>cli/</code>. The criterion exercises the built application, so it was not run.</p>
+<h2>Post-build programmatic acceptance</h2>
+<ul><li>PASS: fetch-success (FEATURE-Fetch.md)</li></ul>
+<p>intent: A stubbed HTTP response is saved byte for byte and reports its feature count. target interpreter: /mnt/c/Users/barlo/projects/drydock/.venv/bin/python provisioning: not required return code: 0</p>
+<ul><li>PASS: fetch-failure (FEATURE-Fetch.md)</li></ul>
+<p>intent: A failed HTTP request does not create its output file. target interpreter: /mnt/c/Users/barlo/projects/drydock/.venv/bin/python provisioning: not required return code: 0</p>
+<h2>Build summary</h2>
+<p>RESULT: SUCCESS</p>
+<p>FILES CHANGED:</p>
+<ul><li><code>quakes.py</code></li><li><code>quakes</code></li><li><code>cli/__init__.py</code></li><li><code>cli/parser.py</code></li><li><code>cli/testing.py</code></li><li><code>cli/__main__.py</code></li><li><code>tests/__init__.py</code></li><li><code>tests/test_fetch.py</code></li></ul>
+<p>SUMMARY: Implemented <code>quakes fetch</code> with the specified request parameters, response validation, byte-for-byte saving, feature count output, and failure handling. Added five fetch tests. <code>python -m unittest discover -v</code> passed all five; <code>./quakes fetch --help</code> also succeeded. <code>sources/</code> was left untouched.</p>
+<p>BLOCKERS:</p>
+<ul><li><code>INSTRUCTIONS.md</code> was absent from the supplied context and workspace.</li></ul></article>
+</main>
+</body>
+</html>

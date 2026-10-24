@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompts/20261024.065334.977Z_quakes_lineage_attribute_codex.prompt.md</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompts/20261024.065334.977Z_quakes_lineage_attribute_codex.prompt.md</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompts/20261024.065334.977Z_quakes_lineage_attribute_codex.prompt.md">Raw file</a></div></header>
+<article class="doc"><h1>Attribute Stories to Source Requirements</h1>
+<p>You are the lineage attribution agent. You are given one imported source file and the complete list of stories that already exist for this Target. Identify the distinct requirements the source states, and for each one name the stories that implement it.</p>
+<p>This is a matching task against a closed set. Every story you may name is listed in <code>&lt;stories&gt;</code>. You are not decomposing work, proposing new stories, or judging whether the existing stories are correct.</p>
+<h2>Method</h2>
+<ol><li>Read the source and identify each distinct requirement it states. A requirement is a thing the</li></ol>
+<p>system must do, at whatever granularity the author wrote it. One sentence may state one requirement that several stories implement — for example &quot;add a table and show it on screen&quot; is one requirement implemented by a schema story, a route story, and a view story. Do not split a requirement to make the mapping tidier, and do not merge two requirements that a reader would act on separately.</p>
+<ol><li>Give each requirement a short kebab-case name that describes it. The name is an identifier, not</li></ol>
+<p>a summary: <code>mark-book-read</code>, not <code>the-reader-can-mark-a-book-as-read</code>.</p>
+<ol><li>For each requirement, list every story that implements any part of it. A story may implement</li></ol>
+<p>more than one requirement; a requirement may need more than one story.</p>
+<ol><li>List any story that implements no requirement in the source as <code>&lt;unattached&gt;</code>. This is expected</li></ol>
+<p>and correct for foundational work — application scaffolding, configuration, shared UI framing, test harnesses — that the author never asked for by name. Do not force such a story onto an unrelated requirement.</p>
+<h2>Rules</h2>
+<ul><li>Use only story ids that appear in <code>&lt;stories&gt;</code>. Never invent one.</li><li>Every story must appear exactly once, either inside a <code>stories</code> attribute or as <code>&lt;unattached&gt;</code>.</li><li>Quote the requirement text verbatim from the source in the tag body. Do not paraphrase it.</li><li>Emit nothing but the tags below. No preamble, no commentary, no explanation.</li></ul>
+<h2>Output</h2>
+<pre><code>&lt;requirement name=&quot;add-remove-books&quot; stories=&quot;add-book,remove-book,database&quot;&gt;
+The reader can add a book with a title and author, view the books in the order added, and remove a book.
+&lt;/requirement&gt;
+&lt;requirement name=&quot;reject-empty-fields&quot; stories=&quot;validate-book&quot;&gt;
+An empty title or author is rejected with a clear error message.
+&lt;/requirement&gt;
+&lt;unattached story=&quot;architecture&quot;/&gt;
+&lt;unattached story=&quot;ui-general&quot;/&gt;</code></pre>
+<h1>Attribution job</h1>
+<p>&lt;source name=&quot;run.sh&quot;&gt; #!/bin/sh</p>
+<h1>run.sh — Quakes grader. Do not filter, skip, or reinterpret.</h1>
+<p>#</p>
+<h1>Runs ./quakes over the frozen USGS snapshot and compares every report&#x27;s exit code and standard</h1>
+<h1>output with the known answer below. Standard error is never compared. No network is used.</h1>
+<p>#</p>
+<h1>sh sources/run.sh                from the application root (how <code>drydock uat</code> runs it)</h1>
+<h1>sh uat/Quakes/bin/run.sh APP     from anywhere, grading the application root APP</h1>
+<p>#</p>
+<h1>Exit 0 only when every check passes.</h1>
+<p>set -u</p>
+<p>HERE=$(cd &quot;$(dirname &quot;$0&quot;)&quot; &amp;&amp; pwd) APP=$(cd &quot;${1:-.}&quot; &amp;&amp; pwd) if [ -f &quot;$HERE/quakes_2025-01-01_07.geojson&quot; ]; then DATA=$HERE; else DATA=$(cd &quot;$HERE/../sources&quot; &amp;&amp; pwd); fi WORK=$(mktemp -d) trap &#x27;rm -rf &quot;$WORK&quot;&#x27; EXIT INT TERM BIN=&quot;$APP/quakes&quot; QUAKES=&quot;$DATA/quakes_2025-01-01_07.geojson&quot; printf &#x27;this is not json\n&#x27; &gt; &quot;$WORK/garbage.json&quot; printf &#x27;{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{},&quot;geometry&quot;:null}\n&#x27; &gt; &quot;$WORK/feature.json&quot;</p>
+<p>if [ ! -x &quot;$BIN&quot; ]; then echo &quot;error: no executable ./quakes at the application root $APP.&quot; &gt;&amp;2 echo &quot;The deliverable is an executable named quakes at the application root.&quot; &gt;&amp;2 exit 1 fi</p>
+<p>PASSED=0 FAILED=0</p>
+<h1>check &lt;id&gt; &lt;expected exit&gt; &lt;quakes args...&gt;  — expected standard output on stdin.</h1>
+<p>check() { id=$1 want_rc=$2 shift 2 cat &gt; &quot;$WORK/want&quot; (cd &quot;$APP&quot; &amp;&amp; &quot;$BIN&quot; &quot;$@&quot;) &gt; &quot;$WORK/got&quot; 2&gt; &quot;$WORK/err&quot; rc=$? if [ &quot;$rc&quot; -eq &quot;$want_rc&quot; ] &amp;&amp; cmp -s &quot;$WORK/want&quot; &quot;$WORK/got&quot;; then PASSED=$((PASSED + 1)) echo &quot;PASS $id: quakes $<em>&quot; else FAILED=$((FAILED + 1)) echo &quot;FAIL $id: quakes $</em>&quot; echo &quot;  exit: expected $want_rc, got $rc&quot; diff &quot;$WORK/want&quot; &quot;$WORK/got&quot; | sed &#x27;s/^/  /&#x27; sed &#x27;s/^/  stderr: /&#x27; &quot;$WORK/err&quot; fi }</p>
+<h1>── A. Every report over the snapshot ──────────────────────────────────────────────────</h1>
+<p>check A1 0 summary &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; events,first,last,min_mag,max_mag,mean_mag,tsunami 44,2025-01-01T04:39:18Z,2025-01-07T17:52:21Z,5.0,7.1,5.30,0 EOF check A2 0 top &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; time,mag,depth_km,place,id 2025-01-07T01:05:16Z,7.1,10.0,2025 Southern Tibetan Plateau Earthquake,us6000pi9w 2025-01-05T17:18:45Z,6.2,46.0,&quot;56 km SSE of La Libertad, El Salvador&quot;,us6000pi09 2025-01-01T13:48:24Z,6.1,70.0,South Sandwich Islands region,us6000pgv4 2025-01-02T20:43:35Z,6.1,99.0,&quot;84 km NNW of Calama, Chile&quot;,us6000phap 2025-01-04T00:52:21Z,5.7,8.0,&quot;52 km N of Āwash, Ethiopia&quot;,us6000phrk 2025-01-07T08:31:30Z,5.6,358.0,&quot;Izu Islands, Japan region&quot;,us6000pida 2025-01-01T04:39:18Z,5.5,22.0,&quot;153 km S of Isangel, Vanuatu&quot;,us6000pgsd 2025-01-02T02:54:17Z,5.5,10.0,Balleny Islands region,us6000pgzq 2025-01-03T02:33:17Z,5.5,86.0,South Sandwich Islands region,us6000phce 2025-01-03T17:01:46Z,5.5,10.0,&quot;45 km NNE of Āwash, Ethiopia&quot;,us6000phnz EOF check A3 0 daily &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; date,events,max_mag 2025-01-01,7,6.1 2025-01-02,8,6.1 2025-01-03,6,5.5 2025-01-04,3,5.7 2025-01-05,3,6.2 2025-01-06,5,5.2 2025-01-07,12,7.1 TOTAL,44,7.1 EOF check A4 0 regions &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; region,events,max_mag Ethiopia,7,5.7 Papua New Guinea,6,5.4 Nepal,3,5.4 Southern Tibetan Plateau,3,5.2 Vanuatu,3,5.5 Indonesia,2,5.1 Japan region,2,5.6 South Sandwich Islands region,2,6.1 2025 Southern Tibetan Plateau Earthquake,1,7.1 Balleny Islands region,1,5.5 Chile,1,6.1 El Salvador,1,6.2 Fiji region,1,5.0 India,1,5.0 Iran,1,5.2 Japan,1,5.1 Mid-Indian Ridge,1,5.2 Philippines,1,5.1 Solomon Islands,1,5.2 Southwest Indian Ridge,1,5.0 Tibetan Plateau,1,5.2 Tonga,1,5.1 southeast of Easter Island,1,5.3 southern Mid-Atlantic Ridge,1,5.2 EOF</p>
+<h1>── B. Options ───────────────────────────────────────────────────────────────────────────</h1>
+<p>check B1 0 top --n 3 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; time,mag,depth_km,place,id 2025-01-07T01:05:16Z,7.1,10.0,2025 Southern Tibetan Plateau Earthquake,us6000pi9w 2025-01-05T17:18:45Z,6.2,46.0,&quot;56 km SSE of La Libertad, El Salvador&quot;,us6000pi09 2025-01-01T13:48:24Z,6.1,70.0,South Sandwich Islands region,us6000pgv4 EOF check B2 0 summary --min-mag 5.5 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; events,first,last,min_mag,max_mag,mean_mag,tsunami 10,2025-01-01T04:39:18Z,2025-01-07T08:31:30Z,5.5,7.1,5.88,0 EOF check B3 0 regions --min-mag 5.4 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; region,events,max_mag Ethiopia,3,5.7 South Sandwich Islands region,2,6.1 2025 Southern Tibetan Plateau Earthquake,1,7.1 Balleny Islands region,1,5.5 Chile,1,6.1 El Salvador,1,6.2 Japan region,1,5.6 Nepal,1,5.4 Papua New Guinea,1,5.4 Vanuatu,1,5.5 EOF check B4 0 daily --min-mag 6 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; date,events,max_mag 2025-01-01,1,6.1 2025-01-02,1,6.1 2025-01-05,1,6.2 2025-01-07,1,7.1 TOTAL,4,7.1 EOF check B5 0 top --min-mag 5.1 --n 4 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; time,mag,depth_km,place,id 2025-01-07T01:05:16Z,7.1,10.0,2025 Southern Tibetan Plateau Earthquake,us6000pi9w 2025-01-05T17:18:45Z,6.2,46.0,&quot;56 km SSE of La Libertad, El Salvador&quot;,us6000pi09 2025-01-01T13:48:24Z,6.1,70.0,South Sandwich Islands region,us6000pgv4 2025-01-02T20:43:35Z,6.1,99.0,&quot;84 km NNW of Calama, Chile&quot;,us6000phap EOF</p>
+<h1>── C. Distance search ───────────────────────────────────────────────────────────────────</h1>
+<p>check C1 0 near --lat 27.72 --lon 85.32 --radius 800 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; distance_km,time,mag,place,id 214.8,2025-01-07T01:10:54Z,5.2,&quot;100 km NNE of Lobuche, Nepal&quot;,us6000pks6 216.8,2025-01-07T01:09:13Z,5.4,&quot;96 km NNE of Lobuche, Nepal&quot;,us6000pks1 219.0,2025-01-07T01:14:42Z,5.2,&quot;83 km NE of Lobuche, Nepal&quot;,us6000pkpp 222.3,2025-01-07T01:37:13Z,5.0,Southern Tibetan Plateau,us6000piar 224.4,2025-01-07T01:05:16Z,7.1,2025 Southern Tibetan Plateau Earthquake,us6000pi9w 225.3,2025-01-07T01:13:27Z,5.2,Southern Tibetan Plateau,us6000pia7 226.2,2025-01-07T01:24:25Z,5.0,Southern Tibetan Plateau,us6000piak 655.6,2025-01-06T15:26:46Z,5.2,Tibetan Plateau,us6000pi67 EOF check C2 0 near --lat 35.68 --lon 139.69 --radius 1500 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; distance_km,time,mag,place,id 216.3,2025-01-06T16:44:39Z,5.1,&quot;113 km E of Hasaki, Japan&quot;,us6000pi7a 466.3,2025-01-07T08:31:30Z,5.6,&quot;Izu Islands, Japan region&quot;,us6000pida 1288.3,2025-01-07T17:23:48Z,5.3,&quot;Volcano Islands, Japan region&quot;,us6000pife EOF check C3 0 near --lat 9.03 --lon 38.74 --radius 300 --min-mag 5.3 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; distance_km,time,mag,place,id 159.0,2025-01-04T00:52:21Z,5.7,&quot;52 km N of Āwash, Ethiopia&quot;,us6000phrk 174.7,2025-01-02T21:18:26Z,5.4,&quot;52 km NNE of Āwash, Ethiopia&quot;,us6000phb3 180.0,2025-01-03T17:01:46Z,5.5,&quot;45 km NNE of Āwash, Ethiopia&quot;,us6000phnz EOF check C4 0 near --lat 0 --lon 0 --radius 100 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; distance_km,time,mag,place,id EOF</p>
+<h1>── D. Nothing matches ───────────────────────────────────────────────────────────────────</h1>
+<p>check D1 0 summary --min-mag 9 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; events,first,last,min_mag,max_mag,mean_mag,tsunami 0,,,,,,0 EOF check D2 0 daily --min-mag 9 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27; date,events,max_mag TOTAL,0, EOF</p>
+<h1>── E. Operational failures ──────────────────────────────────────────────────────────────</h1>
+<p>check E1 1 summary &quot;$WORK/no-such-file.geojson&quot; &lt; /dev/null check E2 1 summary &quot;$WORK/garbage.json&quot; &lt; /dev/null check E3 1 summary &quot;$WORK/feature.json&quot; &lt; /dev/null</p>
+<h1>── U. Usage errors ──────────────────────────────────────────────────────────────────────</h1>
+<p>check U1 2 &lt; /dev/null check U2 2 frobnicate &quot;$QUAKES&quot; &lt; /dev/null check U3 2 near --lat 27.72 --lon 85.32 &quot;$QUAKES&quot; &lt; /dev/null check U4 2 top --n 0 &quot;$QUAKES&quot; &lt; /dev/null check U5 2 summary --min-mag big &quot;$QUAKES&quot; &lt; /dev/null check U6 2 near --lat 95 --lon 0 --radius 10 &quot;$QUAKES&quot; &lt; /dev/null check U7 2 summary --n 3 &quot;$QUAKES&quot; &lt; /dev/null check U8 2 summary &lt; /dev/null</p>
+<p>TOTAL=$((PASSED + FAILED)) echo &quot;Quakes: $PASSED passed, $FAILED failed (of $TOTAL)&quot; [ &quot;$FAILED&quot; -eq 0 ] &lt;/source&gt;</p>
+<p>&lt;stories&gt; &lt;story id=&quot;fetch&quot; implements=&quot;FEATURE-Fetch.md&quot;&gt;Fetch and save a validated USGS GeoJSON feed.&lt;/story&gt; &lt;story id=&quot;summary&quot; implements=&quot;FEATURE-Summary.md&quot;&gt;Summarize events from a saved GeoJSON FeatureCollection.&lt;/story&gt; &lt;story id=&quot;daily&quot; implements=&quot;FEATURE-Daily.md&quot;&gt;Report event counts and maximum magnitudes by day.&lt;/story&gt; &lt;story id=&quot;top&quot; implements=&quot;FEATURE-Top.md&quot;&gt;List the largest events from a saved GeoJSON FeatureCollection.&lt;/story&gt; &lt;story id=&quot;regions&quot; implements=&quot;FEATURE-Regions.md&quot;&gt;Report event counts and maximum magnitudes by region.&lt;/story&gt; &lt;story id=&quot;near&quot; implements=&quot;FEATURE-Near.md&quot;&gt;Find events within a haversine distance of a point.&lt;/story&gt; &lt;story id=&quot;verify&quot; implements=&quot;FEATURE-Verification.md&quot;&gt;Provide the automated test suite and run final conformance verification.&lt;/story&gt; &lt;/stories&gt;</p></article>
+</main>
+</body>
+</html>

@@ -1,0 +1,116 @@
+{
+  "criteria": {
+    "daily-empty": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "ca2f4042ce48e667fefffaf4791ec11fa3c0aac00c7a36d4b58d07f265cf3e79",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "daily-filter": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "e920a066530cb863d0168e408d2eb691699f0db554ee600e37630b176c68a404",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "fetch-failure": {
+      "status": "VALID",
+      "error_code": "product-missing",
+      "code_sha256": "d77b46475acacedb09f6f39c34c5bcdf512785e2c434a3723a3e1ef3554566c7",
+      "updated_at": "2026-10-24T06:54:31+00:00",
+      "detail": ""
+    },
+    "fetch-success": {
+      "status": "VALID",
+      "error_code": "product-missing",
+      "code_sha256": "c56c5689dbab736d61f0126d54b048a9734363d1e3fee9af94cbf74e0d7c7cc9",
+      "updated_at": "2026-10-24T06:54:31+00:00",
+      "detail": ""
+    },
+    "near-coordinate-bounds": {
+      "status": "VALID",
+      "error_code": "existing-behavior",
+      "code_sha256": "73266f5960b82c803a40bf37a92ef3f1c334688fa69d5cf75ff0fd828d669d5b",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "near-invalid-file": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "5308f78cb8b2d8f98bf5e87bfab48d5735abb9fb87be34db6efb8e6f224acd10",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "near-required-options": {
+      "status": "VALID",
+      "error_code": "existing-behavior",
+      "code_sha256": "037ffc85b81fd177682729d87d777b82f2d48d389f45a50d3a2853fa08a1d632",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "near-valid-request": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "972b3377701094cc4de07c238217e6c566c9ebc2a48bf55100bc03f6dc49d94d",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "regions-command": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "f8a5cdcc7d581e55d8a96df4ae9047dda64e678a77f9495c69f8cb121b6d88ab",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "regions-filter": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "26e3a88524af1822bc1dc46573b1f0b01544dbbca0ccf753219ba6b4d1d9530a",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "summary-invalid-file": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "95163ab8e83d44bccc84ba2dff38c553f73ab9af20397a6b4dc0e52043c7e829",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "summary-success": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "eeba23a589da012973a82512930eb8bceca6fef578df3edb45675d321b074411",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "top-invalid-count": {
+      "status": "VALID",
+      "error_code": "existing-behavior",
+      "code_sha256": "20d4eab0f385877bec1c7d34cff4ea2cf7bd61f9ee877fb3134b309ff14bab5b",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "top-options": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "e07723ab3c2cbf8392739a859f2eadd681e29e6a018190665dff1faebcab1ae9",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "verification-full-conformance": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "7a2cd7dc984b67ce2d5e52d0d35d65091ed2efa3a89b6bcedacca63811e97d84",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    },
+    "verification-test-suite": {
+      "status": "VALID",
+      "error_code": "baseline-red",
+      "code_sha256": "b038523c4dafd0ce57ce46928ad482ec944fd66a8b662d9ae808bbaba91b7e61",
+      "updated_at": "2026-10-24T06:55:28+00:00",
+      "detail": ""
+    }
+  }
+}

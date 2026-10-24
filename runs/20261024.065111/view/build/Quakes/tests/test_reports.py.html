@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_reports.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_reports.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_reports.py">Raw file</a></div></header>
+<article class="doc"><pre>import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+
+def feature(event_id, mag, place, millis, coords=(0, 0, 2), tsunami=0):
+    return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: event_id, &quot;properties&quot;: {
+        &quot;mag&quot;: mag, &quot;place&quot;: place, &quot;time&quot;: millis, &quot;tsunami&quot;: tsunami,
+    }, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: list(coords)}}
+
+
+class ReportTests(unittest.TestCase):
+    def run_report(self, command, events, *options):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / &quot;feed.json&quot;
+            path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: events}), encoding=&quot;utf-8&quot;)
+            return cli_runner(command, *options, str(path))
+
+    def test_summary_computes_statistics_and_empty(self):
+        code, out, err = self.run_report(&quot;summary&quot;, [
+            feature(&quot;a&quot;, 5, &quot;A&quot;, 1735689600000, tsunami=1),
+            feature(&quot;b&quot;, 6, &quot;B&quot;, 1735693200999),
+            feature(&quot;c&quot;, None, &quot;C&quot;, 1735693200999),
+        ])
+        self.assertEqual((code, err), (0, &quot;&quot;))
+        self.assertEqual(out, &quot;events,first,last,min_mag,max_mag,mean_mag,tsunami\n2,2025-01-01T00:00:00Z,2025-01-01T01:00:00Z,5.0,6.0,5.50,1\n&quot;)
+        code, out, _ = self.run_report(&quot;summary&quot;, [feature(&quot;a&quot;, None, &quot;A&quot;, 0)])
+        self.assertEqual((code, out), (0, &quot;events,first,last,min_mag,max_mag,mean_mag,tsunami\n0,,,,,,0\n&quot;))
+
+    def test_daily_filter_and_total(self):
+        code, out, _ = self.run_report(&quot;daily&quot;, [feature(&quot;a&quot;, 5, &quot;A&quot;, 1735689600000), feature(&quot;b&quot;, 6, &quot;B&quot;, 1735776000000)], &quot;--min-mag&quot;, &quot;5.5&quot;)
+        self.assertEqual(code, 0)
+        self.assertEqual(out, &quot;date,events,max_mag\n2025-01-02,1,6.0\nTOTAL,1,6.0\n&quot;)
+
+    def test_top_orders_magnitude_then_time_and_limits(self):
+        code, out, _ = self.run_report(&quot;top&quot;, [feature(&quot;later&quot;, 6, &quot;Later&quot;, 2000), feature(&quot;first&quot;, 6, &quot;First&quot;, 1000), feature(&quot;big&quot;, 7, &quot;Big&quot;, 3000)], &quot;--n&quot;, &quot;2&quot;)
+        self.assertEqual(code, 0)
+        self.assertEqual(out, &quot;time,mag,depth_km,place,id\n1970-01-01T00:00:03Z,7.0,2.0,Big,big\n1970-01-01T00:00:01Z,6.0,2.0,First,first\n&quot;)
+
+    def test_regions_uses_last_delimiter_and_orders(self):
+        code, out, _ = self.run_report(&quot;regions&quot;, [feature(&quot;a&quot;, 5, &quot;City, Subregion, X&quot;, 0), feature(&quot;b&quot;, 6, &quot;Other, X&quot;, 1), feature(&quot;c&quot;, 4, None, 2)])
+        self.assertEqual(code, 0)
+        self.assertEqual(out, &quot;region,events,max_mag\nX,2,6.0\nUnknown,1,4.0\n&quot;)
+
+    def test_near_distance_and_sorted_output(self):
+        code, out, _ = self.run_report(&quot;near&quot;, [feature(&quot;a&quot;, 5, &quot;east&quot;, 2000, (1, 0)), feature(&quot;b&quot;, 5, &quot;origin&quot;, 1000, (0, 0)), feature(&quot;c&quot;, 5, &quot;far&quot;, 3000, (2, 0))], &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;120&quot;)
+        self.assertEqual(code, 0)
+        self.assertEqual(out, &quot;distance_km,time,mag,place,id\n0.0,1970-01-01T00:00:01Z,5.0,origin,b\n111.2,1970-01-01T00:00:02Z,5.0,east,a\n&quot;)
+
+    def test_invalid_input_and_usage_errors_have_no_stdout(self):
+        code, out, _ = cli_runner(&quot;summary&quot;, &quot;missing-geojson&quot;)
+        self.assertEqual((code, out), (1, &quot;&quot;))
+        code, out, _ = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;1&quot;, &quot;sources/quakes_2025-01-01_07.geojson&quot;)
+        self.assertEqual((code, out), (2, &quot;&quot;))
+        code, out, _ = cli_runner(&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, &quot;sources/quakes_2025-01-01_07.geojson&quot;)
+        self.assertEqual((code, out), (2, &quot;&quot;))
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</pre></article>
+</main>
+</body>
+</html>

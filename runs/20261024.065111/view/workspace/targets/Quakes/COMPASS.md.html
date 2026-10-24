@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/COMPASS.md</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/COMPASS.md</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../workspace/targets/Quakes/COMPASS.md">Raw file</a></div></header>
+<article class="doc"><h1>COMPASS: Quakes</h1>
+<h2>Compass</h2>
+<p>Build a command-line earthquake feed reporter, an executable named <code>quakes</code> at the application root, as described in <code>sources/INSTRUCTIONS.md</code>. It downloads a period of the USGS event feed as GeoJSON and writes five CSV reports from a saved file: summary, largest events, events per day, events per region, and events within a haversine distance of a point.</p>
+<p>Correctness is measured by <code>sources/run.sh</code>: 26 checks of exit code and standard output against a frozen 44-event USGS snapshot. The goal is every check passing.</p>
+<h2>Constraints</h2>
+<ul><li>Implement in Python 3.11 or newer with the standard library only.</li><li>Provide an executable named <code>quakes</code> at the application root, invoked as <code>./quakes &lt;command&gt;</code>.</li><li>Reading the file, filtering, computing each report, and formatting are separate, unit-tested</li></ul>
+<p>functions.</p>
+<ul><li>Tests stub the HTTP call; no test opens a network connection.</li><li>Diagnostics go to standard error and are never compared.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Do not modify, rewrite, regenerate, or substitute any file under <code>sources/</code>.</li><li>Do not read <code>sources/run.sh</code> or the snapshot from application code, and do not hardcode a</li></ul>
+<p>report row, a count, or a distance. Every value comes from the file being read.</p>
+<h2>Verification Protocol</h2>
+<div class="scroll"><table><thead><tr><th>Story kind</th><th>Command</th><th>Asserts</th></tr></thead><tbody><tr><td>Every behavioral story</td><td><code>sh bin/test.sh</code></td><td>exit <code>0</code></td></tr><tr><td>Terminal story (once, last)</td><td><code>sh sources/run.sh</code></td><td>exit <code>0</code></td></tr></tbody></table></div>
+<p>&lt;!-- drydock:build-write-guardrail:start --&gt;</p>
+<h2>Build Write Guardrail</h2>
+<ul><li>Authorized build directory: <code>/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes</code></li><li>Authorized Target directory: <code>/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes</code></li><li>Build agents have permission to create, modify, and remove files required by the active build block inside these authorized directories.</li><li>No path outside these authorized directories may be modified.</li><li>Protected Drydock artifacts:<ul><li><code>/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/</code></li><li><code>/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/MANIFEST.md</code></li><li><code>/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/COMPASS.md</code></li><li><code>/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/QuarterDeck/</code></li><li><code>/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/evidence/</code></li></ul></li></ul>
+<p>&lt;!-- drydock:build-write-guardrail:end --&gt;</p></article>
+</main>
+</body>
+</html>

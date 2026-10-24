@@ -1,0 +1,179 @@
+# MANIFEST: Quakes
+updated:     2026-10-24T06:52:59+00:00
+state:       approved
+blocks:      2
+
+applied_specs: |
+  FEATURE-Daily.md sha256=68681cbe242eb91dc50f23be196a88101f54eb42ef00c2ea8fad1503c36f5393 commit=ce94d00156a4de53492bfb0ee39edf1df38e68cc applied_by=block-2 applied_at=2026-10-24T06:56:40+00:00 build_sha256=4cbc870c9db914535a6b9109bdfa72928c6982315e5179938398b0cddc797d72
+  FEATURE-Fetch.md sha256=015014f9a01db005433c7ca670529fbaaa96a42858076a2f694053b211f07f39 commit=ce94d00156a4de53492bfb0ee39edf1df38e68cc applied_by=block-1 applied_at=2026-10-24T06:55:11+00:00 build_sha256=8b6588b894cbc7f6e6632fb73ecd55a2eb0fdeb13fa55179f072ad5ef5e6b881
+  FEATURE-Near.md sha256=49538d65cb5684725446c4519c1273b122cbe31f98d696d52cc6993f4eefa3fb commit=ce94d00156a4de53492bfb0ee39edf1df38e68cc applied_by=block-2 applied_at=2026-10-24T06:56:40+00:00 build_sha256=d538d5158a1170db44ae904f7dabd8cadf3ce350dae51fce616f5b12c21d505b
+  FEATURE-Regions.md sha256=b61078a2770a1de7ea369433c7a4240033d653d46387c8d150a08a1f9e0bc899 commit=ce94d00156a4de53492bfb0ee39edf1df38e68cc applied_by=block-2 applied_at=2026-10-24T06:56:40+00:00 build_sha256=a6c98c563ff4f6a28b7448652414340b60b2828435f7e0f7e7aeb6ed178ad330
+  FEATURE-Summary.md sha256=37286e55710ba533eaa7c96a0444cfb52aa5b6b5167eb0570431d458e67e9f5f commit=ce94d00156a4de53492bfb0ee39edf1df38e68cc applied_by=block-2 applied_at=2026-10-24T06:56:40+00:00 build_sha256=4f3a66f91711059235959dcf3707440dea1cf27596a2e5b306dc2931c27487d8
+  FEATURE-Top.md sha256=c22ce3877ab8ebc0b8bd07af07d80106d92bbf2393f2813dd08467b87a24205c commit=ce94d00156a4de53492bfb0ee39edf1df38e68cc applied_by=block-2 applied_at=2026-10-24T06:56:40+00:00 build_sha256=92d5422a44b8c3533bd5eec3f541bd78c858ae58031e91d341b00e5ff35dc0df
+  FEATURE-Verification.md sha256=8b7d4a4ae3be22189ae098e30ec2223347a9570591309b079946dbdc9a00e6fa commit=ce94d00156a4de53492bfb0ee39edf1df38e68cc applied_by=block-2 applied_at=2026-10-24T06:56:40+00:00 build_sha256=b02330698ef9ed6f5def47e1ad75aeed3eb8e2d35f953970c48962408b45cec5
+  quakes_2025-01-01_07.geojson sha256=e448bc977913aedd85b7636fcc13feeb76b4daf019c5e5a27c712b2d7b9a346c commit=ce94d00156a4de53492bfb0ee39edf1df38e68cc applied_by=block-2 applied_at=2026-10-24T06:56:40+00:00 build_sha256=e448bc977913aedd85b7636fcc13feeb76b4daf019c5e5a27c712b2d7b9a346c
+  run.sh sha256=086f2fb1ebb76c54b97ed71e06aa5474734314fa98d8ec1e90e3ed900f59de3a commit=ce94d00156a4de53492bfb0ee39edf1df38e68cc applied_by=block-2 applied_at=2026-10-24T06:56:40+00:00 build_sha256=086f2fb1ebb76c54b97ed71e06aa5474734314fa98d8ec1e90e3ed900f59de3a
+
+## story 1: Fetch and save a validated USGS GeoJSON feed.
+id: fetch
+finding: ADVISORY: implemented, not verified — no governed acceptance command covers this story. Declare one in ACCEPTANCE.json to gate it.
+evidence: evidence/block-1.md
+summary: Fetch and save a validated USGS GeoJSON feed.
+type: service
+kind: capability
+phase: 1
+block: 1
+implements: FEATURE-Fetch.md
+covers: FETCH-001
+accepts: st-006, st-008
+context: INSTRUCTIONS.md
+stack: common.md, python.md, cli.md
+stack_mode: builder
+size: 7383
+provides: quakes fetch
+instructions: |
+  Implement the fetch command with the specified USGS request parameters, default magnitude,
+  response validation, unchanged file output, feature count, and operational failure behavior.
+  Keep HTTP access replaceable by a stub so tests do not use the network.
+acceptance: yes
+state: closed/implemented
+
+## story 2: Summarize events from a saved GeoJSON FeatureCollection.
+id: summary
+finding: ADVISORY: implemented, not verified — no governed acceptance command covers this story. Declare one in ACCEPTANCE.json to gate it.
+evidence: evidence/block-2.md
+summary: Summarize events from a saved GeoJSON FeatureCollection.
+type: service
+kind: capability
+phase: 1
+block: 2
+implements: FEATURE-Summary.md
+covers: REPORT-001
+accepts: st-003, st-005, st-007
+context: INSTRUCTIONS.md, quakes_2025-01-01_07.geojson
+stack: common.md, python.md, cli.md
+stack_mode: consumer
+size: 11055
+provides: quakes summary
+instructions: |
+  Implement summary calculations and CSV output from the supplied file, including magnitude
+  filtering, time bounds, magnitude statistics, tsunami count, empty results, and the specified
+  operational and usage exit codes.
+acceptance: yes
+state: closed/implemented
+
+## story 3: Report event counts and maximum magnitudes by day.
+id: daily
+finding: ADVISORY: implemented, not verified — no governed acceptance command covers this story. Declare one in ACCEPTANCE.json to gate it.
+evidence: evidence/block-2.md
+summary: Report event counts and maximum magnitudes by day.
+type: service
+kind: capability
+phase: 1
+block: 2
+implements: FEATURE-Daily.md
+covers: REPORT-003
+accepts: st-003, st-005
+context: INSTRUCTIONS.md, quakes_2025-01-01_07.geojson
+stack: common.md, python.md, cli.md
+stack_mode: consumer
+size: 11018
+provides: quakes daily
+instructions: |
+  Implement daily grouping, ordering, maximum magnitudes, total row, shared magnitude filtering,
+  and CSV output according to the source instructions.
+acceptance: yes
+state: closed/implemented
+
+## story 4: List the largest events from a saved GeoJSON FeatureCollection.
+id: top
+finding: ADVISORY: implemented, not verified — no governed acceptance command covers this story. Declare one in ACCEPTANCE.json to gate it.
+evidence: evidence/block-2.md
+summary: List the largest events from a saved GeoJSON FeatureCollection.
+type: service
+kind: capability
+phase: 1
+block: 2
+implements: FEATURE-Top.md
+covers: REPORT-002
+accepts: st-003, st-005
+context: INSTRUCTIONS.md, quakes_2025-01-01_07.geojson
+stack: common.md, python.md, cli.md
+stack_mode: consumer
+size: 11070
+provides: quakes top
+instructions: |
+  Implement top-event selection, ordering, count option, shared magnitude filtering, and CSV output
+  according to the source instructions.
+acceptance: yes
+state: closed/implemented
+
+## story 5: Report event counts and maximum magnitudes by region.
+id: regions
+finding: ADVISORY: implemented, not verified — no governed acceptance command covers this story. Declare one in ACCEPTANCE.json to gate it.
+evidence: evidence/block-2.md
+summary: Report event counts and maximum magnitudes by region.
+type: service
+kind: capability
+phase: 1
+block: 2
+implements: FEATURE-Regions.md
+covers: REPORT-004
+accepts: st-003, st-005
+context: INSTRUCTIONS.md, quakes_2025-01-01_07.geojson
+stack: common.md, python.md, cli.md
+stack_mode: consumer
+size: 11095
+provides: quakes regions
+instructions: |
+  Implement region extraction and grouping, ordering, maximum magnitudes, shared magnitude
+  filtering, and CSV output according to the source instructions.
+acceptance: yes
+state: closed/implemented
+
+## story 6: Find events within a haversine distance of a point.
+id: near
+finding: ADVISORY: implemented, not verified — no governed acceptance command covers this story. Declare one in ACCEPTANCE.json to gate it.
+evidence: evidence/block-2.md
+summary: Find events within a haversine distance of a point.
+type: service
+kind: capability
+phase: 1
+block: 2
+implements: FEATURE-Near.md
+covers: REPORT-005
+accepts: st-004, st-005
+context: INSTRUCTIONS.md, quakes_2025-01-01_07.geojson
+stack: common.md, python.md, cli.md
+stack_mode: consumer
+size: 11341
+provides: quakes near
+instructions: |
+  Implement coordinate and radius validation, haversine distance on the specified sphere,
+  inclusive radius matching, nearest-first ordering, shared magnitude filtering, and CSV output.
+acceptance: yes
+state: closed/implemented
+
+## story 7: Provide the automated test suite and run final conformance verification.
+id: verify
+summary: Provide the automated test suite and run final conformance verification.
+type: service
+kind: test harness
+phase: 1
+block: 2
+implements: FEATURE-Verification.md
+covers: VERIFY-001
+accepts: st-001, st-002, st-008
+context: INSTRUCTIONS.md, run.sh, quakes_2025-01-01_07.geojson
+stack: common.md, python.md, cli.md
+stack_mode: consumer
+size: 13053
+instructions: |
+  Provide bin/test.sh and a pytest suite that covers the commands, options, failures, and stubbed
+  fetch behavior without network access. This is the terminal story: its acceptance runs the
+  supplied full conformance suite after all implementation stories close.
+acceptance: yes
+depends: fetch, summary, top, daily, regions, near
+state: blocked/questions
+evidence: evidence/block-2.md
+finding: ADVISORY: implemented, not verified — no governed acceptance command covers this story. Declare one in ACCEPTANCE.json to gate it.

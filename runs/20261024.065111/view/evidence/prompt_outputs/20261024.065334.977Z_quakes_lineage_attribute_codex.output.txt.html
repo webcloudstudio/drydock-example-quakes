@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompt_outputs/20261024.065334.977Z_quakes_lineage_attribute_codex.output.txt</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompt_outputs/20261024.065334.977Z_quakes_lineage_attribute_codex.output.txt</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompt_outputs/20261024.065334.977Z_quakes_lineage_attribute_codex.output.txt">Raw file</a></div></header>
+<article class="doc"><pre>&lt;requirement name=&quot;run-frozen-snapshot-reports&quot; stories=&quot;summary,top,daily,regions,verify&quot;&gt;
+# Runs ./quakes over the frozen USGS snapshot and compares every report&#x27;s exit code and standard
+# output with the known answer below. Standard error is never compared. No network is used.
+&lt;/requirement&gt;
+&lt;requirement name=&quot;deliver-executable-at-application-root&quot; stories=&quot;verify&quot;&gt;
+The deliverable is an executable named quakes at the application root.
+&lt;/requirement&gt;
+&lt;requirement name=&quot;summary-report&quot; stories=&quot;summary,verify&quot;&gt;
+summary
+&lt;/requirement&gt;
+&lt;requirement name=&quot;top-report&quot; stories=&quot;top,verify&quot;&gt;
+top
+&lt;/requirement&gt;
+&lt;requirement name=&quot;daily-report&quot; stories=&quot;daily,verify&quot;&gt;
+daily
+&lt;/requirement&gt;
+&lt;requirement name=&quot;regions-report&quot; stories=&quot;regions,verify&quot;&gt;
+regions
+&lt;/requirement&gt;
+&lt;requirement name=&quot;near-distance-search&quot; stories=&quot;near,verify&quot;&gt;
+near
+&lt;/requirement&gt;
+&lt;requirement name=&quot;top-limit-option&quot; stories=&quot;top,verify&quot;&gt;
+--n
+&lt;/requirement&gt;
+&lt;requirement name=&quot;minimum-magnitude-filter&quot; stories=&quot;summary,daily,top,regions,near,verify&quot;&gt;
+--min-mag
+&lt;/requirement&gt;
+&lt;requirement name=&quot;near-coordinate-and-radius-options&quot; stories=&quot;near,verify&quot;&gt;
+--lat --lon --radius
+&lt;/requirement&gt;
+&lt;requirement name=&quot;return-empty-reports-for-no-matches&quot; stories=&quot;summary,daily,verify&quot;&gt;
+EOF
+0,,,,,,0
+&lt;/requirement&gt;
+&lt;requirement name=&quot;operational-errors&quot; stories=&quot;summary,verify&quot;&gt;
+no-such-file.geojson
+&lt;/requirement&gt;
+&lt;requirement name=&quot;reject-invalid-json-and-features&quot; stories=&quot;summary,verify&quot;&gt;
+this is not json
+&lt;/requirement&gt;
+&lt;requirement name=&quot;usage-errors&quot; stories=&quot;summary,daily,top,regions,near,verify&quot;&gt;
+frobnicate
+&lt;/requirement&gt;
+&lt;requirement name=&quot;no-network-fetch-needed-to-run&quot; stories=&quot;verify&quot;&gt;
+# runs it
+&lt;/requirement&gt;
+&lt;unattached story=&quot;fetch&quot;/&gt;</pre></article>
+</main>
+</body>
+</html>

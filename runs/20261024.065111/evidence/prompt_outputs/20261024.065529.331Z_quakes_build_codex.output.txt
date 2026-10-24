@@ -1,0 +1,14 @@
+RESULT: SUCCESS
+
+FILES CHANGED:
+- cli/__init__.py
+- cli/parser.py
+- reports.py
+- tests/test_reports.py
+- bin/test.sh
+
+SUMMARY:
+Implemented summary, daily, top, regions, and near reports with shared GeoJSON parsing, filtering, formatting, and validation. Added offline tests and the test launcher. `sh bin/test.sh` passed (11 tests, 2 subtests); `sh sources/run.sh` passed all 26 checks. Staged sources are unchanged.
+
+BLOCKERS:
+- None

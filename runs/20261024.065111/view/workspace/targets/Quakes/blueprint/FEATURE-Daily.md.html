@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Daily.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Daily.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Daily.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Daily</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Groups saved earthquake events by UTC date and reports daily totals.</td></tr><tr><td>Depends On</td><td></td></tr><tr><td>Provides</td><td>quakes daily</td></tr><tr><td>Consumes</td><td></td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>Report the number of events and maximum magnitude for each UTC date in the input file.</p>
+<h2>Workflow</h2>
+<ol><li>Read events, exclude null magnitudes, and apply the optional minimum magnitude.</li><li>Group matching events by the first ten characters of their UTC timestamp.</li><li>Sort dates ascending and compute each date&#x27;s count and maximum magnitude.</li><li>Emit a final <code>TOTAL</code> row with overall event count and maximum magnitude.</li></ol>
+<p>Maximum magnitudes use one decimal place. With no matching events, the total maximum magnitude is empty.</p>
+<h2>CLI Contract</h2>
+<p><code>quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;</code></p>
+<p>Success exits 0; operational file or FeatureCollection errors exit 1; usage errors exit 2. Failures write no standard output and one diagnostic line to standard error.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC daily-empty ===<br>Intent: An empty event file produces a successful daily report with an empty total maximum.</p>
+<p>import json import tempfile from pathlib import Path from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as directory: source = Path(directory) / &quot;empty.json&quot; source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []})) code, stdout, stderr = cli_runner(&quot;daily&quot;, str(source)) assert code == 0</p>
+<p>=== END AC daily-empty ===</p>
+<p>=== AC daily-filter ===<br>Intent: The minimum magnitude option is accepted and the report succeeds.</p>
+<p>import json import tempfile from pathlib import Path from cli.testing import cli_runner</p>
+<p>event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: { &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0 }, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}} with tempfile.TemporaryDirectory() as directory: source = Path(directory) / &quot;events.json&quot; source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]})) code, stdout, stderr = cli_runner(&quot;daily&quot;, &quot;--min-mag&quot;, &quot;6&quot;, str(source)) assert code == 0</p>
+<p>=== END AC daily-filter ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Use UTC dates and ascending date order.</li><li>Include the total row, including when no events match.</li><li>Compute all values from the supplied file.</li></ul></article>
+</main>
+</body>
+</html>

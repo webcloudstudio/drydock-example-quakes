@@ -1,0 +1,16 @@
+[
+  {
+    "id": "acceptance-summary-success-tooling",
+    "type": "text",
+    "severity": "blocking",
+    "origin": "build",
+    "blueprint": "FEATURE-Summary.md",
+    "story": "verify",
+    "status": "open",
+    "archived": false,
+    "title": "Authorize summary-success test tooling",
+    "description": "Authorize executable=./quakes for test scope. Planned installation: provision executable ./quakes outside Drydock. Affected acceptance check: FEATURE-Summary.md#summary-success (The summary command succeeds on a supplied FeatureCollection.).",
+    "options": [],
+    "system_choice": "not authorized"
+  }
+]

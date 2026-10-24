@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/SCORECARD.md</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/SCORECARD.md</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../workspace/targets/Quakes/SCORECARD.md">Raw file</a></div></header>
+<article class="doc"><h1>Scorecard: Quakes</h1>
+<h2>Specification</h2>
+<blockquote><p><strong>NOT YET RUN</strong> drydock score spec Quakes</p></blockquote>
+<h2>Acceptance</h2>
+<blockquote><p><strong>PASSED</strong> drydock score ac Quakes · 2026-10-24T06:57:31.660+00:00</p></blockquote>
+<p>PASS 13   FAIL 0   UNVERIFIED 0   PREPASSED 3   (16 AC total)</p>
+<h2>Build</h2>
+<blockquote><p><strong>RECORDED</strong> drydock score build Quakes</p></blockquote>
+<p>Blocks: 2   Repaired: 0   Failed: 0<br>Tokens: 572,891 (cached 496,512, output 8,148)   Cache hit rate: 87.9%</p>
+<h2>Release</h2>
+<blockquote><p><strong>RELEASED</strong> drydock score release Quakes · 2026-10-24T06:58:24.472+00:00</p></blockquote>
+<ul><li>Verdict: PASSED</li></ul>
+<p>Quakes: PASSED — 8 of 8</p>
+<p>st-001  MET       [&quot;sh&quot;, &quot;sources/run.sh&quot;] exited 0; governed gate: sh sources/run.sh exited 0; 26 passed, 0 failed st-002  MET       bin/test.sh:1 has a #!/bin/sh shebang; probe: sh bin/test.sh exited 0; 11 passed, 2 subtests passed st-003  MET       sources/run.sh: A1–A4 check summary, top, daily, and regions output against expected CSV; governed gate: 26 passed, 0 failed st-004  MET       reports.py:149–167 computes haversine distance on a 6371.0 km sphere and sorts matches by distance; probe: near at (0,0), radius 120 km returned the 1° east event at 111.2 km and omitted the 2° event st-005  MET       cli/<strong>init</strong>.py:27 applies filtered events before dispatching reports; probe: --min-mag 5.5 excluded the magnitude 5.0 event from near; --min-mag 6 excluded lower-magnitude events from top st-006  MET       quakes.py:19–47 builds the USGS query, validates the response, and writes the response body bytes; probe: request parameters matched the expected URL and saved bytes matched the stub response exactly; tests/test_fetch.py:63–73 covers non-200 and invalid GeoJSON responses without creating output; probe confirmed a network failure creates no file st-007  MET       sources/run.sh: E1–E3 check unreadable and invalid files; U1–U8 check malformed arguments; governed gate: all 26 checks passed st-008  MET       tests/test_fetch.py:37–73 wraps each fetch call in patch.object(quakes, &quot;urlopen&quot;, ...); tests/test_reports.py exercises report commands using local temporary GeoJSON files</p>
+<h2>Project acceptance</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Type</th><th>Criterion</th><th>Verdict</th><th>Observed</th></tr></thead><tbody><tr><td>st-001</td><td>technical</td><td>The completed quakes shall make sh sources/run.sh exit zero; that script&#x27;s exit status is the sole acceptance verdict.</td><td>MET</td><td>[&quot;sh&quot;, &quot;sources/run.sh&quot;] exited 0; governed gate: sh sources/run.sh exited 0; 26 passed, 0 failed</td></tr><tr><td>st-002</td><td>technical</td><td>The application shall provide a POSIX-compatible bin/test.sh that exits zero when every automated test passes.</td><td>MET</td><td>bin/test.sh:1 has a #!/bin/sh shebang; probe: sh bin/test.sh exited 0; 11 passed, 2 subtests passed</td></tr><tr><td>st-003</td><td>behavioral</td><td>The application shall compute the summary, top, daily, and regions reports from the snapshot, matching the known answers in sources/run.sh byte for byte.</td><td>MET</td><td>sources/run.sh: A1–A4 check summary, top, daily, and regions output against expected CSV; governed gate: 26 passed, 0 failed</td></tr><tr><td>st-004</td><td>behavioral</td><td>When near is given a point and a radius, the application shall list every event within that haversine distance on a 6371.0 km sphere, nearest first.</td><td>MET</td><td>reports.py:149–167 computes haversine distance on a 6371.0 km sphere and sorts matches by distance; probe: near at (0,0), radius 120 km returned the 1° east event at 111.2 km and omitted the 2° event</td></tr><tr><td>st-005</td><td>behavioral</td><td>When --min-mag is given, the application shall compute every report over only the events whose magnitude is at least that value.</td><td>MET</td><td>cli/<strong>init</strong>.py:27 applies filtered events before dispatching reports; probe: --min-mag 5.5 excluded the magnitude 5.0 event from near; --min-mag 6 excluded lower-magnitude events from top</td></tr><tr><td>st-006</td><td>behavioral</td><td>When fetch is given a date range, the application shall request the USGS FDSN event query in GeoJSON and write the response unchanged to the output file, writing no file on a network or HTTP failure.</td><td>MET</td><td>quakes.py:19–47 builds the USGS query, validates the response, and writes the response body bytes; probe: request parameters matched the expected URL and saved bytes matched the stub response exactly; tests/test_fetch.py:63–73 covers non-200 and invalid GeoJSON responses without creating output; probe confirmed a network failure creates no file</td></tr><tr><td>st-007</td><td>behavioral</td><td>If the file is unreadable or not a GeoJSON FeatureCollection, then the application shall exit 1; if the arguments are malformed, then the application shall exit 2; in both cases it shall write nothing to standard output.</td><td>MET</td><td>sources/run.sh: E1–E3 check unreadable and invalid files; U1–U8 check malformed arguments; governed gate: all 26 checks passed</td></tr><tr><td>st-008</td><td>technical</td><td>The application&#x27;s automated tests shall exercise fetch through a stubbed HTTP call and shall not open a network connection.</td><td>MET</td><td>tests/test_fetch.py:37–73 wraps each fetch call in patch.object(quakes, &quot;urlopen&quot;, ...); tests/test_reports.py exercises report commands using local temporary GeoJSON files</td></tr></tbody></table></div>
+<p><strong>Material decisions:</strong></p>
+<ul><li>Authorize summary-success test tooling — </li></ul></article>
+</main>
+</body>
+</html>

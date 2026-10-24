@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/commands/10-initial-build-1.stdout.log</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/commands/10-initial-build-1.stdout.log</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/commands/10-initial-build-1.stdout.log">Raw file</a></div></header>
+<article class="doc"><pre>Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+Build: Quakes
+scope: entire project
+frontier: fetch
+WARNING: override waived story-question for summary: Authorize summary-success test tooling
+git: baseline Quakes bd22a50659a1
+git: baseline Quakes 8c433722be18
+
+BLOCK block-1  name=&quot;Block 1 · Service&quot;  calls_max=7
+  story=fetch  &quot;Fetch and save a validated USGS GeoJSON feed.&quot;
+
+  [call 1/7]  kind=initial  llm=codex/gpt-6-luna
+    result=ok  rc=0  execution=20261024.065434.361Z-75a9a6ae
+    acceptance=2/2
+git: block-1 | FEATURE-Fetch.md | call=1 | app=4cb0a377d70f target=1f21a36d1ae0
+
+  DONE  story=fetch  state=closed/implemented  execution=20261024.065434.361Z-75a9a6ae  elapsed=41.1s
+git: block-1 | FEATURE-Fetch.md | step_completed | app=unchanged target=ee10da530f0f
+WARNING: override waived acceptance-authorization for FEATURE-Summary.md#summary-success: executable=./quakes
+
+BLOCK block-2  name=&quot;Block 2 · Service&quot;  calls_max=7
+  story=summary  &quot;Summarize events from a saved GeoJSON FeatureCollection.&quot;
+  story=daily  &quot;Report event counts and maximum magnitudes by day.&quot;
+  story=top  &quot;List the largest events from a saved GeoJSON FeatureCollection.&quot;
+  story=regions  &quot;Report event counts and maximum magnitudes by region.&quot;
+  story=near  &quot;Find events within a haversine distance of a point.&quot;
+  story=verify  &quot;Provide the automated test suite and run final conformance verification.&quot;
+
+  [call 1/7]  kind=initial  llm=codex/gpt-6-luna
+    result=ok  rc=0  execution=20261024.065529.331Z-45c29989
+    acceptance=0/0
+git: block-2 | FEATURE-Summary.md, FEATURE-Daily.md, FEATURE-Top.md, FEATURE-Regions.md, FEATURE-Near.md, FEATURE-Verification.md | call=1 | app=6754cc13e27d target=b899e52eea45
+
+  DONE  story=summary  state=closed/implemented  execution=20261024.065529.331Z-45c29989  elapsed=1m30s
+git: block-2 | FEATURE-Summary.md, FEATURE-Daily.md, FEATURE-Top.md, FEATURE-Regions.md, FEATURE-Near.md, FEATURE-Verification.md | step_completed | app=unchanged target=cfeb1d3e3883
+git: build complete Quakes b986f48eef60
+git: build complete Quakes 51e67425310e
+
+result: 7 built, 0 failed, 0 unchanged
+elapsed: 2 minutes 33 seconds
+
+---- OVERRIDE SUMMARY (3 gates bypassed) ----
+  story-question             summary — Authorize summary-success test tooling
+  story-question             verify — Authorize summary-success test tooling
+  acceptance-authorization   FEATURE-Summary.md#summary-success — executable=./quakes
+This run is not governed: the waived gates were never answered.
+Target - committed project workspace git store
+</pre></article>
+</main>
+</body>
+</html>

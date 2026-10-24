@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/quakes.py</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/quakes.py</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../build/Quakes/quakes.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;USGS earthquake feed retrieval.&quot;&quot;&quot;
+
+from __future__ import annotations
+
+import json
+import re
+import urllib.request
+from datetime import date
+from pathlib import Path
+from typing import Any
+
+urlopen = urllib.request.urlopen
+_ENDPOINT = &quot;https://earthquake.usgs.gov/fdsnws/event/1/query&quot;
+_MAGNITUDE = re.compile(r&quot;-?[0-9]+(?:\.[0-9]+)?\Z&quot;)
+
+
+class FetchError(Exception):
+    &quot;&quot;&quot;An operational failure while retrieving or saving a feed.&quot;&quot;&quot;
+
+
+def fetch(*, start: str, end: str, out: str | Path, min_mag: str = &quot;2.5&quot;) -&gt; int:
+    &quot;&quot;&quot;Fetch a valid GeoJSON FeatureCollection and save its body unchanged.&quot;&quot;&quot;
+    try:
+        date.fromisoformat(start)
+        date.fromisoformat(end)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(&quot;dates must use YYYY-MM-DD&quot;) from exc
+    if not _MAGNITUDE.fullmatch(min_mag):
+        raise ValueError(&quot;magnitude must be a decimal number&quot;)
+
+    params = {
+        &quot;format&quot;: &quot;geojson&quot;,
+        &quot;starttime&quot;: start,
+        &quot;endtime&quot;: end,
+        &quot;minmagnitude&quot;: min_mag,
+        &quot;orderby&quot;: &quot;time-asc&quot;,
+    }
+    request = urllib.request.Request(f&quot;{_ENDPOINT}?{urllib.parse.urlencode(params)}&quot;)
+    try:
+        with urlopen(request) as response:
+            status = response.status
+            status = status() if callable(status) else status
+            body = response.read()
+        if status != 200:
+            raise FetchError(f&quot;USGS returned HTTP {status}&quot;)
+        document: Any = json.loads(body)
+        if (not isinstance(document, dict) or document.get(&quot;type&quot;) != &quot;FeatureCollection&quot;
+                or not isinstance(document.get(&quot;features&quot;), list)):
+            raise FetchError(&quot;response is not a GeoJSON FeatureCollection&quot;)
+        count = len(document[&quot;features&quot;])
+        Path(out).write_bytes(body)
+        return count
+    except FetchError:
+        raise
+    except Exception as exc:
+        raise FetchError(str(exc) or exc.__class__.__name__) from exc
+</pre></article>
+</main>
+</body>
+</html>

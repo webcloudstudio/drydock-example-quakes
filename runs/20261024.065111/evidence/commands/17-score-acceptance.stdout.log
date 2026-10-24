@@ -1,0 +1,65 @@
+Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+  ✓ PASS        [1/16]  fetch-success                  fetch    FEATURE-Fetch.md
+  ✓ PASS        [2/16]  fetch-failure                  fetch    FEATURE-Fetch.md
+  ✓ PASS        [3/16]  summary-success                summary  FEATURE-Summary.md
+  ✓ PASS        [4/16]  summary-invalid-file           summary  FEATURE-Summary.md
+  ✓ PASS        [5/16]  daily-empty                    daily    FEATURE-Daily.md
+  ✓ PASS        [6/16]  daily-filter                   daily    FEATURE-Daily.md
+  ✓ PASS        [7/16]  top-options                    top      FEATURE-Top.md
+  ✓ PASS        [8/16]  top-invalid-count              top      FEATURE-Top.md
+  ✓ PASS        [9/16]  regions-command                regions  FEATURE-Regions.md
+  ✓ PASS        [10/16]  regions-filter                 regions  FEATURE-Regions.md
+  ✓ PASS        [11/16]  near-valid-request             near     FEATURE-Near.md
+  ✓ PASS        [12/16]  near-required-options          near     FEATURE-Near.md
+  ✓ PASS        [13/16]  near-coordinate-bounds         near     FEATURE-Near.md
+  ✓ PASS        [14/16]  near-invalid-file              near     FEATURE-Near.md
+  ✓ PASS        [15/16]  verification-test-suite        verify   FEATURE-Verification.md
+  ✓ PASS        [16/16]  verification-full-conformance  verify   FEATURE-Verification.md
+
+Acceptance verification: Quakes  (2026-10-24T06:57:09+00:00)
+  PASS 13   FAIL 0   UNVERIFIED 0   PREPASSED 3   (16 AC)
+
+  ✓ PASS        fetch-success                  fetch    FEATURE-Fetch.md
+  ✓ PASS        fetch-failure                  fetch    FEATURE-Fetch.md
+  ✓ PASS        summary-success                summary  FEATURE-Summary.md
+  ✓ PASS        summary-invalid-file           summary  FEATURE-Summary.md
+  ✓ PASS        daily-empty                    daily    FEATURE-Daily.md
+  ✓ PASS        daily-filter                   daily    FEATURE-Daily.md
+  ✓ PASS        top-options                    top      FEATURE-Top.md
+  ~ PREPASSED   top-invalid-count              top      FEATURE-Top.md
+  ✓ PASS        regions-command                regions  FEATURE-Regions.md
+  ✓ PASS        regions-filter                 regions  FEATURE-Regions.md
+  ✓ PASS        near-valid-request             near     FEATURE-Near.md
+  ~ PREPASSED   near-required-options          near     FEATURE-Near.md
+  ~ PREPASSED   near-coordinate-bounds         near     FEATURE-Near.md
+  ✓ PASS        near-invalid-file              near     FEATURE-Near.md
+  ✓ PASS        verification-test-suite        verify   FEATURE-Verification.md
+  ✓ PASS        verification-full-conformance  verify   FEATURE-Verification.md
+
+  ~ PREPASSED   top-invalid-count
+        intent: A nonpositive count returns the usage exit code.
+        green at this block's baseline too, before its code existed — confirm the criterion exercises the story's work
+
+  ~ PREPASSED   near-required-options
+        intent: A near request missing a required coordinate is rejected as a usage error.
+        green at this block's baseline too, before its code existed — confirm the criterion exercises the story's work
+
+  ~ PREPASSED   near-coordinate-bounds
+        intent: A latitude outside the documented range is rejected as a usage error.
+        green at this block's baseline too, before its code existed — confirm the criterion exercises the story's work
+
+  Run `drydock score ac Quakes --full` for untruncated output per failure.
+
+
+  Proof coverage: 13 of 16 criteria are proof — green here, and observed red before the work that turned them green.
+    3 are not. Each names a story whose acceptance did not test it.
+
+    PREPASSED  top-invalid-count  top  FEATURE-Top.md
+               green before its block built
+    PREPASSED  near-required-options  near  FEATURE-Near.md
+               green before its block built
+    PREPASSED  near-coordinate-bounds  near  FEATURE-Near.md
+               green before its block built
+
+Soundings: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/SOUNDINGS.md
+Target - committed project workspace git store

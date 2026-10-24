@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Verification.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Verification.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Verification.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Verification</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Provides the offline pytest suite and final conformance verification workflow.</td></tr><tr><td>Depends On</td><td>FEATURE-Fetch.md, FEATURE-Summary.md, FEATURE-Top.md, FEATURE-Daily.md, FEATURE-Regions.md, FEATURE-Near.md</td></tr><tr><td>Provides</td><td>bin/test.sh, pytest suite, final conformance verification</td></tr><tr><td>Consumes</td><td>quakes fetch, quakes summary, quakes top, quakes daily, quakes regions, quakes near</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>The project provides a POSIX-compatible <code>bin/test.sh</code> that runs the project&#x27;s pytest suite from the application root and exits zero only when every test passes. The suite covers each report command, behavior-changing options, region and distance rules, fetch through a stubbed HTTP response, and exit codes. Tests use files written by the tests and never open a network connection.</p>
+<p>After all command capabilities are implemented, run the supplied grader from the application root as the final conformance check.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC verification-test-suite ===<br>Intent: The project test launcher succeeds after running the automated tests.</p>
+<p>import subprocess</p>
+<p>result = subprocess.run( [&quot;sh&quot;, &quot;bin/test.sh&quot;], capture_output=True, text=True, ) print(result.stdout) print(result.stderr) assert result.returncode == 0 === END AC verification-test-suite ===</p>
+<p>=== AC verification-full-conformance ===<br>Intent: The complete supplied grader passes against the finished command set.<br>Suite: full</p>
+<p>import subprocess</p>
+<p>result = subprocess.run( [&quot;sh&quot;, &quot;sources/run.sh&quot;], capture_output=True, text=True, ) print(result.stdout) print(result.stderr) assert result.returncode == 0 === END AC verification-full-conformance ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Keep <code>sources/run.sh</code> and the frozen GeoJSON snapshot unchanged.</li><li>Tests must stub the HTTP call for fetch and must not use the network.</li><li>Run the supplied grader only as the full terminal conformance check after all implementation stories are complete.</li></ul></article>
+</main>
+</body>
+</html>

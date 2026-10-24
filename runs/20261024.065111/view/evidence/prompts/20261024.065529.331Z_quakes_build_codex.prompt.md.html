@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompts/20261024.065529.331Z_quakes_build_codex.prompt.md</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompts/20261024.065529.331Z_quakes_build_codex.prompt.md</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompts/20261024.065529.331Z_quakes_build_codex.prompt.md">Raw file</a></div></header>
+<article class="doc"><h1>System Instructions</h1>
+<p>This prompt is divided into three sections:</p>
+<ol><li><strong>System Instructions</strong> (this section) — structural orientation only. Do not treat this</li></ol>
+<p>section as task input.</p>
+<ol><li><strong>Input Context</strong> — begins with the heading <code># Input Context</code>. All blocks are wrapped in</li></ol>
+<p><code>&lt;pblock&gt;</code> tags. Two block types:</p>
+<ul><li>File blocks: <code>&lt;pblock filename=&quot;&lt;name&gt;&quot; role=&quot;&lt;role&gt;&quot; guidance=&quot;...&quot;&gt;</code> — optional</li></ul>
+<p><code>guidance</code> attribute carries context-specific instructions; content is in a fenced block.</p>
+<ul><li>Metadata/section blocks: <code>&lt;pblock label=&quot;&lt;label&gt;&quot; kind=&quot;&lt;kind&gt;&quot;&gt;</code> — job parameters,</li></ul>
+<p>rules, instructions, or group headers.</p>
+<ol><li><strong>Agent Task</strong> — begins with the heading <code># Agent Task</code>. Defines your persona, constraints,</li></ol>
+<p>and required outputs. Read all input context before acting on this section.</p>
+<h1>Input Context</h1>
+<p>&lt;pblock label=&quot;Build block job&quot; kind=&quot;job&quot;&gt;</p>
+<h2>Build block job</h2>
+<ul><li>TARGET: Quakes</li><li>BUILD_DIRECTORY: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes</li><li>WORKING_DIRECTORY: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes</li><li>BUILD_BLOCK: Block 2 · Service (block-2)</li><li>STORIES: Summarize events from a saved GeoJSON FeatureCollection. (summary), Report event counts and maximum magnitudes by day. (daily), List the largest events from a saved GeoJSON FeatureCollection. (top), Report event counts and maximum magnitudes by region. (regions), Find events within a haversine distance of a point. (near), Provide the automated test suite and run final conformance verification. (verify)</li><li>DATE: 2026-10-24</li><li>BUILD_SCOPE: exactly one MANIFEST.md build block</li></ul>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Stories in this block&quot; kind=&quot;section&quot;&gt;</p>
+<h2>Stories in this block</h2>
+<ul><li>Summarize events from a saved GeoJSON FeatureCollection. (summary) [story]</li><li>Report event counts and maximum magnitudes by day. (daily) [story]</li><li>List the largest events from a saved GeoJSON FeatureCollection. (top) [story]</li><li>Report event counts and maximum magnitudes by region. (regions) [story]</li><li>Find events within a haversine distance of a point. (near) [story]</li><li>Provide the automated test suite and run final conformance verification. (verify) [story]</li></ul>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Files on disk&quot; kind=&quot;section&quot;&gt;</p>
+<h2>Files on disk in the build directory</h2>
+<ul><li>sources/quakes_2025-01-01_07.geojson</li><li>sources/run.sh</li></ul>
+<p>These are the only imported files present on disk. Every other file named in this prompt is supplied as prompt context and is not on disk; read it here and do not report it as a missing input.</p>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Missing context files&quot; kind=&quot;section&quot;&gt; Missing context files (named by the plan but not found):</p>
+<ul><li>context: INSTRUCTIONS.md</li></ul>
+<p>&lt;/pblock&gt;</p>
+<h2>COMPASS - Target Orientation</h2>
+<p>&lt;pblock filename=&quot;COMPASS.md&quot; role=&quot;compass&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/COMPASS.md&quot; guidance=&quot;Important: This is the core project intent, constraints, and guardrails. It should have presecedence in conflicts.&quot;&gt;</p>
+<pre><code># COMPASS: Quakes
+
+## Compass
+
+Build a command-line earthquake feed reporter, an executable named `quakes` at the application
+root, as described in `sources/INSTRUCTIONS.md`. It downloads a period of the USGS event feed as
+GeoJSON and writes five CSV reports from a saved file: summary, largest events, events per day,
+events per region, and events within a haversine distance of a point.
+
+Correctness is measured by `sources/run.sh`: 26 checks of exit code and standard output against a
+frozen 44-event USGS snapshot. The goal is every check passing.
+
+## Constraints
+
+- Implement in Python 3.11 or newer with the standard library only.
+- Provide an executable named `quakes` at the application root, invoked as `./quakes &lt;command&gt;`.
+- Reading the file, filtering, computing each report, and formatting are separate, unit-tested
+  functions.
+- Tests stub the HTTP call; no test opens a network connection.
+- Diagnostics go to standard error and are never compared.
+
+## Guardrails
+
+- Do not modify, rewrite, regenerate, or substitute any file under `sources/`.
+- Do not read `sources/run.sh` or the snapshot from application code, and do not hardcode a
+  report row, a count, or a distance. Every value comes from the file being read.
+
+## Verification Protocol
+
+| Story kind | Command | Asserts |
+|---|---|---|
+| Every behavioral story | `sh bin/test.sh` | exit `0` |
+| Terminal story (once, last) | `sh sources/run.sh` | exit `0` |
+
+&lt;!-- drydock:build-write-guardrail:start --&gt;
+## Build Write Guardrail
+
+- Authorized build directory: `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes`
+- Authorized Target directory: `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes`
+- Build agents have permission to create, modify, and remove files required by the active build block inside these authorized directories.
+- No path outside these authorized directories may be modified.
+- Protected Drydock artifacts:
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/MANIFEST.md`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/COMPASS.md`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/QuarterDeck/`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/evidence/`
+&lt;!-- drydock:build-write-guardrail:end --&gt;</code></pre>
+<p>&lt;/pblock&gt;</p>
+<h2>STACK - Technology HOW</h2>
+<p>&lt;pblock filename=&quot;python_compact.md&quot; role=&quot;stack&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/Rigging/languages/python/python_compact.md&quot;&gt;</p>
+<pre><code>&lt;!-- Compacted from Rigging/languages/python/python.md sha256=fe344456a351e3237cfe3bae2408a69758d401430b935f60c15f91b9a97e8016 on 2026-10-18 by Rigging maintenance --&gt;
+
+## Foundation Contract
+
+- source_root: ./
+- test_command: pytest -q
+- environment: `.venv`, created by `uv venv` and activated by launchers in `bin/`
+- dependencies: `pyproject.toml` and committed `uv.lock`
+
+The language foundation owns the project root, environment, dependency manifest, and test runner.
+Later foundations add their packages to this tree without replacing those contracts.
+
+### How do we execute and measure Acceptance Criteria in this language?
+
+An Acceptance Criterion (AC) is an executable check of Blueprint-required behavior. Use the
+existing Programmatic Acceptance format: a Python script with assertions against the built
+product. Drydock executes each criterion through `languages/python/acceptance/runner.py`; `pytest -q`
+runs the project test suite. Retain the criterion ID, observed values, stdout/stderr and result;
+an assertion failure fails the check. The harness reports failure operands and available case
+counts. Code coverage and persistence interactions require explicit instrumentation; record
+available observations as key/value data associated with the criterion. Missing observations
+are unknown, not proof that code or an interaction was unused.
+
+### How does this language provide the shared persistence contract?
+
+Use `stack/persistence.md`. Drydock copies `Rigging/languages/python/persistence/{db,sqlite,postgres}.py` and generates
+`persistence/{schema,__init__,testing}.py` plus `schema.sql` from `DATABASE.md`. Call
+`open_database(dsn)` and `db.&lt;table&gt;.&lt;operation&gt;(...)`; use `persistence.testing.db_session()`
+for criteria. SQLite uses the standard library; PostgreSQL needs `psycopg[binary]` in the project
+dependencies. Both engines ship together and the DSN selects the engine. Library verification
+lives in `tests/test_shipped_database.py`; a Target still verifies its own schema and operations.
+
+## Consumer Rules
+
+- Python &gt;=3.11; use modern type hints on public interfaces and named cross-package data shapes.
+- Centralize typed runtime settings; use Blueprint names and defaults. Keep secrets out of Git and logs.
+- Keep behavior in importable modules; launchers activate `.venv` and invoke modules.
+- Use pytest with isolated external state; all test gates run `pytest -q`.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;common_compact.md&quot; role=&quot;stack&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/Rigging/stack/common_compact.md&quot;&gt;</p>
+<pre><code>&lt;!-- Compacted from /mnt/c/Users/barlo/projects/drydock/Rigging/stack/common.md sha256=2d665e4a232b3ef5b681149974e74928c8f5abb9adaac02604cc6b5987ac0f85 on 2026-10-24 by drydock rigging compact — regenerate with: drydock rigging compact --include-file {rel_source} --&gt;
+
+# Common Best Practices — Contract Surface
+
+## Project Layout
+
+### Rule: project-directory-layout
+
+Every project must use the standard root layout and may add stack-specific directories.
+
+Constraints: Include `bin/`, `data/` with `logs/` and `backups/`, `docs/`, `tests/`, optional `PROJECT/`, `.env`, `.env.example`, `.gitignore`, `CLAUDE.md`, and `Links.md`; keep runtime data under `data/`.
+
+## Shell Scripts
+
+### Rule: user-facing-operation-scripts
+
+User-facing operations must be implemented as Bash scripts in `bin/`.
+
+Constraints: Scripts must use standardized headers, `set -euo pipefail`, resolve project-relative paths, create `data/logs/`, log execution details, run from the project root, tee output to console and a timestamped log, and record completion.
+
+### Rule: command-center-discovery-header
+
+A discoverable script must begin with a Command Center header.
+
+| Field | Required | Values |
+|---|---:|---|
+| `# CommandCenter Operation` | Yes | Literal |
+| `# Name:` | Yes | Free text |
+| `# Type:` | No | `daemon` or `batch`; defaults to `batch` |
+| `# Port:` | No | Integer; daemon port |
+
+Constraints: Scripts without `# CommandCenter Operation` remain valid but are not discoverable by Command Center.
+
+### Rule: standard-scripts
+
+Projects should provide applicable operation scripts with these names and purposes.
+
+| Script | Type | Purpose |
+|---|---|---|
+| `bin/start.sh` | daemon | Start the development server |
+| `bin/stop.sh` | batch | Stop the development server |
+| `bin/test.sh` | batch | Run tests |
+| `bin/build.sh` | batch | Build or compile |
+| `bin/deploy.sh` | batch | Deploy to production |
+| `bin/backup.sh` | batch | Back up data or databases |
+
+### Rule: script-logging
+
+Operation scripts must capture stdout and stderr in `data/logs/`.
+
+Constraints: Log filenames must follow `&lt;script&gt;_&lt;YYYY-MM-DD_HHMMSS&gt;.log`; initial log lines must record timestamp, arguments, and working directory.
+
+## Links
+
+### Rule: links-file
+
+Every project must provide a root-level `Links.md` containing one two-column Markdown table.
+
+| Column | Requirement |
+|---|---|
+| `Label` | Short and descriptive |
+| `URL` | Relevant project URL |
+
+Constraints: Command Center reads this table and exposes the links through project configuration.
+
+## Agent Instructions
+
+### Rule: claude-file
+
+Every project must provide a root-level `CLAUDE.md` with the following sections.
+
+| Section | Required content |
+|---|---|
+| `## Project Overview` | Purpose and key features |
+| `## Architecture` | Technology stack, key files, and patterns |
+| `## Dev Commands` | Bash project commands in a code block |
+| `## Service Endpoints` | `- Label: https://url` entries |
+| `## Bookmarks` | Grouped links using `### Group` and `- [Title](URL)` |
+
+Constraints: Normalize equivalent headings to the standard names: `Commands`, `Development Commands`, and `Build Commands` become `Dev Commands`; `Overview` and `Project Purpose` become `Project Overview`; `Stack` becomes `Architecture`.
+
+## Version Control
+
+### Rule: gitignore-and-secrets
+
+Repositories must ignore secrets, generated files, and runtime data.
+
+Constraints: Ignore `data/`, `*.db`, `*.log`, `.env`, `venv/`, `node_modules/`, Python caches and bytecode, `*.egg-info/`, `dist/`, `build/`, `.DS_Store`, and `Thumbs.db`; commit `.env.example` with placeholders.
+
+### Rule: commit-message
+
+Commit messages must use imperative, descriptive text without AI or tool mentions.
+
+## Development Workflow
+
+### Rule: task-commit
+
+Completed, error-free tasks must be committed immediately.
+
+### Rule: local-only-commit
+
+Changes must be committed locally and must not be pushed.
+
+### Rule: co-authorship
+
+Commits must not contain `Co-authored-by` lines.
+
+### Rule: restart-notice
+
+Code-change responses for web-server projects must state whether a restart is required.
+
+Constraints: Template, CSS, or static-only changes require the notice `No restart needed — browser refresh is enough.`; Python or JavaScript server changes require `Restart required — run the start script or equivalent.`</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;cli.md&quot; role=&quot;stack&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/Rigging/stack/cli.md&quot;&gt;</p>
+<pre><code># Command-Line Application
+
+**Type:** cli
+**Version:** 20260920 V1
+**Tier:** platform
+**Category:** Technologies
+**Foundation:** cli
+**Description:** Command-line application structure: entry point, argument parsing, exit codes, cross-platform launchers, and testing without spawning a process.
+
+Technology reference. This file does not change between projects.
+
+Prerequisites: `stack/common.md`, `languages/python/python.md`
+
+---
+
+## Foundation Contract
+
+The published shape of this foundation. Drydock synthesizes the story that builds it and every
+acceptance criterion writes against these names. Carried verbatim into `cli_compact.md`.
+
+- package: cli
+- entry: main(argv: list[str] | None = None) -&gt; int
+- fixture: cli_runner
+- fixture_source: cli/testing.py
+
+```python
+# cli/__init__.py
+def main(argv: list[str] | None = None) -&gt; int:
+    ...
+
+# cli/testing.py
+import contextlib
+import io
+from cli import main
+
+def cli_runner(*args: str) -&gt; tuple[int, str, str]:
+    &quot;&quot;&quot;Return (exit_code, stdout, stderr) without spawning a process.&quot;&quot;&quot;
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        code = main(list(args))
+    return code, out.getvalue(), err.getvalue()
+
+# conftest.py
+import pytest
+from cli import testing
+
+@pytest.fixture
+def cli_runner():
+    return testing.cli_runner
+```
+
+A criterion imports `cli_runner` from `cli.testing`, calls `cli_runner(&quot;status&quot;, &quot;--json&quot;)`, and
+asserts on the returned tuple. It does not call `subprocess.run`, which measures the installed
+console script and the shell rather than the code the story wrote.
+
+---
+
+## 1. Directory Layout
+
+**Rule**: Command code lives in `cli/`. The root holds only packaging and infrastructure files.
+
+```
+project/
+  pyproject.toml            # [project.scripts] declares the console script
+  cli/
+    __init__.py             # main() — the single entry point
+    commands.py             # one function per command; no argument parsing
+    parser.py               # argparse construction; no behavior
+  bin/
+    run.sh                  # bash launcher
+    run.ps1                 # PowerShell launcher
+  tests/
+```
+
+**Why**: Parsing, behavior, and launching are three contracts. Collapsing them produces a command
+that cannot be tested without a shell.
+
+---
+
+## 2. Entry Point and Exit Codes
+
+**Rule**: `main(argv=None) -&gt; int` parses, dispatches, and returns an exit code. It never calls
+`sys.exit` and never raises for an expected failure. The console script is the only caller that
+translates the return value into a process exit.
+
+```python
+# cli/__init__.py
+import sys
+from cli.parser import build_parser
+from cli import commands
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = build_parser().parse_args(argv)
+    try:
+        return commands.dispatch(args)
+    except OperationalError as exc:
+        print(f&quot;error: {exc}&quot;, file=sys.stderr)
+        return 1
+```
+
+```toml
+# pyproject.toml
+[project.scripts]
+mytool = &quot;cli:main&quot;
+```
+
+**Exit codes**: `0` success, `1` operational failure, `2` usage error. `argparse` already returns
+`2` for a usage error; do not override it.
+
+**Why**: A `main` that returns rather than exits is callable from a test in-process. A `main` that
+calls `sys.exit` forces every criterion to spawn a subprocess and measure the shell.
+
+---
+
+## 3. Parsing Is Separate From Behavior
+
+**Rule**: `parser.py` builds the `argparse` tree and returns it. `commands.py` holds one function
+per command taking plain arguments, not a `Namespace`. Neither imports the other.
+
+```python
+# cli/parser.py
+import argparse
+
+def build_parser() -&gt; argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog=&quot;mytool&quot;)
+    sub = parser.add_subparsers(dest=&quot;command&quot;, required=True)
+    status = sub.add_parser(&quot;status&quot;, help=&quot;Report current state&quot;)
+    status.add_argument(&quot;--json&quot;, action=&quot;store_true&quot;)
+    return parser
+```
+
+```python
+# cli/commands.py
+def status(*, as_json: bool) -&gt; int:
+    ...
+
+def dispatch(args) -&gt; int:
+    if args.command == &quot;status&quot;:
+        return status(as_json=args.json)
+    return 2
+```
+
+**Why**: Behavior tested through a `Namespace` is behavior tested through the parser. Separating
+them lets a criterion call `status(as_json=True)` directly.
+
+---
+
+## 4. Cross-Platform Launchers
+
+**Rule**: Ship both launchers. They locate the environment and invoke the package entry point;
+they contain no business logic. A launcher that makes a decision is a second implementation of the
+command.
+
+```bash
+#!/usr/bin/env bash
+# bin/run.sh — locate the environment and hand off. No business logic.
+set -euo pipefail
+ROOT=&quot;$(cd &quot;$(dirname &quot;${BASH_SOURCE[0]}&quot;)/..&quot; &amp;&amp; pwd)&quot;
+if [ -d &quot;$ROOT/.venv&quot; ]; then
+    source &quot;$ROOT/.venv/bin/activate&quot;
+fi
+exec python -m cli &quot;$@&quot;
+```
+
+```powershell
+# bin/run.ps1 — locate the environment and hand off. No business logic.
+$ErrorActionPreference = &quot;Stop&quot;
+$Root = Split-Path -Parent $PSScriptRoot
+$Activate = Join-Path $Root &quot;.venv\Scripts\Activate.ps1&quot;
+if (Test-Path $Activate) { &amp; $Activate }
+python -m cli @args
+exit $LASTEXITCODE
+```
+
+```python
+# cli/__main__.py — makes `python -m cli` work identically on both platforms
+import sys
+from cli import main
+
+sys.exit(main())
+```
+
+**Why**: `python -m cli` is the one invocation both launchers share, so the two scripts cannot
+drift in behavior — only in how they find the interpreter. `exit $LASTEXITCODE` is required in
+PowerShell; without it the exit code is discarded and a failing command reports success.
+
+---
+
+## 5. Output and Streams
+
+**Rule**: Results go to stdout, diagnostics to stderr. A `--json` mode prints one JSON document to
+stdout and nothing else. Never interleave progress text into a machine-readable stream.
+
+**Why**: A caller piping stdout to `jq` receives the progress lines too, and the command becomes
+unusable in a pipeline.
+
+---
+
+## 6. Testing Without a Process
+
+**Rule**: Test through `main([&quot;status&quot;, &quot;--json&quot;])` or the `cli_runner` fixture. Reserve
+`subprocess.run` for one packaging test asserting the installed console script exists and runs.
+
+```python
+def test_status_reports_json(cli_runner):
+    code, out, err = cli_runner(&quot;status&quot;, &quot;--json&quot;)
+    assert code == 0
+    assert json.loads(out)[&quot;state&quot;] == &quot;ready&quot;
+    assert err == &quot;&quot;
+```
+
+**Why**: In-process tests are fast, debuggable, and measure the code. Subprocess tests measure the
+installed environment, which is a different and much smaller question.
+
+---
+
+## Checklist
+
+- [ ] `cli/` package; `main(argv=None) -&gt; int` that returns rather than exits
+- [ ] `[project.scripts]` declares the console script
+- [ ] `cli/__main__.py` so `python -m cli` works
+- [ ] Both `bin/run.sh` and `bin/run.ps1`, neither holding logic; `.ps1` ends with `exit $LASTEXITCODE`
+- [ ] Parsing in `parser.py`, behavior in `commands.py`, no import between them
+- [ ] Exit codes `0` / `1` / `2` used consistently
+- [ ] Results on stdout, diagnostics on stderr, `--json` emits nothing else
+- [ ] Criteria use `cli_runner`; at most one subprocess test for packaging</code></pre>
+<p>&lt;/pblock&gt;</p>
+<h2>CONTEXT - Read-Only Support</h2>
+<p>&lt;pblock filename=&quot;quakes_2025-01-01_07.geojson&quot; role=&quot;context&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/quakes_2025-01-01_07.geojson&quot;&gt;</p>
+<pre><code>{&quot;type&quot;:&quot;FeatureCollection&quot;,&quot;metadata&quot;:{&quot;generated&quot;:1792699897000,&quot;url&quot;:&quot;https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&amp;starttime=2025-01-01&amp;endtime=2025-01-08&amp;minmagnitude=5.0&amp;orderby=time-asc&quot;,&quot;title&quot;:&quot;USGS Earthquakes&quot;,&quot;status&quot;:200,&quot;api&quot;:&quot;2.8.2&quot;,&quot;count&quot;:44},&quot;features&quot;:[
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.5,&quot;place&quot;:&quot;153 km S of Isangel, Vanuatu&quot;,&quot;time&quot;:1735706358208,&quot;updated&quot;:1742247240040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:466,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pgsd&quot;,&quot;title&quot;:&quot;M 5.5 - 153 km S of Isangel, Vanuatu&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[169.3819,-20.9273,22]},&quot;id&quot;:&quot;us6000pgsd&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;13 km NW of Āwash, Ethiopia&quot;,&quot;time&quot;:1735718987701,&quot;updated&quot;:1742247241040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:385,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pgtj&quot;,&quot;title&quot;:&quot;M 5.0 - 13 km NW of Āwash, Ethiopia&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[40.0976,9.0855,10]},&quot;id&quot;:&quot;us6000pgtj&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;64 km NW of Rabaul, Papua New Guinea&quot;,&quot;time&quot;:1735724382334,&quot;updated&quot;:1742247242040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:385,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pgu0&quot;,&quot;title&quot;:&quot;M 5.0 - 64 km NW of Rabaul, Papua New Guinea&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[151.7147,-3.8338,10]},&quot;id&quot;:&quot;us6000pgu0&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.1,&quot;place&quot;:&quot;74 km NW of Rabaul, Papua New Guinea&quot;,&quot;time&quot;:1735734382490,&quot;updated&quot;:1742247243040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:400,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pgup&quot;,&quot;title&quot;:&quot;M 5.1 - 74 km NW of Rabaul, Papua New Guinea&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[151.6971,-3.7219,10]},&quot;id&quot;:&quot;us6000pgup&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:6.1,&quot;place&quot;:&quot;South Sandwich Islands region&quot;,&quot;time&quot;:1735739304752,&quot;updated&quot;:1742247244040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:572,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pgv4&quot;,&quot;title&quot;:&quot;M 6.1 - South Sandwich Islands region&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[-26.7059,-56.4095,70]},&quot;id&quot;:&quot;us6000pgv4&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.3,&quot;place&quot;:&quot;southeast of Easter Island&quot;,&quot;time&quot;:1735756071182,&quot;updated&quot;:1742247247040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:432,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pgx1&quot;,&quot;title&quot;:&quot;M 5.3 - southeast of Easter Island&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[-100.6636,-36.1244,10]},&quot;id&quot;:&quot;us6000pgx1&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.2,&quot;place&quot;:&quot;southern Mid-Atlantic Ridge&quot;,&quot;time&quot;:1735766861595,&quot;updated&quot;:1742247250040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:416,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pgy5&quot;,&quot;title&quot;:&quot;M 5.2 - southern Mid-Atlantic Ridge&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[-16.0574,-42.4343,10]},&quot;id&quot;:&quot;us6000pgy5&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.1,&quot;place&quot;:&quot;111 km E of ‘Ohonua, Tonga&quot;,&quot;time&quot;:1735780264639,&quot;updated&quot;:1742247251040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:400,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pgz5&quot;,&quot;title&quot;:&quot;M 5.1 - 111 km E of ‘Ohonua, Tonga&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[-173.8784,-21.3225,10]},&quot;id&quot;:&quot;us6000pgz5&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.5,&quot;place&quot;:&quot;Balleny Islands region&quot;,&quot;time&quot;:1735786457931,&quot;updated&quot;:1742247252040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:465,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pgzq&quot;,&quot;title&quot;:&quot;M 5.5 - Balleny Islands region&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[155.7048,-62.3342,10]},&quot;id&quot;:&quot;us6000pgzq&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.1,&quot;place&quot;:&quot;110 km SE of Modisi, Indonesia&quot;,&quot;time&quot;:1735795943434,&quot;updated&quot;:1742247253040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:400,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000ph0e&quot;,&quot;title&quot;:&quot;M 5.1 - 110 km SE of Modisi, Indonesia&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[125.1945,-0.2006,56.271]},&quot;id&quot;:&quot;us6000ph0e&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.4,&quot;place&quot;:&quot;72 km NW of Rabaul, Papua New Guinea&quot;,&quot;time&quot;:1735801599333,&quot;updated&quot;:1742247254040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:449,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000ph16&quot;,&quot;title&quot;:&quot;M 5.4 - 72 km NW of Rabaul, Papua New Guinea&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[151.7189,-3.7199,10]},&quot;id&quot;:&quot;us6000ph16&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.1,&quot;place&quot;:&quot;33 km N of Āwash, Ethiopia&quot;,&quot;time&quot;:1735803690364,&quot;updated&quot;:1742247254040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:409,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000ph1c&quot;,&quot;title&quot;:&quot;M 5.1 - 33 km N of Āwash, Ethiopia&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[40.1383,9.2824,10]},&quot;id&quot;:&quot;us6000ph1c&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;66 km WNW of Rabaul, Papua New Guinea&quot;,&quot;time&quot;:1735833427193,&quot;updated&quot;:1742247257040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:385,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000ph9f&quot;,&quot;title&quot;:&quot;M 5.0 - 66 km WNW of Rabaul, Papua New Guinea&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[151.6398,-3.9094,19.054]},&quot;id&quot;:&quot;us6000ph9f&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:6.1,&quot;place&quot;:&quot;84 km NNW of Calama, Chile&quot;,&quot;time&quot;:1735850615253,&quot;updated&quot;:1742247259040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:606,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phap&quot;,&quot;title&quot;:&quot;M 6.1 - 84 km NNW of Calama, Chile&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[-69.1069,-21.7109,99]},&quot;id&quot;:&quot;us6000phap&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.4,&quot;place&quot;:&quot;52 km NNE of Āwash, Ethiopia&quot;,&quot;time&quot;:1735852706833,&quot;updated&quot;:1742247259040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:452,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phb3&quot;,&quot;title&quot;:&quot;M 5.4 - 52 km NNE of Āwash, Ethiopia&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[40.2761,9.4426,10]},&quot;id&quot;:&quot;us6000phb3&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.1,&quot;place&quot;:&quot;71 km NW of Rabaul, Papua New Guinea&quot;,&quot;time&quot;:1735868848923,&quot;updated&quot;:1742247261040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:400,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phc9&quot;,&quot;title&quot;:&quot;M 5.1 - 71 km NW of Rabaul, Papua New Guinea&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[151.7104,-3.7423,10]},&quot;id&quot;:&quot;us6000phc9&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.5,&quot;place&quot;:&quot;South Sandwich Islands region&quot;,&quot;time&quot;:1735871597419,&quot;updated&quot;:1742247262040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:465,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phce&quot;,&quot;title&quot;:&quot;M 5.5 - South Sandwich Islands region&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[-25.9578,-58.7696,86]},&quot;id&quot;:&quot;us6000phce&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;128 km SE of Phek, India&quot;,&quot;time&quot;:1735878758138,&quot;updated&quot;:1742247263040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:389,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phdf&quot;,&quot;title&quot;:&quot;M 5.0 - 128 km SE of Phek, India&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[95.5118,24.9577,154.635]},&quot;id&quot;:&quot;us6000phdf&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.2,&quot;place&quot;:&quot;19 km NW of Metahāra, Ethiopia&quot;,&quot;time&quot;:1735914436790,&quot;updated&quot;:1742247267040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:427,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phl5&quot;,&quot;title&quot;:&quot;M 5.2 - 19 km NW of Metahāra, Ethiopia&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[39.7855,9.0119,10]},&quot;id&quot;:&quot;us6000phl5&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.5,&quot;place&quot;:&quot;45 km NNE of Āwash, Ethiopia&quot;,&quot;time&quot;:1735923706324,&quot;updated&quot;:1742247268040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:481,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phnz&quot;,&quot;title&quot;:&quot;M 5.5 - 45 km NNE of Āwash, Ethiopia&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[40.3457,9.3575,10]},&quot;id&quot;:&quot;us6000phnz&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;Southwest Indian Ridge&quot;,&quot;time&quot;:1735944926242,&quot;updated&quot;:1742247271040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:385,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phr5&quot;,&quot;title&quot;:&quot;M 5.0 - Southwest Indian Ridge&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[63.4991,-27.9633,10]},&quot;id&quot;:&quot;us6000phr5&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.7,&quot;place&quot;:&quot;52 km N of Āwash, Ethiopia&quot;,&quot;time&quot;:1735951941078,&quot;updated&quot;:1742247271040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:671,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phrk&quot;,&quot;title&quot;:&quot;M 5.7 - 52 km N of Āwash, Ethiopia&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[40.1219,9.4591,8]},&quot;id&quot;:&quot;us6000phrk&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;35 km N of Āwash, Ethiopia&quot;,&quot;time&quot;:1736021145606,&quot;updated&quot;:1742247279040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:393,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phw1&quot;,&quot;title&quot;:&quot;M 5.0 - 35 km N of Āwash, Ethiopia&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[40.1365,9.2988,10]},&quot;id&quot;:&quot;us6000phw1&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.3,&quot;place&quot;:&quot;7 km E of Lakatoro, Vanuatu&quot;,&quot;time&quot;:1736029417252,&quot;updated&quot;:1742247280040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:432,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phws&quot;,&quot;title&quot;:&quot;M 5.3 - 7 km E of Lakatoro, Vanuatu&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[167.4828,-16.1014,36.934]},&quot;id&quot;:&quot;us6000phws&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.1,&quot;place&quot;:&quot;40 km ENE of Pondaguitan, Philippines&quot;,&quot;time&quot;:1736068602355,&quot;updated&quot;:1742247284040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:401,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000phz2&quot;,&quot;title&quot;:&quot;M 5.1 - 40 km ENE of Pondaguitan, Philippines&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[126.5325,6.4682,132.697]},&quot;id&quot;:&quot;us6000phz2&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:6.2,&quot;place&quot;:&quot;56 km SSE of La Libertad, El Salvador&quot;,&quot;time&quot;:1736097525784,&quot;updated&quot;:1784300743759,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:663,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pi09&quot;,&quot;title&quot;:&quot;M 6.2 - 56 km SSE of La Libertad, El Salvador&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[-89.1775,13.0007,46]},&quot;id&quot;:&quot;us6000pi09&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;73 km NW of Rabaul, Papua New Guinea&quot;,&quot;time&quot;:1736097883116,&quot;updated&quot;:1742247286040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:385,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pi0k&quot;,&quot;title&quot;:&quot;M 5.0 - 73 km NW of Rabaul, Papua New Guinea&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[151.6914,-3.7391,10]},&quot;id&quot;:&quot;us6000pi0k&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.2,&quot;place&quot;:&quot;31 km S of Kirakira, Solomon Islands&quot;,&quot;time&quot;:1736124731514,&quot;updated&quot;:1742247289040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:416,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pi39&quot;,&quot;title&quot;:&quot;M 5.2 - 31 km S of Kirakira, Solomon Islands&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[161.868,-10.734,97.196]},&quot;id&quot;:&quot;us6000pi39&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.2,&quot;place&quot;:&quot;Tibetan Plateau&quot;,&quot;time&quot;:1736177206849,&quot;updated&quot;:1742247296040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:417,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pi67&quot;,&quot;title&quot;:&quot;M 5.2 - Tibetan Plateau&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[87.0306,33.4298,10]},&quot;id&quot;:&quot;us6000pi67&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.1,&quot;place&quot;:&quot;113 km E of Hasaki, Japan&quot;,&quot;time&quot;:1736181879772,&quot;updated&quot;:1742247297040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:400,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pi7a&quot;,&quot;title&quot;:&quot;M 5.1 - 113 km E of Hasaki, Japan&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[142.081,35.8134,10]},&quot;id&quot;:&quot;us6000pi7a&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.2,&quot;place&quot;:&quot;77 km SSW of Fīrūzābād, Iran&quot;,&quot;time&quot;:1736182790092,&quot;updated&quot;:1742247297040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:417,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pi7c&quot;,&quot;title&quot;:&quot;M 5.2 - 77 km SSW of Fīrūzābād, Iran&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[52.3922,28.1592,10]},&quot;id&quot;:&quot;us6000pi7c&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;43 km WSW of Port-Vila, Vanuatu&quot;,&quot;time&quot;:1736198445820,&quot;updated&quot;:1742247299040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:386,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pi8v&quot;,&quot;title&quot;:&quot;M 5.0 - 43 km WSW of Port-Vila, Vanuatu&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[167.9443,-17.9111,35]},&quot;id&quot;:&quot;us6000pi8v&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:7.1,&quot;place&quot;:&quot;2025 Southern Tibetan Plateau Earthquake&quot;,&quot;time&quot;:1736211916734,&quot;updated&quot;:1754895022632,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;red&quot;,&quot;sig&quot;:2787,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pi9w&quot;,&quot;title&quot;:&quot;M 7.1 - 2025 Southern Tibetan Plateau Earthquake&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[87.3781,28.6036,10]},&quot;id&quot;:&quot;us6000pi9w&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.4,&quot;place&quot;:&quot;96 km NNE of Lobuche, Nepal&quot;,&quot;time&quot;:1736212153529,&quot;updated&quot;:1742247300040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:449,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pks1&quot;,&quot;title&quot;:&quot;M 5.4 - 96 km NNE of Lobuche, Nepal&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[87.1968,28.7537,10]},&quot;id&quot;:&quot;us6000pks1&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.2,&quot;place&quot;:&quot;100 km NNE of Lobuche, Nepal&quot;,&quot;time&quot;:1736212254880,&quot;updated&quot;:1742247300040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:416,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pks6&quot;,&quot;title&quot;:&quot;M 5.2 - 100 km NNE of Lobuche, Nepal&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[87.1343,28.8057,10]},&quot;id&quot;:&quot;us6000pks6&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.2,&quot;place&quot;:&quot;Southern Tibetan Plateau&quot;,&quot;time&quot;:1736212407197,&quot;updated&quot;:1742247300040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:422,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pia7&quot;,&quot;title&quot;:&quot;M 5.2 - Southern Tibetan Plateau&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[87.4659,28.4421,10]},&quot;id&quot;:&quot;us6000pia7&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.2,&quot;place&quot;:&quot;83 km NE of Lobuche, Nepal&quot;,&quot;time&quot;:1736212482239,&quot;updated&quot;:1742247301040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:416,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pkpp&quot;,&quot;title&quot;:&quot;M 5.2 - 83 km NE of Lobuche, Nepal&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[87.356,28.5282,10]},&quot;id&quot;:&quot;us6000pkpp&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;Southern Tibetan Plateau&quot;,&quot;time&quot;:1736213065911,&quot;updated&quot;:1742247301040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:385,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000piak&quot;,&quot;title&quot;:&quot;M 5.0 - Southern Tibetan Plateau&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[87.4575,28.4845,10]},&quot;id&quot;:&quot;us6000piak&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;Southern Tibetan Plateau&quot;,&quot;time&quot;:1736213833647,&quot;updated&quot;:1742247302040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:385,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000piar&quot;,&quot;title&quot;:&quot;M 5.0 - Southern Tibetan Plateau&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[87.2321,28.7969,10]},&quot;id&quot;:&quot;us6000piar&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;Fiji region&quot;,&quot;time&quot;:1736223330187,&quot;updated&quot;:1742247306040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:385,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pic9&quot;,&quot;title&quot;:&quot;M 5.0 - Fiji region&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[-176.843,-17.6376,370.004]},&quot;id&quot;:&quot;us6000pic9&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.6,&quot;place&quot;:&quot;Izu Islands, Japan region&quot;,&quot;time&quot;:1736238690553,&quot;updated&quot;:1742247308040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:&quot;green&quot;,&quot;sig&quot;:485,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pida&quot;,&quot;title&quot;:&quot;M 5.6 - Izu Islands, Japan region&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[138.4289,31.6194,358]},&quot;id&quot;:&quot;us6000pida&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.2,&quot;place&quot;:&quot;Mid-Indian Ridge&quot;,&quot;time&quot;:1736267939524,&quot;updated&quot;:1742247311040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:416,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pifb&quot;,&quot;title&quot;:&quot;M 5.2 - Mid-Indian Ridge&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[77.9555,-37.6508,10]},&quot;id&quot;:&quot;us6000pifb&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5.3,&quot;place&quot;:&quot;Volcano Islands, Japan region&quot;,&quot;time&quot;:1736270628611,&quot;updated&quot;:1742247311040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mww&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:432,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pife&quot;,&quot;title&quot;:&quot;M 5.3 - Volcano Islands, Japan region&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[142.0996,24.2827,534.482]},&quot;id&quot;:&quot;us6000pife&quot;},
+{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{&quot;mag&quot;:5,&quot;place&quot;:&quot;38 km NNW of Komodo, Indonesia&quot;,&quot;time&quot;:1736272341671,&quot;updated&quot;:1742247312040,&quot;tsunami&quot;:0,&quot;magType&quot;:&quot;mb&quot;,&quot;type&quot;:&quot;earthquake&quot;,&quot;status&quot;:&quot;reviewed&quot;,&quot;alert&quot;:null,&quot;sig&quot;:386,&quot;url&quot;:&quot;https://earthquake.usgs.gov/earthquakes/eventpage/us6000pifl&quot;,&quot;title&quot;:&quot;M 5.0 - 38 km NNW of Komodo, Indonesia&quot;},&quot;geometry&quot;:{&quot;type&quot;:&quot;Point&quot;,&quot;coordinates&quot;:[119.3325,-8.2744,10]},&quot;id&quot;:&quot;us6000pifl&quot;}
+],&quot;bbox&quot;:null}</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;run.sh&quot; role=&quot;context&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/run.sh&quot;&gt;</p>
+<pre><code>#!/bin/sh
+# run.sh — Quakes grader. Do not filter, skip, or reinterpret.
+#
+# Runs ./quakes over the frozen USGS snapshot and compares every report&#x27;s exit code and standard
+# output with the known answer below. Standard error is never compared. No network is used.
+#
+#   sh sources/run.sh                from the application root (how `drydock uat` runs it)
+#   sh uat/Quakes/bin/run.sh APP     from anywhere, grading the application root APP
+#
+# Exit 0 only when every check passes.
+set -u
+
+HERE=$(cd &quot;$(dirname &quot;$0&quot;)&quot; &amp;&amp; pwd)
+APP=$(cd &quot;${1:-.}&quot; &amp;&amp; pwd)
+if [ -f &quot;$HERE/quakes_2025-01-01_07.geojson&quot; ]; then DATA=$HERE; else DATA=$(cd &quot;$HERE/../sources&quot; &amp;&amp; pwd); fi
+WORK=$(mktemp -d)
+trap &#x27;rm -rf &quot;$WORK&quot;&#x27; EXIT INT TERM
+BIN=&quot;$APP/quakes&quot;
+QUAKES=&quot;$DATA/quakes_2025-01-01_07.geojson&quot;
+printf &#x27;this is not json\n&#x27; &gt; &quot;$WORK/garbage.json&quot;
+printf &#x27;{&quot;type&quot;:&quot;Feature&quot;,&quot;properties&quot;:{},&quot;geometry&quot;:null}\n&#x27; &gt; &quot;$WORK/feature.json&quot;
+
+if [ ! -x &quot;$BIN&quot; ]; then
+    echo &quot;error: no executable ./quakes at the application root $APP.&quot; &gt;&amp;2
+    echo &quot;The deliverable is an executable named quakes at the application root.&quot; &gt;&amp;2
+    exit 1
+fi
+
+PASSED=0
+FAILED=0
+
+# check &lt;id&gt; &lt;expected exit&gt; &lt;quakes args...&gt;  — expected standard output on stdin.
+check() {
+    id=$1
+    want_rc=$2
+    shift 2
+    cat &gt; &quot;$WORK/want&quot;
+    (cd &quot;$APP&quot; &amp;&amp; &quot;$BIN&quot; &quot;$@&quot;) &gt; &quot;$WORK/got&quot; 2&gt; &quot;$WORK/err&quot;
+    rc=$?
+    if [ &quot;$rc&quot; -eq &quot;$want_rc&quot; ] &amp;&amp; cmp -s &quot;$WORK/want&quot; &quot;$WORK/got&quot;; then
+        PASSED=$((PASSED + 1))
+        echo &quot;PASS $id: quakes $*&quot;
+    else
+        FAILED=$((FAILED + 1))
+        echo &quot;FAIL $id: quakes $*&quot;
+        echo &quot;  exit: expected $want_rc, got $rc&quot;
+        diff &quot;$WORK/want&quot; &quot;$WORK/got&quot; | sed &#x27;s/^/  /&#x27;
+        sed &#x27;s/^/  stderr: /&#x27; &quot;$WORK/err&quot;
+    fi
+}
+
+# ── A. Every report over the snapshot ──────────────────────────────────────────────────
+check A1 0 summary &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+44,2025-01-01T04:39:18Z,2025-01-07T17:52:21Z,5.0,7.1,5.30,0
+EOF
+check A2 0 top &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+time,mag,depth_km,place,id
+2025-01-07T01:05:16Z,7.1,10.0,2025 Southern Tibetan Plateau Earthquake,us6000pi9w
+2025-01-05T17:18:45Z,6.2,46.0,&quot;56 km SSE of La Libertad, El Salvador&quot;,us6000pi09
+2025-01-01T13:48:24Z,6.1,70.0,South Sandwich Islands region,us6000pgv4
+2025-01-02T20:43:35Z,6.1,99.0,&quot;84 km NNW of Calama, Chile&quot;,us6000phap
+2025-01-04T00:52:21Z,5.7,8.0,&quot;52 km N of Āwash, Ethiopia&quot;,us6000phrk
+2025-01-07T08:31:30Z,5.6,358.0,&quot;Izu Islands, Japan region&quot;,us6000pida
+2025-01-01T04:39:18Z,5.5,22.0,&quot;153 km S of Isangel, Vanuatu&quot;,us6000pgsd
+2025-01-02T02:54:17Z,5.5,10.0,Balleny Islands region,us6000pgzq
+2025-01-03T02:33:17Z,5.5,86.0,South Sandwich Islands region,us6000phce
+2025-01-03T17:01:46Z,5.5,10.0,&quot;45 km NNE of Āwash, Ethiopia&quot;,us6000phnz
+EOF
+check A3 0 daily &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+date,events,max_mag
+2025-01-01,7,6.1
+2025-01-02,8,6.1
+2025-01-03,6,5.5
+2025-01-04,3,5.7
+2025-01-05,3,6.2
+2025-01-06,5,5.2
+2025-01-07,12,7.1
+TOTAL,44,7.1
+EOF
+check A4 0 regions &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+region,events,max_mag
+Ethiopia,7,5.7
+Papua New Guinea,6,5.4
+Nepal,3,5.4
+Southern Tibetan Plateau,3,5.2
+Vanuatu,3,5.5
+Indonesia,2,5.1
+Japan region,2,5.6
+South Sandwich Islands region,2,6.1
+2025 Southern Tibetan Plateau Earthquake,1,7.1
+Balleny Islands region,1,5.5
+Chile,1,6.1
+El Salvador,1,6.2
+Fiji region,1,5.0
+India,1,5.0
+Iran,1,5.2
+Japan,1,5.1
+Mid-Indian Ridge,1,5.2
+Philippines,1,5.1
+Solomon Islands,1,5.2
+Southwest Indian Ridge,1,5.0
+Tibetan Plateau,1,5.2
+Tonga,1,5.1
+southeast of Easter Island,1,5.3
+southern Mid-Atlantic Ridge,1,5.2
+EOF
+
+# ── B. Options ───────────────────────────────────────────────────────────────────────────
+check B1 0 top --n 3 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+time,mag,depth_km,place,id
+2025-01-07T01:05:16Z,7.1,10.0,2025 Southern Tibetan Plateau Earthquake,us6000pi9w
+2025-01-05T17:18:45Z,6.2,46.0,&quot;56 km SSE of La Libertad, El Salvador&quot;,us6000pi09
+2025-01-01T13:48:24Z,6.1,70.0,South Sandwich Islands region,us6000pgv4
+EOF
+check B2 0 summary --min-mag 5.5 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+10,2025-01-01T04:39:18Z,2025-01-07T08:31:30Z,5.5,7.1,5.88,0
+EOF
+check B3 0 regions --min-mag 5.4 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+region,events,max_mag
+Ethiopia,3,5.7
+South Sandwich Islands region,2,6.1
+2025 Southern Tibetan Plateau Earthquake,1,7.1
+Balleny Islands region,1,5.5
+Chile,1,6.1
+El Salvador,1,6.2
+Japan region,1,5.6
+Nepal,1,5.4
+Papua New Guinea,1,5.4
+Vanuatu,1,5.5
+EOF
+check B4 0 daily --min-mag 6 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+date,events,max_mag
+2025-01-01,1,6.1
+2025-01-02,1,6.1
+2025-01-05,1,6.2
+2025-01-07,1,7.1
+TOTAL,4,7.1
+EOF
+check B5 0 top --min-mag 5.1 --n 4 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+time,mag,depth_km,place,id
+2025-01-07T01:05:16Z,7.1,10.0,2025 Southern Tibetan Plateau Earthquake,us6000pi9w
+2025-01-05T17:18:45Z,6.2,46.0,&quot;56 km SSE of La Libertad, El Salvador&quot;,us6000pi09
+2025-01-01T13:48:24Z,6.1,70.0,South Sandwich Islands region,us6000pgv4
+2025-01-02T20:43:35Z,6.1,99.0,&quot;84 km NNW of Calama, Chile&quot;,us6000phap
+EOF
+
+# ── C. Distance search ───────────────────────────────────────────────────────────────────
+check C1 0 near --lat 27.72 --lon 85.32 --radius 800 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+distance_km,time,mag,place,id
+214.8,2025-01-07T01:10:54Z,5.2,&quot;100 km NNE of Lobuche, Nepal&quot;,us6000pks6
+216.8,2025-01-07T01:09:13Z,5.4,&quot;96 km NNE of Lobuche, Nepal&quot;,us6000pks1
+219.0,2025-01-07T01:14:42Z,5.2,&quot;83 km NE of Lobuche, Nepal&quot;,us6000pkpp
+222.3,2025-01-07T01:37:13Z,5.0,Southern Tibetan Plateau,us6000piar
+224.4,2025-01-07T01:05:16Z,7.1,2025 Southern Tibetan Plateau Earthquake,us6000pi9w
+225.3,2025-01-07T01:13:27Z,5.2,Southern Tibetan Plateau,us6000pia7
+226.2,2025-01-07T01:24:25Z,5.0,Southern Tibetan Plateau,us6000piak
+655.6,2025-01-06T15:26:46Z,5.2,Tibetan Plateau,us6000pi67
+EOF
+check C2 0 near --lat 35.68 --lon 139.69 --radius 1500 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+distance_km,time,mag,place,id
+216.3,2025-01-06T16:44:39Z,5.1,&quot;113 km E of Hasaki, Japan&quot;,us6000pi7a
+466.3,2025-01-07T08:31:30Z,5.6,&quot;Izu Islands, Japan region&quot;,us6000pida
+1288.3,2025-01-07T17:23:48Z,5.3,&quot;Volcano Islands, Japan region&quot;,us6000pife
+EOF
+check C3 0 near --lat 9.03 --lon 38.74 --radius 300 --min-mag 5.3 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+distance_km,time,mag,place,id
+159.0,2025-01-04T00:52:21Z,5.7,&quot;52 km N of Āwash, Ethiopia&quot;,us6000phrk
+174.7,2025-01-02T21:18:26Z,5.4,&quot;52 km NNE of Āwash, Ethiopia&quot;,us6000phb3
+180.0,2025-01-03T17:01:46Z,5.5,&quot;45 km NNE of Āwash, Ethiopia&quot;,us6000phnz
+EOF
+check C4 0 near --lat 0 --lon 0 --radius 100 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+distance_km,time,mag,place,id
+EOF
+
+# ── D. Nothing matches ───────────────────────────────────────────────────────────────────
+check D1 0 summary --min-mag 9 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+0,,,,,,0
+EOF
+check D2 0 daily --min-mag 9 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+date,events,max_mag
+TOTAL,0,
+EOF
+
+# ── E. Operational failures ──────────────────────────────────────────────────────────────
+check E1 1 summary &quot;$WORK/no-such-file.geojson&quot; &lt; /dev/null
+check E2 1 summary &quot;$WORK/garbage.json&quot; &lt; /dev/null
+check E3 1 summary &quot;$WORK/feature.json&quot; &lt; /dev/null
+
+# ── U. Usage errors ──────────────────────────────────────────────────────────────────────
+check U1 2 &lt; /dev/null
+check U2 2 frobnicate &quot;$QUAKES&quot; &lt; /dev/null
+check U3 2 near --lat 27.72 --lon 85.32 &quot;$QUAKES&quot; &lt; /dev/null
+check U4 2 top --n 0 &quot;$QUAKES&quot; &lt; /dev/null
+check U5 2 summary --min-mag big &quot;$QUAKES&quot; &lt; /dev/null
+check U6 2 near --lat 95 --lon 0 --radius 10 &quot;$QUAKES&quot; &lt; /dev/null
+check U7 2 summary --n 3 &quot;$QUAKES&quot; &lt; /dev/null
+check U8 2 summary &lt; /dev/null
+
+TOTAL=$((PASSED + FAILED))
+echo &quot;Quakes: $PASSED passed, $FAILED failed (of $TOTAL)&quot;
+[ &quot;$FAILED&quot; -eq 0 ]</code></pre>
+<p>&lt;/pblock&gt;</p>
+<h2>IMPLEMENTS - Authoritative Step Specifications</h2>
+<p>&lt;pblock label=&quot;Implementation recency anchor&quot; kind=&quot;section&quot;&gt; The files in this section are the load-bearing specifications for this build block. Build these files exactly. Treat earlier sections as constraints and context.</p>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Summary.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/FEATURE-Summary.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Summary
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Produces summary statistics for events in a saved GeoJSON FeatureCollection. |
+| Depends On  |  |
+| Provides    | quakes summary |
+| Consumes    |  |
+
+## Purpose
+
+Summarize the events in a saved GeoJSON file, optionally filtering by minimum magnitude.
+
+## Workflow
+
+1. Read the supplied FeatureCollection and normalize each feature into an event.
+2. Exclude events with null magnitude and apply `--min-mag` to all remaining events.
+3. Compute count, earliest and latest UTC event times, minimum, maximum and mean magnitudes, and tsunami count.
+4. Write the result as CSV with the defined header and one data row.
+
+`properties.time` is milliseconds since the Unix epoch; output times are UTC, truncated to whole seconds. Mean magnitude uses two decimal places rounded half up. An empty result writes `0,,,,,,0` after the header.
+
+## CLI Contract
+
+`quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;`
+
+Magnitude values are decimals matching `-?[0-9]+(\.[0-9]+)?`. Success exits 0, operational file or FeatureCollection errors exit 1, and malformed or unsupported arguments exit 2. A failing command writes no standard output and one diagnostic line to standard error.
+
+## Programmatic Acceptance
+
+=== AC summary-success ===
+Intent: The summary command succeeds on a supplied FeatureCollection.
+Requires: executable=./quakes; scope=test
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;a&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.0, &quot;place&quot;: &quot;Test Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 1
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;summary&quot;, str(source))
+    assert code == 0
+
+=== END AC summary-success ===
+
+=== AC summary-invalid-file ===
+Intent: An unreadable or invalid input file returns the operational exit code.
+
+from cli.testing import cli_runner
+
+code, stdout, stderr = cli_runner(&quot;summary&quot;, &quot;missing-file.geojson&quot;)
+assert code == 1
+
+=== END AC summary-invalid-file ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Every summary value must be computed from the input file.
+- Apply `--min-mag` consistently and exclude null magnitudes.
+- Emit CSV with newline line endings.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Daily.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/FEATURE-Daily.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Daily
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Groups saved earthquake events by UTC date and reports daily totals. |
+| Depends On  |  |
+| Provides    | quakes daily |
+| Consumes    |  |
+
+## Purpose
+
+Report the number of events and maximum magnitude for each UTC date in the input file.
+
+## Workflow
+
+1. Read events, exclude null magnitudes, and apply the optional minimum magnitude.
+2. Group matching events by the first ten characters of their UTC timestamp.
+3. Sort dates ascending and compute each date&#x27;s count and maximum magnitude.
+4. Emit a final `TOTAL` row with overall event count and maximum magnitude.
+
+Maximum magnitudes use one decimal place. With no matching events, the total maximum magnitude is empty.
+
+## CLI Contract
+
+`quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;`
+
+Success exits 0; operational file or FeatureCollection errors exit 1; usage errors exit 2. Failures write no standard output and one diagnostic line to standard error.
+
+## Programmatic Acceptance
+
+=== AC daily-empty ===
+Intent: An empty event file produces a successful daily report with an empty total maximum.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;empty.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}))
+    code, stdout, stderr = cli_runner(&quot;daily&quot;, str(source))
+    assert code == 0
+
+=== END AC daily-empty ===
+
+=== AC daily-filter ===
+Intent: The minimum magnitude option is accepted and the report succeeds.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;daily&quot;, &quot;--min-mag&quot;, &quot;6&quot;, str(source))
+    assert code == 0
+
+=== END AC daily-filter ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Use UTC dates and ascending date order.
+- Include the total row, including when no events match.
+- Compute all values from the supplied file.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Top.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/FEATURE-Top.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Top
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Lists the largest earthquake events from a saved GeoJSON FeatureCollection. |
+| Depends On  |  |
+| Provides    | quakes top |
+| Consumes    |  |
+
+## Purpose
+
+List up to the requested number of largest events, optionally filtered by minimum magnitude.
+
+## Workflow
+
+1. Read and normalize the events from the input FeatureCollection.
+2. Exclude null magnitudes and apply `--min-mag`.
+3. Sort by magnitude descending, then event time ascending.
+4. Keep the first `--n` events (default 10) and write the defined CSV header and rows.
+
+Magnitude and depth are formatted to one decimal place, with depth rounded half up.
+
+## CLI Contract
+
+`quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;`
+
+`&lt;count&gt;` is a positive integer. Success exits 0; unreadable or invalid input exits 1; malformed or unsupported arguments exit 2. Failures write no standard output and one diagnostic line to standard error.
+
+## Programmatic Acceptance
+
+=== AC top-options ===
+Intent: The top command accepts its count option and succeeds on a supplied event file.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;top&quot;, &quot;--n&quot;, &quot;1&quot;, str(source))
+    assert code == 0
+
+=== END AC top-options ===
+
+=== AC top-invalid-count ===
+Intent: A nonpositive count returns the usage exit code.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, str(source))
+    assert code == 2
+    assert stdout == &quot;&quot;
+
+=== END AC top-invalid-count ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Ordering is magnitude descending and then time ascending.
+- The count must be positive.
+- Event values come from the file; do not hardcode report output.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Regions.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/FEATURE-Regions.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Regions
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Groups saved earthquake events by region and reports event counts. |
+| Depends On  |  |
+| Provides    | quakes regions |
+| Consumes    |  |
+
+## Purpose
+
+Report counts and maximum magnitudes grouped by the source-defined region of each event.
+
+## Region Rule
+
+The region is the text after the last comma and space in `place`, or the whole place when no such delimiter occurs. A null place is `Unknown`, which is also its region.
+
+## Workflow
+
+1. Read and normalize events, exclude null magnitudes, and apply `--min-mag`.
+2. Group by region, count events, and compute each group&#x27;s maximum magnitude.
+3. Sort groups by event count descending, then region ascending.
+4. Write CSV with one row per region.
+
+Maximum magnitudes use one decimal place.
+
+## CLI Contract
+
+`quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;`
+
+Success exits 0; operational file or FeatureCollection errors exit 1; usage errors exit 2. Failures write no standard output and one diagnostic line to standard error.
+
+## Programmatic Acceptance
+
+=== AC regions-command ===
+Intent: The regions command succeeds for a FeatureCollection with an event.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place, Region&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;regions&quot;, str(source))
+    assert code == 0
+
+=== END AC regions-command ===
+
+=== AC regions-filter ===
+Intent: The minimum magnitude option is accepted and returns success.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place, Region&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, &quot;6&quot;, str(source))
+    assert code == 0
+
+=== END AC regions-filter ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Apply the same magnitude filter used by all reports.
+- Region extraction follows the exact delimiter rule.
+- Derive all rows and counts from the input file.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Near.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/FEATURE-Near.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Near Earthquake Events
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Finds saved earthquake events within a requested distance of a point. |
+| Depends On  | ARCHITECTURE.md |
+| Provides    | quakes near |
+| Consumes    | saved GeoJSON FeatureCollection |
+
+## Purpose
+
+The `near` command lists events within a radius of a latitude and longitude. It reads a saved GeoJSON FeatureCollection and writes a CSV report to standard output.
+
+## Trigger and inputs
+
+```text
+quakes near --lat &lt;deg&gt; --lon &lt;deg&gt; --radius &lt;km&gt; [--min-mag &lt;m&gt;] &lt;file&gt;
+```
+
+The file is the final argument. Options may follow the command in any order. `--min-mag` uses the shared report default when omitted. Decimal values match `-?[0-9]+(\.[0-9]+)?`.
+
+## Behavior
+
+- Reject latitude outside −90 to 90, longitude outside −180 to 180, and radius that is not positive as usage errors.
+- Require all of `--lat`, `--lon`, and `--radius`; reject missing values, malformed decimals, extra files, and options not listed for this command.
+- Apply the magnitude filter before reporting. Events with null magnitude are excluded.
+- Compute great-circle distance with the haversine formula on a sphere of radius 6371.0 km. Include events whose distance is at most the requested radius.
+- Order matches by distance ascending, then event time ascending.
+- Write CSV with the header `distance_km,time,mag,place,id`. Format distance to one decimal place using round half up, magnitude to one decimal place, and event time in UTC as `YYYY-MM-DDTHH:MM:SSZ`, truncated to whole seconds.
+- A null place is `Unknown`. Use the standard region and event parsing rules described in `ARCHITECTURE.md`.
+- A valid request with no matching events succeeds and emits the header only.
+- On usage errors, return exit code 2. On unreadable or invalid GeoJSON input, return exit code 1. On failure, write no standard output and one diagnostic line to standard error.
+
+## Programmatic Acceptance
+
+=== AC near-valid-request ===
+Intent: A valid near request is accepted by the CLI.
+
+from cli.testing import cli_runner
+
+code, _, _ = cli_runner(
+    &quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;1&quot;, &quot;sources/quakes_2025-01-01_07.geojson&quot;
+)
+assert code == 0
+=== END AC near-valid-request ===
+
+=== AC near-required-options ===
+Intent: A near request missing a required coordinate is rejected as a usage error.
+
+from cli.testing import cli_runner
+
+code, _, _ = cli_runner(
+    &quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;sources/quakes_2025-01-01_07.geojson&quot;
+)
+assert code == 2
+=== END AC near-required-options ===
+
+=== AC near-coordinate-bounds ===
+Intent: A latitude outside the documented range is rejected as a usage error.
+
+from cli.testing import cli_runner
+
+code, _, _ = cli_runner(
+    &quot;near&quot;, &quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;1&quot;, &quot;sources/quakes_2025-01-01_07.geojson&quot;
+)
+assert code == 2
+=== END AC near-coordinate-bounds ===
+
+=== AC near-invalid-file ===
+Intent: An invalid GeoJSON file is reported as an operational failure without standard output.
+
+from cli.testing import cli_runner
+from pathlib import Path
+
+invalid_file = Path(&quot;near-invalid.geojson&quot;)
+invalid_file.write_text(&quot;not json\n&quot;)
+try:
+    code, stdout, _ = cli_runner(
+        &quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;1&quot;, str(invalid_file)
+    )
+    assert code == 1
+    assert stdout == &quot;&quot;
+finally:
+    invalid_file.unlink(missing_ok=True)
+=== END AC near-invalid-file ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Do not hardcode report rows, counts, or distances; derive every reported value from the input file.
+- Do not read or depend on `sources/run.sh` from application code.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Verification.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint/FEATURE-Verification.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Verification
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Provides the offline pytest suite and final conformance verification workflow. |
+| Depends On  | FEATURE-Fetch.md, FEATURE-Summary.md, FEATURE-Top.md, FEATURE-Daily.md, FEATURE-Regions.md, FEATURE-Near.md |
+| Provides    | bin/test.sh, pytest suite, final conformance verification |
+| Consumes    | quakes fetch, quakes summary, quakes top, quakes daily, quakes regions, quakes near |
+
+## Purpose
+
+The project provides a POSIX-compatible `bin/test.sh` that runs the project&#x27;s pytest suite from the application root and exits zero only when every test passes. The suite covers each report command, behavior-changing options, region and distance rules, fetch through a stubbed HTTP response, and exit codes. Tests use files written by the tests and never open a network connection.
+
+After all command capabilities are implemented, run the supplied grader from the application root as the final conformance check.
+
+## Programmatic Acceptance
+
+=== AC verification-test-suite ===
+Intent: The project test launcher succeeds after running the automated tests.
+
+import subprocess
+
+result = subprocess.run(
+    [&quot;sh&quot;, &quot;bin/test.sh&quot;],
+    capture_output=True,
+    text=True,
+)
+print(result.stdout)
+print(result.stderr)
+assert result.returncode == 0
+=== END AC verification-test-suite ===
+
+=== AC verification-full-conformance ===
+Intent: The complete supplied grader passes against the finished command set.
+Suite: full
+
+import subprocess
+
+result = subprocess.run(
+    [&quot;sh&quot;, &quot;sources/run.sh&quot;],
+    capture_output=True,
+    text=True,
+)
+print(result.stdout)
+print(result.stderr)
+assert result.returncode == 0
+=== END AC verification-full-conformance ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Keep `sources/run.sh` and the frozen GeoJSON snapshot unchanged.
+- Tests must stub the HTTP call for fetch and must not use the network.
+- Run the supplied grader only as the full terminal conformance check after all implementation stories are complete.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Build instructions&quot; kind=&quot;instructions&quot;&gt;</p>
+<h3>Build instructions for this block</h3>
+<h4>Summarize events from a saved GeoJSON FeatureCollection. (summary)</h4>
+<p>Implement summary calculations and CSV output from the supplied file, including magnitude filtering, time bounds, magnitude statistics, tsunami count, empty results, and the specified operational and usage exit codes.</p>
+<h4>Report event counts and maximum magnitudes by day. (daily)</h4>
+<p>Implement daily grouping, ordering, maximum magnitudes, total row, shared magnitude filtering, and CSV output according to the source instructions.</p>
+<h4>List the largest events from a saved GeoJSON FeatureCollection. (top)</h4>
+<p>Implement top-event selection, ordering, count option, shared magnitude filtering, and CSV output according to the source instructions.</p>
+<h4>Report event counts and maximum magnitudes by region. (regions)</h4>
+<p>Implement region extraction and grouping, ordering, maximum magnitudes, shared magnitude filtering, and CSV output according to the source instructions.</p>
+<h4>Find events within a haversine distance of a point. (near)</h4>
+<p>Implement coordinate and radius validation, haversine distance on the specified sphere, inclusive radius matching, nearest-first ordering, shared magnitude filtering, and CSV output.</p>
+<h4>Provide the automated test suite and run final conformance verification. (verify)</h4>
+<p>Provide bin/test.sh and a pytest suite that covers the commands, options, failures, and stubbed fetch behavior without network access. This is the terminal story: its acceptance runs the supplied full conformance suite after all implementation stories close.</p>
+<p>&lt;/pblock&gt;</p>
+<h1>Agent Task</h1>
+<p>You are a Drydock build agent implementing exactly one build step of a larger plan. The build job block below names the target, the build working directory, and the step. Everything you need is stacked into this prompt under role headings:</p>
+<ul><li><code>compass</code> — the Target&#x27;s COMPASS.md orientation.</li><li><code>implements</code> — the Typed Specification files this step builds. These are</li></ul>
+<p>authoritative; implement them exactly.</p>
+<ul><li><code>context</code> — read-only support specifications. Do not reimplement them.</li><li><code>stack</code> — enterprise stack and technology rules. Honor them.</li><li><code>rules</code> — governance and branding rules. Honor them.</li></ul>
+<p>Operating contract:</p>
+<ol><li>Follow the write authorization and protected paths in the stacked <code>COMPASS.md</code> exactly.</li></ol>
+<p>That persisted guardrail is the sole authority for paths this build may modify.</p>
+<ol><li>Start by inspecting the build working directory. Preserve existing application</li></ol>
+<p>files unless this step&#x27;s specifications require a change. Its <code>sources/</code> subdirectory holds staged build assets — imported test corpora, conformance harnesses, and fixtures — placed there for you. They are read-only inputs: run them, import them, and write code against them, but never create, rewrite, trim, regenerate, or substitute one, even to make a check pass. A step that modifies a staged asset fails and the asset is restored. If an asset you expect is absent, report that; do not author a replacement.</p>
+<ol><li>Implement only this step. Use <code>context</code>, <code>stack</code>, and <code>rules</code> as constraints,</li></ol>
+<p>not as additional work to perform.</p>
+<ol><li>Follow the stack and rules for languages, structure, naming, and branding.</li><li>The programmatic acceptance assertions in the <code>implements</code> specifications are</li></ol>
+<p>this step&#x27;s <strong>Definition of Done</strong> — human-owned, declared before the build, and fixed. Build the story and, in this same step, write the deterministic tests that prove each declared assertion, as a TDD master would; add finer tests for coverage. Every test you write follows the same rule the acceptance assertions do: <strong>act on the system, read the state back, compare to expected.</strong> The oracle is a return value, parsed JSON, a status code, a stored row, file contents read back, or an exit status — never a substring of captured stdout or stderr, a test-runner tally, or a log line. Write tests in the project&#x27;s own language using that language&#x27;s libraries; an in-language HTTP client yields a status code and a parsed body, where <code>curl</code> yields text to scrape. Round-trip anything that stores state: act, then read back through the public interface. Assert declared failure signals on negative paths, never message wording. You may add tests but must never remove, soften, or weaken a declared acceptance assertion. A <code>Suite: full</code> conformance check gates on the entire imported test suite: the step is done only when it passes in full, never on a representative subset — reproduce the standard exactly rather than wrapping a third-party library that approximates it. For a suite, the runner&#x27;s exit status is the verdict and the whole verdict: print its captured output for diagnosis, never assert on the text of its summary. When an assertion is a static or filesystem scan (import boundary, &quot;X never appears outside Y,&quot; grep/AST gate), honor the scope the specification states and never widen it: scan production source only, exclude <code>.venv/</code>, <code>site-packages</code>, and vendored or generated code, and do not flag test doubles or fixtures that use the guarded dependency. Run every declared acceptance assertion before returning. For a conformance suite, use its section or example filters to diagnose coherent root-cause clusters, but rerun the full declared scope before reporting the result. Treat failing examples as a work queue for fixing general behavior; never add example-specific exceptions.</p>
+<ol><li>Grow the project&#x27;s own test suite as you write the code, and treat it as the project&#x27;s</li></ol>
+<p>real coverage. The acceptance assertions in <code>implements</code> are gates: few, fixed, and written before any code existed, so every expectation in them is a prediction. The tests you write are written <em>beside</em> the finished code, so their expected values are observed rather than predicted — which is why exhaustive coverage belongs here and not there. Extend the suite in the project&#x27;s established location and runner, keep it runnable by the project&#x27;s declared test command, and leave it green when you return. Cover, at minimum: every public entry point and every verb it declares, including declared error paths; the boundaries — empty, exactly one, many, absent optional fields, declared maxima; declared idempotence, applied twice; one behavior per test, named for the behavior; and isolation — database criteria use the provisioned application store and the shipped rollback fixture, passing its connection into the feature. Other connections and durability tests use criterion-owned records, idempotent setup and checked cleanup through supported interfaces. Never replace the configured store, reapply schema, or delete unrelated business records. Where a staged authoritative suite already covers a surface, that suite is the coverage: run it, and do not restate its cases. Run it <strong>only through the invocation this step&#x27;s acceptance criteria declare</strong>. A criterion marked <code>Suite: scoped</code> names the whole of this step&#x27;s obligation to that suite; running the suite&#x27;s unscoped entry point instead is not extra rigor, it is a different step&#x27;s gate executed early. A partial capability fails most of an authoritative corpus by construction and its unimplemented cases exhaust the runner&#x27;s per-case timeout rather than returning, so the unscoped run costs the most where it teaches the least, and interrupting it forfeits the step. If no criterion in this step invokes the staged suite, do not invoke it. Report the pass/fail counts of the invocations you did run in your <code>SUMMARY</code> so a reader can see coverage moving across steps.</p>
+<ol><li>Treat <code>User Acceptance</code> entries as review evidence requirements. Implement</li></ol>
+<p>the supporting behavior, but do not claim to have performed human judgment.</p>
+<ol><li>The <code>implements</code> section is authoritative and intentionally stacked late in</li></ol>
+<p>the prompt as the recency anchor. Build that WHAT exactly; do not substitute generic framework defaults.</p>
+<ol><li>Before adding or installing Python dependencies, verify each package name</li></ol>
+<p>against the declared registry. Do not invent package names. If a needed package cannot be verified or appears newly published, fail explicitly instead of installing it.</p>
+<ol><li>Use the stack&#x27;s required package manager workflow for dependency changes.</li></ol>
+<p>When the stack requires <code>uv</code>, update manifests through <code>uv</code> conventions rather than bare <code>pip install</code>.</p>
+<ol><li>Do not claim success unless you actually created or modified project files in</li></ol>
+<p>the build working directory. If you cannot write files or cannot complete the step, report failure explicitly.</p>
+<ol><li>Do not run <code>git add</code>, <code>git commit</code>, create branches, create tags, rewrite</li></ol>
+<p>history, or otherwise mutate Git history. Drydock checkpoints application changes and Target evidence after each execution and completed step. File lineage comes from Git and the Manifest&#x27;s <code>implements:</code> entries; no additional attribution response is required.</p>
+<ol><li>End your response with this exact closing structure:</li></ol>
+<pre><code>RESULT: SUCCESS | FAILED
+
+FILES CHANGED:
+- relative/path
+
+SUMMARY:
+&lt;brief reviewable summary&gt;
+
+BLOCKERS:
+- &lt;only if any&gt;</code></pre>
+<p>Before <code>RESULT</code>, you may emit one optional JSON payload when implementation required a bounded choice not already settled by the owning specification. This records what you did; it does not ask permission, create a questionnaire, or excuse incomplete work:</p>
+<pre><code>&lt;blueprint-decisions&gt;
+[{&quot;spec&quot;:&quot;FEATURE-Example.md&quot;,&quot;severity&quot;:&quot;Material&quot;,&quot;subject&quot;:&quot;Chosen behavior&quot;,&quot;decision&quot;:&quot;Options A and B were available. I implemented B because ... Is that acceptable, or should this change on replan?&quot;}]
+&lt;/blueprint-decisions&gt;</code></pre>
+<p>Name only a specification implemented by this build block. Use <code>Low</code> or <code>Material</code>; Build never emits a Blocking decision. Omit the payload when no implementation decision was necessary.</p>
+<ol><li><code>FILES CHANGED</code> must list only files actually written in the build working</li></ol>
+<p>directory. If no files were written, use <code>RESULT: FAILED</code>.</p>
+<ol><li>On <code>RESULT: FAILED</code>, append two additional lines so the failure is actionable</li></ol>
+<p>without opening logs. <code>FAILURE_SUMMARY</code> is one line naming the cause; <code>FAILURE_DETAIL</code> states what happened, why, and what to change before a rerun. Name concrete conditions when they apply: token or context limit exceeded, could not execute commands in this environment, a required input was missing, or a specific tool or command failed.</p>
+<pre><code>FAILURE_SUMMARY: &lt;one line naming the cause&gt;
+FAILURE_DETAIL: &lt;what happened, why, and what to change before rerunning&gt;</code></pre>
+<ol><li>When a declared acceptance criterion cannot pass no matter how the code is written,</li></ol>
+<p>say so with this exact token. You may not edit the criterion — it is staged and restored before grading:</p>
+<pre><code>AC_BROKEN: &lt;check-id&gt;[, &lt;check-id&gt;]</code></pre>
+<p>This is a report, not a verdict, and it stops nothing. A criterion reaches you only when its expected value is one its author could not have invented — a status code, a staged suite&#x27;s exit status, a value the criterion itself supplied as input — so your claim that the criterion rather than the code is at fault is the less likely explanation, and the budget is spent as it would be for any other failure. A criterion whose expectation <em>was</em> hand-typed already settles <code>DISPUTED</code> on its own, without you naming it. Emit the token only after running the criterion and confirming the underlying command succeeded while the assertion still failed. Name the affected check ids, emit it alongside your normal <code>RESULT</code> line, state the reasoning in <code>FAILURE_DETAIL</code>, and emit it even when <code>RESULT: SUCCESS</code>. Do not use it for a criterion you merely failed to satisfy.</p></article>
+</main>
+</body>
+</html>

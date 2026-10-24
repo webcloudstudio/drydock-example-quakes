@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/LINEAGE.json</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/LINEAGE.json</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../workspace/targets/Quakes/LINEAGE.json">Raw file</a></div></header>
+<article class="doc"><pre>{
+  &quot;version&quot;: 1,
+  &quot;import&quot;: {
+    &quot;root&quot;: &quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/sources&quot;,
+    &quot;format&quot;: &quot;markdown&quot;
+  },
+  &quot;sources&quot;: {
+    &quot;INSTRUCTIONS.md&quot;: {
+      &quot;state&quot;: &quot;current&quot;,
+      &quot;versions&quot;: [
+        {
+          &quot;commit&quot;: &quot;1d202f6&quot;,
+          &quot;date&quot;: &quot;2026-10-24&quot;,
+          &quot;hash&quot;: &quot;8846c1aa162bdada31a845ba311cde0191ceca1e42be6169331250491c68d89d&quot;,
+          &quot;release&quot;: &quot;&quot;,
+          &quot;state&quot;: &quot;consumed&quot;,
+          &quot;via&quot;: &quot;plan&quot;,
+          &quot;ticket&quot;: null,
+          &quot;requirements&quot;: [
+            {
+              &quot;name&quot;: &quot;build-cli&quot;,
+              &quot;text&quot;: &quot;Implement in Python 3.11 or newer using only the standard library (`urllib.request` for HTTP).\nTests run under pytest. The product is an executable named `quakes` at the application root.&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;fetch-earthquake-feed&quot;,
+              &quot;text&quot;: &quot;`fetch` requests\n`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&amp;starttime=&lt;start&gt;&amp;endtime=&lt;end&gt;&amp;minmagnitude=&lt;m&gt;&amp;orderby=time-asc`\n(`--min-mag` defaults to `2.5`) and writes the response body unchanged to `&lt;file&gt;`. It writes\n`fetched,&lt;count&gt;` to standard output, where `&lt;count&gt;` is the number of features. A network error,\nan HTTP status other than 200, or a body that is not a GeoJSON FeatureCollection is an operational\nfailure, and no file is written. Tests of `fetch` replace the HTTP call with a stub; they never use\nthe network.&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;read-and-filter-events&quot;,
+              &quot;text&quot;: &quot;1. The file is a GeoJSON `FeatureCollection` as the USGS feed returns it. A file that cannot be\n   read, is not JSON, or is not an object with `\&quot;type\&quot;: \&quot;FeatureCollection\&quot;` and a `features`\n   array is an operational failure.\n2. Each feature is one event. The tool reads `id`, `properties.mag`, `properties.place`,\n   `properties.time` (milliseconds since the Unix epoch), `properties.tsunami` (`1` or `0`), and\n   `geometry.coordinates` (`[longitude, latitude, depth_km]`). Every other field is ignored.\n3. A feature whose `mag` is `null` is excluded from every report.\n4. `--min-mag &lt;m&gt;` keeps only events with `mag &gt;= m`. It applies to every report.\n5. **Time** is written in UTC as `YYYY-MM-DDTHH:MM:SSZ`, truncated to whole seconds. An event&#x27;s\n   date is the first 10 characters.\n6. **Region** is the text after the last `, ` (comma, space) in `place`, or the whole of `place`\n   when it has none. A `null` place is `Unknown`, which is also its region.&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;summary-report&quot;,
+              &quot;text&quot;: &quot;| `summary` | `events,first,last,min_mag,max_mag,mean_mag,tsunami` | One row. `first` and `last` are the earliest and latest event times. `tsunami` counts events with `tsunami` equal to `1`. With no events: `0,,,,,,0`. |&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;top-report&quot;,
+              &quot;text&quot;: &quot;| `top` | `time,mag,depth_km,place,id` | The `--n` largest events, by `mag` descending, then time ascending. |&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;daily-report&quot;,
+              &quot;text&quot;: &quot;| `daily` | `date,events,max_mag` | One row per date that has events, ascending, then `TOTAL,&lt;events&gt;,&lt;max_mag&gt;`. With no events, the max is empty: `TOTAL,0,`. |&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;regions-report&quot;,
+              &quot;text&quot;: &quot;| `regions` | `region,events,max_mag` | One row per region, by events descending, then region ascending. |&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;near-report&quot;,
+              &quot;text&quot;: &quot;| `near` | `distance_km,time,mag,place,id` | Events whose distance from (`--lat`, `--lon`) is at most `--radius` km, by distance ascending, then time ascending. |&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;distance-formula&quot;,
+              &quot;text&quot;: &quot;**Distance** is the haversine great-circle distance on a sphere of radius 6371.0 km:\n\n```text\nh = sin\u00b2((lat2 \u2212 lat1) / 2) + cos(lat1) \u00b7 cos(lat2) \u00b7 sin\u00b2((lon2 \u2212 lon1) / 2)\nd = 2 \u00b7 6371.0 \u00b7 asin(\u221ah)          (angles in radians)\n```&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;csv-output&quot;,
+              &quot;text&quot;: &quot;- Magnitudes are written with one decimal place: `5.0`, `7.1`.\n- `mean_mag` is written with two decimal places, rounded half up.\n- `depth_km` and `distance_km` are written with one decimal place, rounded half up.\n- Text is compared by byte value.\n- Output is CSV on standard output with `\\n` line endings, written with Python&#x27;s `csv` module, so\n  a place containing a comma is quoted. Place names contain non-ASCII characters and are written\n  as UTF-8.\n\nA failing command writes nothing to standard output and one diagnostic line to standard error.&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;cli-errors-and-exit-codes&quot;,
+              &quot;text&quot;: &quot;The command comes first, options follow it in any order, and the file is last. An option that the\ncommand does not list is a usage error. `&lt;m&gt;`, `&lt;deg&gt;`, and `&lt;km&gt;` are decimals matching\n`-?[0-9]+(\\.[0-9]+)?`. `&lt;count&gt;` is a positive integer, default `10`.\n\n### fetch\n\n`fetch` requests\n`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&amp;starttime=&lt;start&gt;&amp;endtime=&lt;end&gt;&amp;minmagnitude=&lt;m&gt;&amp;orderby=time-asc`\n(`--min-mag` defaults to `2.5`) and writes the response body unchanged to `&lt;file&gt;`. It writes\n`fetched,&lt;count&gt;` to standard output, where `&lt;count&gt;` is the number of features. A network error,\nan HTTP status other than 200, or a body that is not a GeoJSON FeatureCollection is an operational\nfailure, and no file is written.\n| Code | Meaning |\n|---|---|\n| `0` | Success, including a report with no matching events. |\n| `1` | Operational failure: file unreadable or not a FeatureCollection; `fetch` network or HTTP failure. |\n| `2` | Usage error: unknown command or option, an option the command does not take, missing or malformed value, `--lat` outside \u221290 to 90, `--lon` outside \u2212180 to 180, `--radius` not positive, `near` without all three of `--lat`, `--lon`, and `--radius`, missing or extra file. |&quot;,
+              &quot;stories&quot;: []
+            },
+            {
+              &quot;name&quot;: &quot;test-suite-and-verification&quot;,
+              &quot;text&quot;: &quot;The completed application provides a POSIX-compatible `bin/test.sh` that runs its own pytest suite\nfrom the application root and exits zero only when every test passes. The suite covers each report,\neach option, the region and distance rules, `fetch` against a stubbed HTTP response, and each exit\ncode, using files written by the tests.&quot;,
+              &quot;stories&quot;: []
+            }
+          ]
+        }
+      ]
+    },
+    &quot;quakes_2025-01-01_07.geojson&quot;: {
+      &quot;state&quot;: &quot;current&quot;,
+      &quot;versions&quot;: [
+        {
+          &quot;commit&quot;: &quot;1d202f6&quot;,
+          &quot;date&quot;: &quot;2026-10-24&quot;,
+          &quot;hash&quot;: &quot;e448bc977913aedd85b7636fcc13feeb76b4daf019c5e5a27c712b2d7b9a346c&quot;,
+          &quot;release&quot;: &quot;&quot;,
+          &quot;state&quot;: &quot;consumed&quot;,
+          &quot;via&quot;: &quot;plan&quot;,
+          &quot;ticket&quot;: null,
+          &quot;requirements&quot;: [
+            {
+              &quot;name&quot;: &quot;fetch-usgs-feed&quot;,
+              &quot;text&quot;: &quot;https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&amp;starttime=2025-01-01&amp;endtime=2025-01-08&amp;minmagnitude=5.0&amp;orderby=time-asc&quot;,
+              &quot;stories&quot;: [
+                &quot;fetch&quot;
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    &quot;run.sh&quot;: {
+      &quot;state&quot;: &quot;current&quot;,
+      &quot;versions&quot;: [
+        {
+          &quot;commit&quot;: &quot;1d202f6&quot;,
+          &quot;date&quot;: &quot;2026-10-24&quot;,
+          &quot;hash&quot;: &quot;086f2fb1ebb76c54b97ed71e06aa5474734314fa98d8ec1e90e3ed900f59de3a&quot;,
+          &quot;release&quot;: &quot;&quot;,
+          &quot;state&quot;: &quot;consumed&quot;,
+          &quot;via&quot;: &quot;plan&quot;,
+          &quot;ticket&quot;: null,
+          &quot;requirements&quot;: [
+            {
+              &quot;name&quot;: &quot;run-frozen-snapshot-reports&quot;,
+              &quot;text&quot;: &quot;# Runs ./quakes over the frozen USGS snapshot and compares every report&#x27;s exit code and standard\n# output with the known answer below. Standard error is never compared. No network is used.&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;,
+                &quot;top&quot;,
+                &quot;daily&quot;,
+                &quot;regions&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;deliver-executable-at-application-root&quot;,
+              &quot;text&quot;: &quot;The deliverable is an executable named quakes at the application root.&quot;,
+              &quot;stories&quot;: [
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;summary-report&quot;,
+              &quot;text&quot;: &quot;summary&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;top-report&quot;,
+              &quot;text&quot;: &quot;top&quot;,
+              &quot;stories&quot;: [
+                &quot;top&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;daily-report&quot;,
+              &quot;text&quot;: &quot;daily&quot;,
+              &quot;stories&quot;: [
+                &quot;daily&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;regions-report&quot;,
+              &quot;text&quot;: &quot;regions&quot;,
+              &quot;stories&quot;: [
+                &quot;regions&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;near-distance-search&quot;,
+              &quot;text&quot;: &quot;near&quot;,
+              &quot;stories&quot;: [
+                &quot;near&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;top-limit-option&quot;,
+              &quot;text&quot;: &quot;--n&quot;,
+              &quot;stories&quot;: [
+                &quot;top&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;minimum-magnitude-filter&quot;,
+              &quot;text&quot;: &quot;--min-mag&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;,
+                &quot;daily&quot;,
+                &quot;top&quot;,
+                &quot;regions&quot;,
+                &quot;near&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;near-coordinate-and-radius-options&quot;,
+              &quot;text&quot;: &quot;--lat --lon --radius&quot;,
+              &quot;stories&quot;: [
+                &quot;near&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;return-empty-reports-for-no-matches&quot;,
+              &quot;text&quot;: &quot;EOF\n0,,,,,,0&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;,
+                &quot;daily&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;operational-errors&quot;,
+              &quot;text&quot;: &quot;no-such-file.geojson&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;reject-invalid-json-and-features&quot;,
+              &quot;text&quot;: &quot;this is not json&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;usage-errors&quot;,
+              &quot;text&quot;: &quot;frobnicate&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;,
+                &quot;daily&quot;,
+                &quot;top&quot;,
+                &quot;regions&quot;,
+                &quot;near&quot;,
+                &quot;verify&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;no-network-fetch-needed-to-run&quot;,
+              &quot;text&quot;: &quot;# runs it&quot;,
+              &quot;stories&quot;: [
+                &quot;verify&quot;
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+</pre></article>
+</main>
+</body>
+</html>

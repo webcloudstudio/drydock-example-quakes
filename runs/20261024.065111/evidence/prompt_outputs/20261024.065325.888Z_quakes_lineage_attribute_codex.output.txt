@@ -1,0 +1,9 @@
+<requirement name="fetch-usgs-feed" stories="fetch">
+https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2025-01-01&endtime=2025-01-08&minmagnitude=5.0&orderby=time-asc
+</requirement>
+<unattached story="summary"/>
+<unattached story="daily"/>
+<unattached story="top"/>
+<unattached story="regions"/>
+<unattached story="near"/>
+<unattached story="verify"/>

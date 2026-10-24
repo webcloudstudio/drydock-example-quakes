@@ -1,0 +1,17 @@
+Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+Drydock status — workspace
+
+Target: Quakes
+   Phase:     Loop
+   State:     1 blocked/questions · 6 closed/implemented
+   Detail:    3 imported · 7 authored · metadata built
+   Analysis:  Ready · 7 stories · 0 questions · 0 blockers
+   Plan:      1 blocked/questions · 6 closed/implemented
+   Review:    BLOCKERS.md none · 0 questionnaires · 1 open blocking decisions
+   Next Step: drydock refit Quakes BOTH <Scope> <Change>
+   10-24:     ✅  drydock build status Quakes
+   10-24:     ✅  drydock build Quakes --override --repair-attempts 6
+   10-24:     ✅  drydock build status Quakes
+   10-24:     ✅  drydock plan verify Quakes
+   10-24:     ✅  drydock plan Quakes --override
+

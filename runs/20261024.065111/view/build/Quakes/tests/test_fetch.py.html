@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_fetch.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_fetch.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_fetch.py">Raw file</a></div></header>
+<article class="doc"><pre>import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import quakes
+from cli.testing import cli_runner
+
+
+class Response:
+    def __init__(self, body, status=200):
+        self.body, self.status = body, status
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return None
+
+    def read(self):
+        return self.body
+
+
+class FetchTests(unittest.TestCase):
+    def test_success_saves_exact_bytes_and_reports_count(self):
+        payload = b&#x27;{&quot;type&quot;:&quot;FeatureCollection&quot;,&quot;features&quot;:[{&quot;id&quot;:&quot;a&quot;},{&quot;id&quot;:&quot;b&quot;}]}&#x27;
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / &quot;feed.json&quot;
+            with patch.object(quakes, &quot;urlopen&quot;, return_value=Response(payload)):
+                code, stdout, stderr = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, str(output))
+            self.assertEqual(code, 0)
+            self.assertEqual(output.read_bytes(), payload)
+            self.assertEqual(stdout, &quot;fetched,2\n&quot;)
+            self.assertEqual(stderr, &quot;&quot;)
+
+    def test_request_contains_contract_parameters_and_default_magnitude(self):
+        payload = b&#x27;{&quot;type&quot;:&quot;FeatureCollection&quot;,&quot;features&quot;:[]}&#x27;
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(quakes, &quot;urlopen&quot;, return_value=Response(payload)) as opened:
+                code, _, _ = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, str(Path(directory) / &quot;x&quot;))
+            self.assertEqual(code, 0)
+            request = opened.call_args.args[0]
+            self.assertEqual(request.full_url, &quot;https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&amp;starttime=2025-01-01&amp;endtime=2025-01-02&amp;minmagnitude=2.5&amp;orderby=time-asc&quot;)
+
+    def test_network_failure_does_not_create_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / &quot;absent.geojson&quot;
+            with patch.object(quakes, &quot;urlopen&quot;, side_effect=OSError(&quot;offline&quot;)):
+                code, stdout, _ = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, str(output))
+            self.assertEqual(code, 1)
+            self.assertEqual(stdout, &quot;&quot;)
+            self.assertFalse(output.exists())
+
+    def test_non_200_and_invalid_geojson_do_not_write(self):
+        for response in (Response(b&#x27;{&quot;type&quot;:&quot;FeatureCollection&quot;,&quot;features&quot;:[]}&#x27;, 503), Response(b&#x27;{&quot;type&quot;:&quot;Feature&quot;,&quot;features&quot;:[]}&#x27;)):
+            with self.subTest(response=response.status), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / &quot;absent.geojson&quot;
+                with patch.object(quakes, &quot;urlopen&quot;, return_value=response):
+                    code, _, _ = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, str(output))
+                self.assertEqual(code, 1)
+                self.assertFalse(output.exists())
+
+    def test_invalid_magnitude_is_usage_error(self):
+        code, stdout, _ = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--min-mag&quot;, &quot;2x&quot;, &quot;--out&quot;, &quot;unused&quot;)
+        self.assertEqual(code, 2)
+        self.assertEqual(stdout, &quot;&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</pre></article>
+</main>
+</body>
+</html>

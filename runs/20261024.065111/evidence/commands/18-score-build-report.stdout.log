@@ -1,0 +1,19 @@
+Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+
+Build report: Quakes
+  evidence: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/evidence
+  usage:    /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/logs/llm.jsonl
+
+  Blueprint acceptance (last `score ac`): PASS 13  FAIL 0  UNVERIFIED 0  PREPASSED 3  (16 AC)
+
+  Block                Build AC  Calls   Cached  Uncached    Hit  Output    Time
+  ──────────────────────────────────────────────────────────────────────────────
+  ✓ Block 1 · Service       2/2      1  129,664    24,848  83.9%   2,992     31s
+  ✓ Block 2 · Service       0/0      1  366,848    43,383  89.4%   5,156  1m 06s
+  ──────────────────────────────────────────────────────────────────────────────
+  TOTAL                     2/2      2  496,512    68,231  87.9%   8,148  1m 38s
+
+  Blocks: 2/2 verified · 2 on first call · 0 repaired
+  Model:  gpt-6-luna
+  Tokens: 496,512 cached · 68,231 uncached · 8,148 out
+

@@ -1,0 +1,130 @@
+{
+  "schema_version": 5,
+  "recorded_at": "2026-10-24T06:58:23+00:00",
+  "target": "Quakes",
+  "verdict": "PASSED",
+  "verdict_line": "Quakes: PASSED \u2014 8 of 8",
+  "statement": "Quakes: PASSED \u2014 8 of 8\n\n  st-001  MET       [\"sh\", \"sources/run.sh\"] exited 0; governed gate: sh sources/run.sh exited 0; 26 passed, 0 failed\n  st-002  MET       bin/test.sh:1 has a #!/bin/sh shebang; probe: sh bin/test.sh exited 0; 11 passed, 2 subtests passed\n  st-003  MET       sources/run.sh: A1\u2013A4 check summary, top, daily, and regions output against expected CSV; governed gate: 26 passed, 0 failed\n  st-004  MET       reports.py:149\u2013167 computes haversine distance on a 6371.0 km sphere and sorts matches by distance; probe: near at (0,0), radius 120 km returned the 1\u00b0 east event at 111.2 km and omitted the 2\u00b0 event\n  st-005  MET       cli/__init__.py:27 applies filtered events before dispatching reports; probe: --min-mag 5.5 excluded the magnitude 5.0 event from near; --min-mag 6 excluded lower-magnitude events from top\n  st-006  MET       quakes.py:19\u201347 builds the USGS query, validates the response, and writes the response body bytes; probe: request parameters matched the expected URL and saved bytes matched the stub response exactly; tests/test_fetch.py:63\u201373 covers non-200 and invalid GeoJSON responses without creating output; probe confirmed a network failure creates no file\n  st-007  MET       sources/run.sh: E1\u2013E3 check unreadable and invalid files; U1\u2013U8 check malformed arguments; governed gate: all 26 checks passed\n  st-008  MET       tests/test_fetch.py:37\u201373 wraps each fetch call in patch.object(quakes, \"urlopen\", ...); tests/test_reports.py exercises report commands using local temporary GeoJSON files",
+  "complete": true,
+  "governed_gate": {
+    "name": "full",
+    "outcome": "PASS",
+    "argv": [
+      "sh",
+      "sources/run.sh"
+    ],
+    "return_code": 0,
+    "duration_ms": 7327,
+    "detail": "",
+    "timed_out": false,
+    "build_identity": "0e3168c23f5c9c00",
+    "stdout": "PASS A1: quakes summary /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS A2: quakes top /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS A3: quakes daily /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS A4: quakes regions /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS B1: quakes top --n 3 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS B2: quakes summary --min-mag 5.5 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS B3: quakes regions --min-mag 5.4 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS B4: quakes daily --min-mag 6 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS B5: quakes top --min-mag 5.1 --n 4 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS C1: quakes near --lat 27.72 --lon 85.32 --radius 800 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS C2: quakes near --lat 35.68 --lon 139.69 --radius 1500 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS C3: quakes near --lat 9.03 --lon 38.74 --radius 300 --min-mag 5.3 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS C4: quakes near --lat 0 --lon 0 --radius 100 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS D1: quakes summary --min-mag 9 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS D2: quakes daily --min-mag 9 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS E1: quakes summary /tmp/tmp.hViCFTrjNQ/no-such-file.geojson\nPASS E2: quakes summary /tmp/tmp.hViCFTrjNQ/garbage.json\nPASS E3: quakes summary /tmp/tmp.hViCFTrjNQ/feature.json\nPASS U1: quakes \nPASS U2: quakes frobnicate /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U3: quakes near --lat 27.72 --lon 85.32 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U4: quakes top --n 0 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U5: quakes summary --min-mag big /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U6: quakes near --lat 95 --lon 0 --radius 10 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U7: quakes summary --n 3 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U8: quakes summary\nQuakes: 26 passed, 0 failed (of 26)\n",
+    "stderr": ""
+  },
+  "criteria": [
+    {
+      "criterion_id": "st-001",
+      "verdict": "MET",
+      "rationale": "The supplied gate exited zero, with all 26 checks passing.",
+      "evidence": [
+        "[\"sh\", \"sources/run.sh\"] exited 0",
+        "governed gate: sh sources/run.sh exited 0; 26 passed, 0 failed"
+      ]
+    },
+    {
+      "criterion_id": "st-002",
+      "verdict": "MET",
+      "rationale": "The POSIX shell test script ran successfully and its automated tests passed.",
+      "evidence": [
+        "bin/test.sh:1 has a #!/bin/sh shebang",
+        "probe: sh bin/test.sh exited 0; 11 passed, 2 subtests passed"
+      ]
+    },
+    {
+      "criterion_id": "st-003",
+      "verdict": "MET",
+      "rationale": "The supplied gate compared the snapshot reports byte for byte against known answers and all checks passed.",
+      "evidence": [
+        "sources/run.sh: A1\u2013A4 check summary, top, daily, and regions output against expected CSV",
+        "governed gate: 26 passed, 0 failed"
+      ]
+    },
+    {
+      "criterion_id": "st-004",
+      "verdict": "MET",
+      "rationale": "The near probe returned the in-radius event at the expected haversine distance and excluded farther and out-of-radius events.",
+      "evidence": [
+        "reports.py:149\u2013167 computes haversine distance on a 6371.0 km sphere and sorts matches by distance",
+        "probe: near at (0,0), radius 120 km returned the 1\u00b0 east event at 111.2 km and omitted the 2\u00b0 event"
+      ]
+    },
+    {
+      "criterion_id": "st-005",
+      "verdict": "MET",
+      "rationale": "The magnitude-filter probe showed near and top reports include only events at or above the requested threshold.",
+      "evidence": [
+        "cli/__init__.py:27 applies filtered events before dispatching reports",
+        "probe: --min-mag 5.5 excluded the magnitude 5.0 event from near; --min-mag 6 excluded lower-magnitude events from top"
+      ]
+    },
+    {
+      "criterion_id": "st-006",
+      "verdict": "MET",
+      "rationale": "Fetch requested the expected USGS GeoJSON query, preserved response bytes, and the tests and probe confirmed failures do not create an output file.",
+      "evidence": [
+        "quakes.py:19\u201347 builds the USGS query, validates the response, and writes the response body bytes",
+        "probe: request parameters matched the expected URL and saved bytes matched the stub response exactly",
+        "tests/test_fetch.py:63\u201373 covers non-200 and invalid GeoJSON responses without creating output; probe confirmed a network failure creates no file"
+      ]
+    },
+    {
+      "criterion_id": "st-007",
+      "verdict": "MET",
+      "rationale": "The gate\u2019s unreadable-file, invalid-GeoJSON, and malformed-argument cases all passed with their expected exit codes and output.",
+      "evidence": [
+        "sources/run.sh: E1\u2013E3 check unreadable and invalid files; U1\u2013U8 check malformed arguments",
+        "governed gate: all 26 checks passed"
+      ]
+    },
+    {
+      "criterion_id": "st-008",
+      "verdict": "MET",
+      "rationale": "Automated fetch tests replace the HTTP call with a stub, and the test sources contain no network request.",
+      "evidence": [
+        "tests/test_fetch.py:37\u201373 wraps each fetch call in patch.object(quakes, \"urlopen\", ...)",
+        "tests/test_reports.py exercises report commands using local temporary GeoJSON files"
+      ]
+    }
+  ],
+  "guardrail_ids": [],
+  "observations": [
+    {
+      "criterion_id": "st-001",
+      "kind": "command",
+      "source": "[\"sh\", \"sources/run.sh\"]",
+      "return_code": 0,
+      "pinned": "MET",
+      "detail": "[\"sh\", \"sources/run.sh\"] exited 0",
+      "output": "PASS B4: quakes daily --min-mag 6 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS B5: quakes top --min-mag 5.1 --n 4 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS C1: quakes near --lat 27.72 --lon 85.32 --radius 800 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS C2: quakes near --lat 35.68 --lon 139.69 --radius 1500 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS C3: quakes near --lat 9.03 --lon 38.74 --radius 300 --min-mag 5.3 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS C4: quakes near --lat 0 --lon 0 --radius 100 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS D1: quakes summary --min-mag 9 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS D2: quakes daily --min-mag 9 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS E1: quakes summary /tmp/tmp.tNWhTyG6Zt/no-such-file.geojson\nPASS E2: quakes summary /tmp/tmp.tNWhTyG6Zt/garbage.json\nPASS E3: quakes summary /tmp/tmp.tNWhTyG6Zt/feature.json\nPASS U1: quakes \nPASS U2: quakes frobnicate /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U3: quakes near --lat 27.72 --lon 85.32 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U4: quakes top --n 0 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U5: quakes summary --min-mag big /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U6: quakes near --lat 95 --lon 0 --radius 10 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U7: quakes summary --n 3 /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/build/Quakes/sources/quakes_2025-01-01_07.geojson\nPASS U8: quakes summary\nQuakes: 26 passed, 0 failed (of 26)"
+    }
+  ],
+  "blockers": [],
+  "attestations": [],
+  "kit_faults": [],
+  "warnings": [],
+  "improvements": [],
+  "identities": {
+    "code": "b986f48eef601faf8d66e486b606b7d6c2273802",
+    "sea_trials": "3c1104c6eec4d779df8deb73dd42a5dbec65ced05235410745b48f91adb9466a",
+    "blueprint": {
+      "FEATURE-Daily.md": "68681cbe242eb91dc50f23be196a88101f54eb42ef00c2ea8fad1503c36f5393",
+      "FEATURE-Fetch.md": "015014f9a01db005433c7ca670529fbaaa96a42858076a2f694053b211f07f39",
+      "FEATURE-Near.md": "49538d65cb5684725446c4519c1273b122cbe31f98d696d52cc6993f4eefa3fb",
+      "FEATURE-Regions.md": "b61078a2770a1de7ea369433c7a4240033d653d46387c8d150a08a1f9e0bc899",
+      "FEATURE-Summary.md": "37286e55710ba533eaa7c96a0444cfb52aa5b6b5167eb0570431d458e67e9f5f",
+      "FEATURE-Top.md": "c22ce3877ab8ebc0b8bd07af07d80106d92bbf2393f2813dd08467b87a24205c",
+      "FEATURE-Verification.md": "8b7d4a4ae3be22189ae098e30ec2223347a9570591309b079946dbdc9a00e6fa"
+    }
+  },
+  "execution_id": "20261024.065751.056Z-95579693"
+}

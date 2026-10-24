@@ -1,0 +1,19 @@
+Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+Next: (no actionable steps — all done or blocked)
+
+Blueprint: Quakes
+Target: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes
+Rows: <state> <type>  <Name>  [<id>]   — pass [<id>] to --step
+Block: Build Block 1 · Service  [block-1]   — [built] story Fetch and save a validated USGS GeoJSON feed.  [fetch] — complete
+
+Block: Build Block 2 · Service  [block-2]   — 5/6 stories complete
+  [built]   story  Summarize events from a saved GeoJSON FeatureCollection.  [summary]
+  [built]   story  Report event counts and maximum magnitudes by day.  [daily]
+  [built]   story  List the largest events from a saved GeoJSON FeatureCollection.  [top]
+  [built]   story  Report event counts and maximum magnitudes by region.  [regions]
+  [built]   story  Find events within a haversine distance of a point.  [near]
+  [QUESTIONS] story  Provide the automated test suite and run final conformance verification.  [verify]
+
+Steps: 7 total — 0 done, 6 built (await verify), 0 in review, 0 pending, 1 blocked by questions, 0 failed (0% complete)
+Buildable now: (none)
+Target - committed project workspace git store

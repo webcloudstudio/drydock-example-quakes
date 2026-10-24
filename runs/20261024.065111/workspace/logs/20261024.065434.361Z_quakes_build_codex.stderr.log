@@ -1,0 +1,1 @@
+2026-10-24T06:55:02.557567Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"`/bin/bash -lc 'rm -rf __pycache__ cli/__pycache__ tests/__pycache__ && git status --short'` rejected: rm -f style commands are not permitted. Use a safer approach\")" }

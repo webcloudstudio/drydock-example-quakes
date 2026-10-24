@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompt_outputs/20261024.065213.810Z_quakes_plan_codex.output.txt</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompt_outputs/20261024.065213.810Z_quakes_plan_codex.output.txt</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompt_outputs/20261024.065213.810Z_quakes_plan_codex.output.txt">Raw file</a></div></header>
+<article class="doc"><pre>=== BEGIN ARTIFACT FEATURE-Fetch.md ===
+# FEATURE: Fetch
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Downloads a validated USGS earthquake feed and saves it unchanged. |
+| Depends On  |  |
+| Provides    | quakes fetch |
+| Consumes    |  |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Fetch earthquake events from the USGS FDSN event service for a requested date range and save the response as GeoJSON.
+
+## Workflow
+
+1. Accept `--start`, `--end`, optional `--min-mag`, and required `--out`.
+2. Request `https://earthquake.usgs.gov/fdsnws/event/1/query` with `format=geojson`, the supplied start and end dates, `minmagnitude` (default `2.5`), and `orderby=time-asc`.
+3. Require HTTP status 200 and a JSON GeoJSON `FeatureCollection` object with a `features` array.
+4. Write the successful response body unchanged to the output file.
+5. Write the fetched feature count to standard output.
+
+The request uses the standard library `urllib.request`. The HTTP call is kept replaceable so tests can stub it without network access.
+
+## CLI Contract
+
+`quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;`
+
+The magnitude is a decimal matching `-?[0-9]+(\.[0-9]+)?`. Invalid arguments use exit code 2. Network errors, non-200 HTTP status, and invalid response bodies use exit code 1, write no output file, and produce one diagnostic line on standard error. Success exits 0 and writes `fetched,&lt;count&gt;` as CSV to standard output.
+
+## Programmatic Acceptance
+
+=== AC fetch-success ===
+Intent: A stubbed HTTP response is saved byte for byte and reports its feature count.
+
+import json
+from pathlib import Path
+from cli.testing import cli_runner
+import quakes
+
+payload = b&#x27;{&quot;type&quot;:&quot;FeatureCollection&quot;,&quot;features&quot;:[{&quot;id&quot;:&quot;event-1&quot;}]}&#x27;
+expected = json.loads(payload)[&quot;features&quot;]
+output = Path(&quot;fetch-output.geojson&quot;)
+quakes.urlopen = lambda request: type(&quot;Response&quot;, (), {
+    &quot;__enter__&quot;: lambda self: self,
+    &quot;__exit__&quot;: lambda self, *args: None,
+    &quot;status&quot;: lambda self: 200,
+    &quot;read&quot;: lambda self: payload,
+})()
+code, stdout, stderr = cli_runner(
+    &quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, str(output)
+)
+assert code == 0
+assert output.read_bytes() == payload
+assert len(expected) == 1
+
+=== END AC fetch-success ===
+
+=== AC fetch-failure ===
+Intent: A failed HTTP request does not create its output file.
+
+from pathlib import Path
+from cli.testing import cli_runner
+import quakes
+
+output = Path(&quot;fetch-failure.geojson&quot;)
+quakes.urlopen = lambda request: (_ for _ in ()).throw(OSError())
+code, stdout, stderr = cli_runner(
+    &quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, str(output)
+)
+assert code == 1
+assert not output.exists()
+
+=== END AC fetch-failure ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Never modify or read `sources/run.sh` from application code.
+- Never embed report rows, counts, or distances; derive values from the fetched response.
+- Tests stub HTTP and do not use the network.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Summary.md ===
+# FEATURE: Summary
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Produces summary statistics for events in a saved GeoJSON FeatureCollection. |
+| Depends On  |  |
+| Provides    | quakes summary |
+| Consumes    |  |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Summarize the events in a saved GeoJSON file, optionally filtering by minimum magnitude.
+
+## Workflow
+
+1. Read the supplied FeatureCollection and normalize each feature into an event.
+2. Exclude events with null magnitude and apply `--min-mag` to all remaining events.
+3. Compute count, earliest and latest UTC event times, minimum, maximum and mean magnitudes, and tsunami count.
+4. Write the result as CSV with the defined header and one data row.
+
+`properties.time` is milliseconds since the Unix epoch; output times are UTC, truncated to whole seconds. Mean magnitude uses two decimal places rounded half up. An empty result writes `0,,,,,,0` after the header.
+
+## CLI Contract
+
+`quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;`
+
+Magnitude values are decimals matching `-?[0-9]+(\.[0-9]+)?`. Success exits 0, operational file or FeatureCollection errors exit 1, and malformed or unsupported arguments exit 2. A failing command writes no standard output and one diagnostic line to standard error.
+
+## Programmatic Acceptance
+
+=== AC summary-success ===
+Intent: The summary command succeeds on a supplied FeatureCollection.
+Requires: executable=./quakes; scope=test
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;a&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.0, &quot;place&quot;: &quot;Test Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 1
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;summary&quot;, str(source))
+    assert code == 0
+
+=== END AC summary-success ===
+
+=== AC summary-invalid-file ===
+Intent: An unreadable or invalid input file returns the operational exit code.
+
+from cli.testing import cli_runner
+
+code, stdout, stderr = cli_runner(&quot;summary&quot;, &quot;missing-file.geojson&quot;)
+assert code == 1
+
+=== END AC summary-invalid-file ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Every summary value must be computed from the input file.
+- Apply `--min-mag` consistently and exclude null magnitudes.
+- Emit CSV with newline line endings.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Top.md ===
+# FEATURE: Top
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Lists the largest earthquake events from a saved GeoJSON FeatureCollection. |
+| Depends On  |  |
+| Provides    | quakes top |
+| Consumes    |  |
+
+## Questions
+
+- None.
+
+## Purpose
+
+List up to the requested number of largest events, optionally filtered by minimum magnitude.
+
+## Workflow
+
+1. Read and normalize the events from the input FeatureCollection.
+2. Exclude null magnitudes and apply `--min-mag`.
+3. Sort by magnitude descending, then event time ascending.
+4. Keep the first `--n` events (default 10) and write the defined CSV header and rows.
+
+Magnitude and depth are formatted to one decimal place, with depth rounded half up.
+
+## CLI Contract
+
+`quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;`
+
+`&lt;count&gt;` is a positive integer. Success exits 0; unreadable or invalid input exits 1; malformed or unsupported arguments exit 2. Failures write no standard output and one diagnostic line to standard error.
+
+## Programmatic Acceptance
+
+=== AC top-options ===
+Intent: The top command accepts its count option and succeeds on a supplied event file.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;top&quot;, &quot;--n&quot;, &quot;1&quot;, str(source))
+    assert code == 0
+
+=== END AC top-options ===
+
+=== AC top-invalid-count ===
+Intent: A nonpositive count returns the usage exit code.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, str(source))
+    assert code == 2
+    assert stdout == &quot;&quot;
+
+=== END AC top-invalid-count ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Ordering is magnitude descending and then time ascending.
+- The count must be positive.
+- Event values come from the file; do not hardcode report output.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Daily.md ===
+# FEATURE: Daily
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Groups saved earthquake events by UTC date and reports daily totals. |
+| Depends On  |  |
+| Provides    | quakes daily |
+| Consumes    |  |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Report the number of events and maximum magnitude for each UTC date in the input file.
+
+## Workflow
+
+1. Read events, exclude null magnitudes, and apply the optional minimum magnitude.
+2. Group matching events by the first ten characters of their UTC timestamp.
+3. Sort dates ascending and compute each date&#x27;s count and maximum magnitude.
+4. Emit a final `TOTAL` row with overall event count and maximum magnitude.
+
+Maximum magnitudes use one decimal place. With no matching events, the total maximum magnitude is empty.
+
+## CLI Contract
+
+`quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;`
+
+Success exits 0; operational file or FeatureCollection errors exit 1; usage errors exit 2. Failures write no standard output and one diagnostic line to standard error.
+
+## Programmatic Acceptance
+
+=== AC daily-empty ===
+Intent: An empty event file produces a successful daily report with an empty total maximum.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;empty.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}))
+    code, stdout, stderr = cli_runner(&quot;daily&quot;, str(source))
+    assert code == 0
+
+=== END AC daily-empty ===
+
+=== AC daily-filter ===
+Intent: The minimum magnitude option is accepted and the report succeeds.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;daily&quot;, &quot;--min-mag&quot;, &quot;6&quot;, str(source))
+    assert code == 0
+
+=== END AC daily-filter ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Use UTC dates and ascending date order.
+- Include the total row, including when no events match.
+- Compute all values from the supplied file.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Regions.md ===
+# FEATURE: Regions
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Groups saved earthquake events by region and reports event counts. |
+| Depends On  |  |
+| Provides    | quakes regions |
+| Consumes    |  |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Report counts and maximum magnitudes grouped by the source-defined region of each event.
+
+## Region Rule
+
+The region is the text after the last comma and space in `place`, or the whole place when no such delimiter occurs. A null place is `Unknown`, which is also its region.
+
+## Workflow
+
+1. Read and normalize events, exclude null magnitudes, and apply `--min-mag`.
+2. Group by region, count events, and compute each group&#x27;s maximum magnitude.
+3. Sort groups by event count descending, then region ascending.
+4. Write CSV with one row per region.
+
+Maximum magnitudes use one decimal place.
+
+## CLI Contract
+
+`quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;`
+
+Success exits 0; operational file or FeatureCollection errors exit 1; usage errors exit 2. Failures write no standard output and one diagnostic line to standard error.
+
+## Programmatic Acceptance
+
+=== AC regions-command ===
+Intent: The regions command succeeds for a FeatureCollection with an event.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place, Region&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;regions&quot;, str(source))
+    assert code == 0
+
+=== END AC regions-command ===
+
+=== AC regions-filter ===
+Intent: The minimum magnitude option is accepted and returns success.
+
+import json
+import tempfile
+from pathlib import Path
+from cli.testing import cli_runner
+
+event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;input-id&quot;, &quot;properties&quot;: {
+    &quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Input Place, Region&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0
+}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}}
+with tempfile.TemporaryDirectory() as directory:
+    source = Path(directory) / &quot;events.json&quot;
+    source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}))
+    code, stdout, stderr = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, &quot;6&quot;, str(source))
+    assert code == 0
+
+=== END AC regions-filter ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Apply the same magnitude filter used by all reports.
+- Region extraction follows the exact delimiter rule.
+- Derive all rows and counts from the input file.
+=== END ARTIFACT</pre></article>
+</main>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Summary.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Summary.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Summary.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Summary</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Produces summary statistics for events in a saved GeoJSON FeatureCollection.</td></tr><tr><td>Depends On</td><td></td></tr><tr><td>Provides</td><td>quakes summary</td></tr><tr><td>Consumes</td><td></td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>Summarize the events in a saved GeoJSON file, optionally filtering by minimum magnitude.</p>
+<h2>Workflow</h2>
+<ol><li>Read the supplied FeatureCollection and normalize each feature into an event.</li><li>Exclude events with null magnitude and apply <code>--min-mag</code> to all remaining events.</li><li>Compute count, earliest and latest UTC event times, minimum, maximum and mean magnitudes, and tsunami count.</li><li>Write the result as CSV with the defined header and one data row.</li></ol>
+<p><code>properties.time</code> is milliseconds since the Unix epoch; output times are UTC, truncated to whole seconds. Mean magnitude uses two decimal places rounded half up. An empty result writes <code>0,,,,,,0</code> after the header.</p>
+<h2>CLI Contract</h2>
+<p><code>quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;</code></p>
+<p>Magnitude values are decimals matching <code>-?[0-9]+(\.[0-9]+)?</code>. Success exits 0, operational file or FeatureCollection errors exit 1, and malformed or unsupported arguments exit 2. A failing command writes no standard output and one diagnostic line to standard error.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC summary-success ===<br>Intent: The summary command succeeds on a supplied FeatureCollection.<br>Requires: executable=./quakes; scope=test</p>
+<p>import json import tempfile from pathlib import Path from cli.testing import cli_runner</p>
+<p>event = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;a&quot;, &quot;properties&quot;: { &quot;mag&quot;: 5.0, &quot;place&quot;: &quot;Test Place&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 1 }, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0, 0, 1]}} with tempfile.TemporaryDirectory() as directory: source = Path(directory) / &quot;events.json&quot; source.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]})) code, stdout, stderr = cli_runner(&quot;summary&quot;, str(source)) assert code == 0</p>
+<p>=== END AC summary-success ===</p>
+<p>=== AC summary-invalid-file ===<br>Intent: An unreadable or invalid input file returns the operational exit code.</p>
+<p>from cli.testing import cli_runner</p>
+<p>code, stdout, stderr = cli_runner(&quot;summary&quot;, &quot;missing-file.geojson&quot;) assert code == 1</p>
+<p>=== END AC summary-invalid-file ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Every summary value must be computed from the input file.</li><li>Apply <code>--min-mag</code> consistently and exclude null magnitudes.</li><li>Emit CSV with newline line endings.</li></ul></article>
+</main>
+</body>
+</html>

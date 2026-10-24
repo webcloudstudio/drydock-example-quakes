@@ -1,0 +1,203 @@
+=== BEGIN ARTIFACT ANALYSIS.md ===
+# Blueprint Analysis: Quakes
+
+## Commander Expectations
+
+- assert the product downloads USGS earthquake data and produces CSV reports from saved GeoJSON.
+- assert every supplied grader check passes.
+
+## Crew
+
+| Crew | Charge |
+|---|---|
+| Commander | Defines intent and decides what done means. |
+| Team Lead | Confirms epic completeness and stakeholder expectations. |
+| Planning Crew | Authors atomic specifications and the ordered Manifest. |
+| Shipyard Crew | Builds the tickets without synchronous Commander access. |
+
+## Story List
+
+### Feature: Fetch Earthquake Data
+
+| ID | Story | High-level AC |
+|---|---|---|
+| FETCH-001 | Fetch and save the USGS GeoJSON feed | The command requests the specified date range and magnitude, saves a valid response unchanged, and reports its feature count. Network, HTTP, or invalid-response failures write no file. |
+
+### Feature: Report on Saved Earthquake Data
+
+| ID | Story | High-level AC |
+|---|---|---|
+| REPORT-001 | Summarize earthquake events | The report applies the magnitude filter and writes event count, time bounds, magnitude statistics, and tsunami count as CSV. |
+| REPORT-002 | List the largest events | The report applies the magnitude filter and count option, orders by magnitude descending then time ascending, and writes CSV. |
+| REPORT-003 | Report events by day | The report applies the magnitude filter and writes date totals, daily maximum magnitudes, and the overall total as CSV. |
+| REPORT-004 | Report events by region | The report applies the magnitude filter, groups by the specified region rule, and orders groups by count descending then region ascending. |
+| REPORT-005 | Find events near a point | The report applies the magnitude filter, includes events within the radius using the specified haversine distance, and orders by distance then time. |
+
+### Feature: Automated Verification
+
+| ID | Story | High-level AC |
+|---|---|---|
+| VERIFY-001 | Provide the automated test suite | A POSIX-compatible `bin/test.sh` runs the pytest suite from the application root and exits zero only when every test passes. |
+
+## Surfaced Acceptance Criteria
+
+None.
+
+## Relationship Model
+
+| Source or group | Relationship type | Related source or group | Evidence | Delivery implication |
+|---|---|---|---|---|
+| `sources/INSTRUCTIONS.md` | instruction-to-test | `sources/run.sh` | The instructions define command behavior; the harness compares report output and exit codes with known answers. | Implement report behavior against the staged conformance harness. |
+| `sources/quakes_2025-01-01_07.geojson` | dependency | `sources/run.sh` | The harness uses the frozen GeoJSON snapshot for report checks. | Stage the snapshot with the harness so acceptance can run offline. |
+| `sources/INSTRUCTIONS.md` | dependency | `FETCH-001` | Fetch uses the USGS event service and specifies response validation and failure behavior. | Stub the HTTP call in tests; do not rely on network access. |
+| `sources/INSTRUCTIONS.md` | dependency | `REPORT-001`–`REPORT-005` | All reports read a saved FeatureCollection and share event fields, time, region, filtering, and CSV rules. | Plan shared parsing and normalization as supporting implementation for report stories. |
+| `sources/INSTRUCTIONS.md` | dependency | `VERIFY-001` | The instructions require pytest coverage of reports, options, fetch stubbing, and exit codes. | Include offline fetch stubbing and the required behavior coverage in the test suite. |
+
+## Source Roles
+
+| Path | Role | Plan disposition | Build disposition |
+|---|---|---|---|
+| `sources/INSTRUCTIONS.md` | author intent | prompt-only | none |
+| `sources/quakes_2025-01-01_07.geojson` | asset | context | stage |
+| `sources/run.sh` | conformance harness | context | stage |
+
+## Planning Instructions
+
+### Delivery Shape
+
+A Python command-line application named `quakes` reads saved GeoJSON FeatureCollections to produce five CSV reports, and fetches feed data from the USGS event service. The primary flow is fetch a date range to a file, then run one or more reports against that saved file. Reports also accept files supplied independently. The supplied harness and snapshot provide offline final verification.
+
+### Story Realization Map
+
+| Story ID | Durable Blueprint scope | Evidence | Related files | Requires |
+|---|---|---|---|---|
+| FETCH-001 | `fetch` command, request construction, response validation, unchanged file output | `sources/INSTRUCTIONS.md` | `sources/run.sh` | Capability, integration, focused tests |
+| REPORT-001 | `summary` command | `sources/INSTRUCTIONS.md`, `sources/run.sh` | `sources/quakes_2025-01-01_07.geojson` | Capability, focused tests |
+| REPORT-002 | `top` command | `sources/INSTRUCTIONS.md`, `sources/run.sh` | `sources/quakes_2025-01-01_07.geojson` | Capability, focused tests |
+| REPORT-003 | `daily` command | `sources/INSTRUCTIONS.md`, `sources/run.sh` | `sources/quakes_2025-01-01_07.geojson` | Capability, focused tests |
+| REPORT-004 | `regions` command | `sources/INSTRUCTIONS.md`, `sources/run.sh` | `sources/quakes_2025-01-01_07.geojson` | Capability, focused tests |
+| REPORT-005 | `near` command and haversine search | `sources/INSTRUCTIONS.md`, `sources/run.sh` | `sources/quakes_2025-01-01_07.geojson` | Capability, focused tests |
+| VERIFY-001 | POSIX `bin/test.sh` and pytest suite | `sources/INSTRUCTIONS.md` | `sources/run.sh`, `sources/quakes_2025-01-01_07.geojson` | Test harness, acceptance contract |
+
+### Test and Acceptance Strategy
+
+Each report story gets focused tests for its command behavior, formatting, relevant options, and edge cases. Fetch tests replace the HTTP call with a stub. The suite must also cover malformed arguments, unreadable or invalid files, region and distance rules, and empty matches.
+
+Final acceptance runs the supplied harness unfiltered from the application root. `VERIFY-001` is the terminal verification story and gates on all implementation stories. The harness exit status is the acceptance verdict.
+
+### Sequencing and Dependencies
+
+Implement shared argument handling, FeatureCollection reading, event normalization, filtering, and CSV output as support for the command stories. Fetch is independently testable through its HTTP stub. Report stories depend on shared reading and filtering behavior. The automated suite exercises all command stories; final harness verification follows their completion and uses the staged snapshot.
+
+### Source Conflicts and Gaps
+
+No unresolved source conflicts or human-owned planning decisions. The sources specify the CLI, runtime, standard-library HTTP client, test runner, command behavior, and offline acceptance harness. Deployment is not applicable to this CLI.
+
+## Analysis Notes
+
+generated: 2026-10-24
+blueprint: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.065111/workspace/targets/Quakes/blueprint
+
+Quality: Ready
+  blockers: 0
+  questions: 0
+  features: 3
+  stories: 7
+  stack: Python 3.11+, standard library (`urllib.request`), pytest
+  display_name: not proposed
+  short_description: not proposed
+
+None.
+=== END ARTIFACT ===
+
+=== BEGIN ARTIFACT SEA_TRIALS.md ===
+# Sea Trials: Quakes
+
+## st-001: The supplied grader passes
+Type: technical
+Required: yes
+Criterion: The quakes application shall pass every supplied grader check.
+Testability: deterministic
+Consequence: blocks
+Verification: proof
+Command: ["sh", "sources/run.sh"]
+Pattern: ubiquitous
+
+## st-002: Test suite passes
+Type: technical
+Required: yes
+Criterion: The application shall provide a POSIX-compatible bin/test.sh that exits zero when every automated test passes.
+Testability: deterministic
+Consequence: blocks
+Verification: proof
+Pattern: ubiquitous
+
+## st-003: Reports match the known answers
+Type: behavioral
+Required: yes
+Criterion: The application shall compute the summary, top, daily, and regions reports from the snapshot, matching the known answers in sources/run.sh byte for byte.
+Testability: deterministic
+Consequence: blocks
+Verification: proof
+Pattern: ubiquitous
+
+## st-004: Distance search uses the haversine formula
+Type: behavioral
+Required: yes
+Criterion: When near is given a point and a radius, the application shall list every event within that haversine distance on a 6371.0 km sphere, nearest first.
+Testability: deterministic
+Consequence: blocks
+Verification: proof
+Pattern: event
+
+## st-005: The magnitude filter applies to every report
+Type: behavioral
+Required: yes
+Criterion: When --min-mag is given, the application shall compute every report over only the events whose magnitude is at least that value.
+Testability: deterministic
+Consequence: blocks
+Verification: proof
+Pattern: event
+
+## st-006: Fetch saves the USGS feed
+Type: behavioral
+Required: yes
+Criterion: When fetch is given a date range, the application shall request the USGS FDSN event query in GeoJSON and write the response unchanged to the output file, writing no file on a network or HTTP failure.
+Testability: deterministic
+Consequence: blocks
+Verification: proof
+Pattern: event
+
+## st-007: Errors map to exit codes
+Type: behavioral
+Required: yes
+Criterion: If the file is unreadable or not a GeoJSON FeatureCollection, then the application shall exit 1; if the arguments are malformed, then the application shall exit 2; in both cases it shall write nothing to standard output.
+Testability: deterministic
+Consequence: blocks
+Verification: proof
+Pattern: unwanted
+
+## st-008: Tests never use the network
+Type: technical
+Required: yes
+Criterion: The application's automated tests shall exercise fetch through a stubbed HTTP call and shall not open a network connection.
+Testability: judgeable
+Consequence: scores
+Verification: llm
+Pattern: ubiquitous
+
+## Questions
+
+- None.
+=== END ARTIFACT ===
+
+=== BEGIN ARTIFACT TECHNOLOGY_STACK.md ===
+# Technology Stack
+
+| Technology | Rigging | Notes |
+|---|---|---|
+| Python 3.11+ | python.md | Application language and runtime. |
+| Python standard library (`urllib.request`) | — | HTTP client; response body handling uses standard-library JSON support. |
+| pytest | python.md | Required test runner. |
+| POSIX shell | common.md | Required for `bin/test.sh` and supplied grader invocation. |
+=== END ARTIFACT ===
