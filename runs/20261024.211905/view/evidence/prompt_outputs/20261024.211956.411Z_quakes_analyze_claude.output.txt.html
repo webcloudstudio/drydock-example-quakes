@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompt_outputs/20261024.211956.411Z_quakes_analyze_claude.output.txt</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompt_outputs/20261024.211956.411Z_quakes_analyze_claude.output.txt</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompt_outputs/20261024.211956.411Z_quakes_analyze_claude.output.txt">Raw file</a></div></header>
+<article class="doc"><pre>=== BEGIN ARTIFACT ANALYSIS.md ===
+# Blueprint Analysis: drydock Quakes Uat Case
+
+## Commander Expectations
+
+- assert the product downloads the USGS earthquake feed as GeoJSON to a file
+- assert the product reports the saved feed as five CSV reports (summary, top, daily, regions, near)
+- assert every report is computed only from the file it is given, never from embedded answers
+- assert the supplied grader `sources/run.sh` exits zero against the completed application
+- assert the test suite never uses the network
+
+## Crew
+
+| Crew | Charge |
+|---|---|
+| Commander | Defines intent and decides what done means. |
+| Team Lead | Confirms epic completeness and stakeholder expectations. |
+| Planning Crew | Authors atomic specifications and the ordered Manifest. |
+| Shipyard Crew | Builds the tickets without synchronous Commander access. |
+
+## Story List
+
+### Feature: Fetch
+
+| ID | Story | High-level AC |
+|---|---|---|
+| FETCH-001 | Fetch the USGS feed for a date range and save it | Requests the FDSN query in GeoJSON with the given range and `--min-mag` (default 2.5, ordered by time-asc); writes the response body unchanged to `--out`; prints `fetched,&lt;count&gt;` |
+| FETCH-002 | Fail fetch without writing a file on network or HTTP error | On network error or HTTP status other than 200, exits 1 and writes no file |
+| FETCH-003 | Reject a fetch body that is not a GeoJSON FeatureCollection | A body that is not a FeatureCollection exits 1 and writes no file |
+
+### Feature: Feed Reading
+
+| ID | Story | High-level AC |
+|---|---|---|
+| FEED-001 | Read a saved GeoJSON FeatureCollection file | Reads `id`, `mag`, `place`, `time`, `tsunami`, `coordinates`; ignores other fields; excludes features with null `mag`; a non-JSON or non-FeatureCollection file exits 1 |
+| FEED-002 | Normalise event time, date, and region | Time written as UTC `YYYY-MM-DDTHH:MM:SSZ` truncated to seconds; date is first 10 chars; region is text after last `, ` or whole place; null place is `Unknown` |
+| FEED-003 | Apply the `--min-mag` filter to every report | Keeps only events with `mag &gt;= m` in every report |
+
+### Feature: Summary Report
+
+| ID | Story | High-level AC |
+|---|---|---|
+| SUM-001 | Report event count, time span, magnitude range, mean, and tsunami count | `summary` prints the header `events,first,last,min_mag,max_mag,mean_mag,tsunami`; mean is 2 dp half-up; with no events prints `0,,,,,,0` |
+
+### Feature: Top Events Report
+
+| ID | Story | High-level AC |
+|---|---|---|
+| TOP-001 | List the largest events by magnitude | `top` prints `time,mag,depth_km,place,id` ordered by mag descending then time ascending |
+| TOP-002 | Limit the top list with `--n` | `--n` default 10, positive integer; limits rows; `--n 0` is a usage error |
+
+### Feature: Daily Report
+
+| ID | Story | High-level AC |
+|---|---|---|
+| DAY-001 | Count events and max magnitude per day | One row per date with events, ascending; `TOTAL,&lt;events&gt;,&lt;max_mag&gt;` final row; with no events `TOTAL,0,` |
+
+### Feature: Regions Report
+
+| ID | Story | High-level AC |
+|---|---|---|
+| REG-001 | Count events and max magnitude per region | One row per region ordered by events descending then region ascending |
+
+### Feature: Distance Search
+
+| ID | Story | High-level AC |
+|---|---|---|
+| NEAR-001 | List events within a haversine radius of a point | `near --lat --lon --radius` lists events with distance &lt;= radius on a 6371.0 km sphere, ordered by distance then time; distance 1 dp half-up |
+| NEAR-002 | Validate near coordinates and radius | `--lat` outside −90..90, `--lon` outside −180..180, non-positive `--radius`, or missing any of the three is a usage error (exit 2) |
+
+### Feature: Command Line Interface
+
+| ID | Story | High-level AC |
+|---|---|---|
+| CLI-001 | Dispatch commands and parse options | Command first, options in any order, file last; unknown command or option, missing or extra file, malformed value is usage error exit 2 |
+| CLI-002 | Map errors to exit codes and silent stdout on failure | Exit 0 on success including empty results; exit 1 on operational failure; exit 2 on usage error; a failing command writes nothing to stdout and one diagnostic line to stderr |
+| CLI-003 | Provide help text for every command and sub-verb | Every command and sub-verb has help text |
+
+### Feature: Test Suite
+
+| ID | Story | High-level AC |
+|---|---|---|
+| TEST-001 | Provide `bin/test.sh` running the pytest suite | POSIX-compatible `bin/test.sh` runs the pytest suite from the application root and exits zero only when every test passes |
+| TEST-002 | Test fetch through a stubbed HTTP call | Fetch tests replace the HTTP call with a stub and never open a network connection |
+
+## Surfaced Acceptance Criteria
+
+| ID | Story ID | Criterion |
+|---|---|---|
+| AC-001 | FETCH-001 | Fetch writes `fetched,&lt;count&gt;` where count equals the number of features in the response |
+| AC-002 | FEED-001 | Features with null `mag` are excluded from every report |
+| AC-003 | FEED-002 | A null `place` is normalised to `Unknown` and is also its region |
+| AC-004 | SUM-001 | Summary `first` and `last` are the earliest and latest event times |
+| AC-005 | SUM-001 | Summary `tsunami` counts events whose `tsunami` equals `1` |
+| AC-006 | DAY-001 | Daily max_mag is empty on the TOTAL row when there are no events |
+| AC-007 | REG-001 | Region text is compared by byte value and written as UTF-8 |
+| AC-008 | NEAR-001 | Distance and depth values are written with one decimal place, rounded half up |
+| AC-009 | CLI-002 | A failing command writes nothing to stdout |
+
+## Relationship Model
+
+| Source or group | Relationship type | Related source or group | Evidence | Delivery implication |
+|---|---|---|---|---|
+| `sources/run.sh` | instruction-to-test | `quakes` executable at app root | `sources/run.sh` runs `$APP/quakes` and compares exit code and stdout | Build must produce executable `quakes`; grader gates every report story |
+| `sources/quakes_2025-01-01_07.geojson` | dependency | `sources/run.sh` | `QUAKES=$DATA/quakes_2025-01-01_07.geojson` | Stage snapshot alongside the harness so grader can find it |
+| `sources/INSTRUCTIONS.md` | reference-to-replacement | `sources/run.sh` | Read-only scoring assets section | Application must never read `run.sh` or embed answers |
+| `FEED-001` | parser-to-normalizer | `FEED-002`, `FEED-003` | Reading steps 1–6 in INSTRUCTIONS.md | Parser precedes time/region normalisation and min-mag filter |
+| `FEED-001` | parser-to-report | SUM-001, TOP-001, DAY-001, REG-001, NEAR-001 | All reports consume the parsed event list | Reports depend on the reader |
+| `FETCH-001` | dependency | `FETCH-002`, `FETCH-003` | Fetch error behavior in INSTRUCTIONS.md | Fetch error handling built on the fetch path |
+| `CLI-001` | implementation-to-helper | every report story | Command dispatch and exit-code mapping | CLI dispatch precedes all commands |
+| `TEST-002` | test-kit-to-implementation | `FETCH-001` | Stubbed HTTP requirement | Fetch must expose a replaceable HTTP call |
+
+## Source Roles
+
+| Path | Role | Plan disposition | Build disposition |
+|---|---|---|---|
+| `sources/INSTRUCTIONS.md` | normative specification | compass | prompt-only |
+| `sources/run.sh` | conformance harness | context | stage |
+| `sources/quakes_2025-01-01_07.geojson` | asset | context | stage |
+
+## Planning Instructions
+
+### Delivery Shape
+
+The system is a Python 3.11+ standard-library command-line tool named `quakes` at the application root. Inputs are the USGS FDSN event query (via `fetch`) and a saved GeoJSON FeatureCollection file. Outputs are CSV reports on standard output and a saved GeoJSON file from `fetch`. Execution flow: `fetch` writes a file; each report command reads one file, applies `--min-mag`, computes its report, and writes CSV.
+
+### Story Realization Map
+
+- FETCH-001..003 → `quakes` fetch command; HTTP via `urllib.request`; tests stub the HTTP call.
+- FEED-001..003 → shared reader module; evidence: INSTRUCTIONS.md &quot;Reading a file&quot; steps 1–6.
+- SUM-001, TOP-001..002, DAY-001, REG-001, NEAR-001..002 → one report each, reading the FEED stories; evidence: INSTRUCTIONS.md &quot;Reports&quot; and &quot;Distance&quot; sections; graded by `sources/run.sh` checks A1–E3, B1–B5, C1–C4, D1–D2, U1–U8.
+- CLI-001..003 → command dispatch, exit-code mapping, help text; evidence: INSTRUCTIONS.md &quot;Commands&quot; and &quot;Exit codes&quot;.
+- TEST-001 → `bin/test.sh` wrapping pytest; TEST-002 → stubbed fetch tests.
+
+### Test and Acceptance Strategy
+
+Focused story tests run per feature using pytest with fixture files written by the tests. The terminal verification story runs `sh sources/run.sh` as the full acceptance gate. TEST-001 owns `bin/test.sh` and runs the full pytest suite as its terminal gate. Feature stories run only their own test slice.
+
+### Sequencing and Dependencies
+
+Build order: CLI-001 dispatch → FEED-001 reader → FEED-002 normalisation → FEED-003 min-mag filter → report stories → NEAR-002 validation → FETCH stories → TEST-001 → terminal grader verification (`sh sources/run.sh`). Fetch can be built in parallel with reports since it has no report dependency.
+
+### Source Conflicts and Gaps
+
+No cross-source conflicts found. The Python 3.11 requirement and the `pytest` test runner are both stated in INSTRUCTIONS.md. The `sources/run.sh` grader is the sole acceptance verdict.
+
+## Analysis Notes
+
+generated: 2026-10-24
+blueprint: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.211905/workspace/targets/Quakes/blueprint
+
+Quality: Ready
+  blockers: 0
+  questions: 0
+  features: 9
+  stories: 19
+  stack: Python 3.11+, standard library, pytest
+  display_name: not proposed
+  short_description: not proposed
+=== END ARTIFACT ===
+
+=== BEGIN ARTIFACT SEA_TRIALS.md ===
+# Sea Trials: Quakes
+
+## st-001: The supplied grader passes
+
+Type: technical
+Required: yes
+Criterion: The completed quakes shall make sh sources/run.sh exit zero; that script&#x27;s exit status is the sole acceptance verdict.
+Verification: proof
+Pattern: ubiquitous
+Command: [&quot;sh&quot;, &quot;sources/run.sh&quot;]
+
+## st-002: Test suite passes
+
+Type: technical
+Required: yes
+Criterion: The application shall provide a POSIX-compatible bin/test.sh that exits zero when every automated test passes.
+Verification: proof
+Pattern: ubiquitous
+
+## st-003: Reports match the known answers
+
+Type: behavioral
+Required: yes
+Criterion: The application shall compute the summary, top, daily, and regions reports from the snapshot, matching the known answers in sources/run.sh byte for byte.
+Verification: proof
+Pattern: ubiquitous
+
+## st-004: Distance search uses the haversine formula
+
+Type: behavioral
+Required: yes
+Criterion: When near is given a point and a radius, the application shall list every event within that haversine distance on a 6371.0 km sphere, nearest first.
+Verification: proof
+Pattern: event
+
+## st-005: The magnitude filter applies to every report
+
+Type: behavioral
+Required: yes
+Criterion: When --min-mag is given, the application shall compute every report over only the events whose magnitude is at least that value.
+Verification: proof
+Pattern: event
+
+## st-006: Fetch saves the USGS feed
+
+Type: behavioral
+Required: yes
+Criterion: When fetch is given a date range, the application shall request the USGS FDSN event query in GeoJSON and write the response unchanged to the output file, writing no file on a network or HTTP failure.
+Verification: proof
+Pattern: event
+
+## st-007: Errors map to exit codes
+
+Type: behavioral
+Required: yes
+Criterion: If the file is unreadable or not a GeoJSON FeatureCollection, then the application shall exit 1; if the arguments are malformed, then the application shall exit 2; in both cases it shall write nothing to standard output.
+Verification: proof
+Pattern: unwanted
+
+## st-008: Tests never use the network
+
+Type: technical
+Required: yes
+Criterion: The application&#x27;s automated tests shall exercise fetch through a stubbed HTTP call and shall not open a network connection.
+Verification: llm
+Pattern: ubiquitous
+
+## Questions
+
+- None.
+=== END ARTIFACT ===
+
+=== BEGIN ARTIFACT TECHNOLOGY_STACK.md ===
+# Technology Stack
+
+| Technology | Rigging | Notes |
+|---|---|---|
+| Python 3.11+ | python.md | Standard library only; `urllib.request` for HTTP; the `quakes` executable is the entry point |
+| pytest | python.md | Runs the automated test suite; invoked by `bin/test.sh` |
+| POSIX shell | common.md | `bin/test.sh` must be POSIX-compatible; the supplied grader is `sh sources/run.sh` |
+| Command-line interface | cli.md | Exit codes 0/1/2, silent stdout on failure, in-process testing |
+=== END ARTIFACT ===
+
+=== BEGIN ARTIFACT discovery-identity.json ===
+{
+  &quot;id&quot;: &quot;discovery-identity&quot;,
+  &quot;title&quot;: &quot;Discovery: Project Identity&quot;,
+  &quot;purpose&quot;: &quot;Confirm the proposed display name and short description before planning.&quot;,
+  &quot;questions&quot;: [
+    {
+      &quot;id&quot;: &quot;display_name&quot;,
+      &quot;label&quot;: &quot;Display Name&quot;,
+      &quot;prompt&quot;: &quot;The display name Drydock will use for this project. Edit to override the proposal.&quot;,
+      &quot;input&quot;: &quot;text&quot;,
+      &quot;proposed&quot;: &quot;Quakes&quot;,
+      &quot;answer&quot;: &quot;Quakes&quot;
+    },
+    {
+      &quot;id&quot;: &quot;short_description&quot;,
+      &quot;label&quot;: &quot;Short Description&quot;,
+      &quot;prompt&quot;: &quot;One-sentence description of what this project does. Edit to override the proposal.&quot;,
+      &quot;input&quot;: &quot;textarea&quot;,
+      &quot;proposed&quot;: &quot;A command-line tool that downloads the USGS earthquake feed as GeoJSON and writes CSV reports on magnitude, daily counts, regions, and distance from a point.&quot;,
+      &quot;answer&quot;: &quot;A command-line tool that downloads the USGS earthquake feed as GeoJSON and writes CSV reports on magnitude, daily counts, regions, and distance from a point.&quot;
+    }
+  ]
+}
+=== END ARTIFACT ===
+
+=== BEGIN ARTIFACT COMPASS.md ===
+# COMPASS: Quakes
+
+## Compass
+Quakes is a standard-library Python command-line tool that fetches a period of the USGS earthquake event feed as a GeoJSON file and reports on a saved file: summary, largest events, events per day, events per region, and events within a haversine distance of a point. It serves an analyst who needs repeatable CSV answers from a frozen snapshot, and it exists so that every report is computed from the file it is given.
+
+## Constraints
+- Python 3.11 or newer; standard library only, with `urllib.request` for HTTP.
+- Executable named `quakes` at the application root.
+- Output is CSV on standard output with `\n` line endings, written with Python&#x27;s `csv` module, UTF-8.
+- Time is UTC, truncated to whole seconds; distance uses a 6371.0 km sphere.
+- The grader and snapshot are read-only scoring assets, staged verbatim.
+
+## Guardrails
+- Never read `sources/run.sh` or embed a report answer in application code; every value is computed from the file given.
+- Never use the network in tests; `fetch` is tested against a stubbed HTTP call.
+- A failing command writes nothing to standard output and one diagnostic line to standard error.
+- Never modify, regenerate, or substitute `sources/run.sh` or `sources/quakes_2025-01-01_07.geojson`.
+- Standard error is not compared by the grader; never filter or reinterpret its checks.
+=== END ARTIFACT ===</pre></article>
+</main>
+</body>
+</html>

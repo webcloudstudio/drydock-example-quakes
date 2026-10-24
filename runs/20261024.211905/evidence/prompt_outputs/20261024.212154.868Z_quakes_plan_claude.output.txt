@@ -1,0 +1,983 @@
+=== BEGIN ARTIFACT ARCHITECTURE.md ===
+# ARCHITECTURE: Quakes
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Module layout, boundaries and technical decisions for the `quakes` earthquake feed reporter command-line tool. |
+| Depends On  | None |
+| Provides    | quakes executable, cli.main, cli.testing.cli_runner, cli.errors.UsageError, cli.errors.OperationalFailure |
+| Consumes    | None |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes` is a Python 3.11+ standard-library command-line tool. `quakes fetch` saves a period of the
+USGS FDSN event feed as a GeoJSON file. Five report commands (`summary`, `top`, `daily`, `regions`,
+`near`) read a saved file and write a CSV report to standard output. Every report value is computed
+from the file being read; nothing is embedded.
+
+## Technology Stack
+
+Derived from `TECHNOLOGY_STACK.md`, which remains the decision of record.
+
+| Technology | Where it applies |
+|---|---|
+| Python 3.11+ (standard library only) | All application code: `cli/` package and the `quakes` executable. |
+| CLI (`cli.md`) | The `quakes` entry point and the `cli` package with `main(argv) -> int`. |
+| pytest | The project test suite under `tests/`, run through `bin/test.sh`. |
+| USGS GeoJSON | Input format for every report; fetched with `urllib.request`. |
+| POSIX sh | `bin/test.sh` and the supplied grader `sources/run.sh`. |
+
+## Module Layout
+
+All application code lives in the `cli` package at the application root.
+
+| Module | Responsibility | Built by story |
+|---|---|---|
+| `quakes` (root, executable) | `#!` Python launcher that calls `cli.main` and exits with its return value | foundation |
+| `cli/__init__.py` | `main(argv) -> int`: help check, parse, dispatch, exit-code mapping, writing stdout | foundation, then feature stories |
+| `cli/testing.py` | `cli_runner(*args) -> (exit_code, stdout, stderr)` | foundation |
+| `cli/errors.py` | `UsageError` and `OperationalFailure`, both `Exception` subclasses | foundation |
+| `cli/options.py` | `COMMANDS`, `Invocation`, `parse_args(argv)` | feature-cli-dispatch |
+| `cli/commands.py` | `HANDLERS` registry and `dispatch(invocation) -> str` | feature-cli-dispatch |
+| `cli/help.py` | `wants_help(argv)`, `help_text(command)` | feature-help |
+| `cli/reader.py` | `Event`, `read_events(path)` | feature-feed-reader |
+| `cli/normalise.py` | `format_time`, `region_of`, number formatting helpers | feature-event-normalise |
+| `cli/filtering.py` | `filter_min_mag(events, m)` | feature-min-mag |
+| `cli/reports.py` and per-report modules | One compute function and one format function per report | report stories |
+| `cli/fetch.py` | `http_get(url)` and the fetch handler | feature-fetch |
+
+Reading the file, filtering, computing each report, and formatting are separate functions, each
+unit-tested on its own.
+
+## Control Flow
+
+`main(argv)` runs, in order:
+
+1. Reconfigure standard output to UTF-8 with `\n` newlines when the stream supports it.
+2. If `cli.help.wants_help(argv)`, write the help text to standard output and return `0`.
+3. `invocation = parse_args(argv)`, then `text = commands.dispatch(invocation)`.
+4. Write `text` to standard output once, only after the handler has returned, and return `0`.
+5. `UsageError` returns `2` and `OperationalFailure` returns `1`. Each writes exactly one diagnostic
+   line to standard error and nothing to standard output.
+
+A handler is a function `handler(invocation) -> str` returning the complete standard-output text. A
+handler never writes to standard output itself. This is what guarantees that a failing command
+writes nothing to standard output.
+
+## Boundaries and Ownership
+
+| Boundary | Owning module | Notes |
+|---|---|---|
+| Local file reads | `cli/reader.py` | The only module that opens a feed file for reading. |
+| Network | `cli/fetch.py` `http_get` | The only module that opens a connection; tests replace `http_get`. |
+| Standard output | `cli/__init__.py` `main` | Handlers return text. |
+| Standard error | `cli/__init__.py` `main` | Diagnostics only; never compared. |
+| Persistence, configuration, external stores | None | The product has no database or configuration. |
+
+## Technical Decisions
+
+- Exit codes: `0` success (including a report with no matching events), `1` operational failure,
+  `2` usage error.
+- Magnitudes are held as `decimal.Decimal` built from `str(value)` so that half-up rounding is exact.
+- CSV is written with Python's `csv` module, `lineterminator="\n"`, and encoded as UTF-8.
+- Application code never reads `sources/run.sh` or the snapshot and never embeds a report row,
+  count, or distance.
+
+## Programmatic Acceptance
+
+=== AC foundation-imports ===
+Intent: The cli package publishes main, the testing runner, and the two error types.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+import cli
+from cli import main
+from cli.errors import OperationalFailure, UsageError
+from cli.testing import cli_runner
+
+assert callable(main)
+assert callable(cli_runner)
+assert issubclass(UsageError, Exception)
+assert issubclass(OperationalFailure, Exception)
+assert UsageError is not OperationalFailure
+assert sys.version_info >= (3, 11)
+=== END AC foundation-imports ===
+
+=== AC foundation-runner-contract ===
+Intent: cli_runner returns an integer exit code with text standard output and standard error without spawning a process.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.testing import cli_runner
+
+code, out, err = cli_runner()
+print(code, repr(out), repr(err))
+assert isinstance(code, int)
+assert isinstance(out, str)
+assert isinstance(err, str)
+=== END AC foundation-runner-contract ===
+
+=== AC foundation-executable ===
+Intent: The quakes file at the application root is executable and exits with the same code as cli.main.
+Requires: executable=python3; scope=test
+
+import os
+import subprocess
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.testing import cli_runner
+
+assert os.path.isfile("quakes")
+assert os.access("quakes", os.X_OK)
+with open("quakes", "rb") as handle:
+    first_two = handle.read(2)
+assert first_two == b"#!"
+
+inproc_code, _, _ = cli_runner()
+result = subprocess.run([sys.executable, "quakes"], capture_output=True, text=True)
+print(result.stdout)
+print(result.stderr, file=sys.stderr)
+assert result.returncode == inproc_code
+=== END AC foundation-executable ===
+
+=== AC foundation-pytest-fixture ===
+Intent: The root conftest exposes the cli_runner fixture and the project declares its dependency manifest.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+import conftest
+
+assert hasattr(conftest, "cli_runner")
+assert os.path.isfile("pyproject.toml")
+assert os.path.isdir("cli")
+=== END AC foundation-pytest-fixture ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Do not modify, rewrite, regenerate, or substitute any file under `sources/`.
+- Application code never reads `sources/run.sh` or the snapshot and never hardcodes a report row, a count, or a distance.
+- Standard library only; Python 3.11 or newer.
+- Diagnostics go to standard error and are never compared.
+- No test opens a network connection.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-CliDispatch.md ===
+# FEATURE: Cli Dispatch
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Parse the command and its options in any order with the file last, and dispatch to the registered command handler. |
+| Depends On  | ARCHITECTURE.md |
+| Provides    | quakes <command> dispatch, cli.options.parse_args, cli.options.COMMANDS, cli.options.Invocation, cli.commands.HANDLERS, cli.commands.dispatch |
+| Consumes    | cli.main, cli.errors.UsageError, cli.errors.OperationalFailure |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes <command> [options] [<file>]`. The command comes first, options follow in any order, and
+the file is last. Any malformed command line is a usage error. This feature parses and validates the
+shape of the command line and routes a parsed invocation to a handler; reports, validation of `near`
+ranges, and exit-code mapping belong to other features.
+
+## Trigger
+
+Every invocation of `quakes`.
+
+## Interface
+
+- `cli.options.COMMANDS`: tuple `("fetch", "summary", "top", "daily", "regions", "near")`.
+- `cli.options.Invocation`: frozen dataclass with `command: str`, `options: dict[str, str]`, and
+  `file: str | None`. `options` is keyed by the option name without its leading `--` (`min-mag`,
+  `n`, `lat`, `lon`, `radius`, `start`, `end`, `out`) and holds the value text exactly as given.
+  An option that was not given is absent from the dict; the owning command applies defaults
+  (`n` = 10, fetch `min-mag` = 2.5).
+- `cli.options.parse_args(argv: list[str]) -> Invocation`, raising `cli.errors.UsageError`.
+- `cli.commands.HANDLERS`: plain `dict[str, Callable[[Invocation], str]]`; each handler returns the
+  complete standard-output text.
+- `cli.commands.dispatch(invocation) -> str`: calls `HANDLERS[invocation.command]`; when no handler is
+  registered it raises `cli.errors.OperationalFailure`.
+
+## Rules
+
+1. `argv[0]` is the command; an unknown command or an empty `argv` is a usage error.
+2. The token after an option name is always that option's value, even when it begins with `-`
+   (so `--lat -5.25` is valid). A missing value is a usage error.
+3. Options accepted per command:
+
+   | Command | Options | Positional file |
+   |---|---|---|
+   | `fetch` | `--start`, `--end`, `--out` (all required), `--min-mag` | none (an extra positional is a usage error) |
+   | `summary`, `daily`, `regions` | `--min-mag` | exactly one, last |
+   | `top` | `--min-mag`, `--n` | exactly one, last |
+   | `near` | `--lat`, `--lon`, `--radius`, `--min-mag` | exactly one, last |
+
+4. Any other option, or an option the command does not list, is a usage error.
+5. An option given more than once is a usage error.
+6. `--min-mag`, `--lat`, `--lon` and `--radius` values must match `-?[0-9]+(\.[0-9]+)?`. `--n` must be
+   a positive integer (`0`, negatives, decimals and text are usage errors). `--start` and `--end`
+   must have the shape `YYYY-MM-DD`.
+7. A report command with no file, or with more than one file, is a usage error.
+8. For `near`, the presence of `--lat`, `--lon`, `--radius` and the range checks belong to
+   FEATURE-NearValidation.md; the parser only accepts them.
+
+## Programmatic Acceptance
+
+=== AC dispatch-option-order ===
+Intent: Options may appear in any order and parse to the same invocation with the file last.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.options import parse_args
+
+path = os.path.join("somewhere", "feed.geojson")
+mag = "5.5"
+count = "3"
+first = parse_args(["top", "--min-mag", mag, "--n", count, path])
+second = parse_args(["top", "--n", count, "--min-mag", mag, path])
+assert first.command == "top"
+assert first.options == second.options
+assert first.options["min-mag"] == mag
+assert first.options["n"] == count
+assert first.file == path
+assert second.file == path
+=== END AC dispatch-option-order ===
+
+=== AC dispatch-negative-values ===
+Intent: A value beginning with a minus sign is read as the option's value, not as an option.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.options import parse_args
+
+path = os.path.join("somewhere", "feed.geojson")
+lat = "-5.25"
+lon = "-170"
+radius = "100"
+inv = parse_args(["near", "--lat", lat, "--lon", lon, "--radius", radius, path])
+assert inv.command == "near"
+assert inv.options["lat"] == lat
+assert inv.options["lon"] == lon
+assert inv.options["radius"] == radius
+assert inv.file == path
+=== END AC dispatch-negative-values ===
+
+=== AC dispatch-every-command-parses ===
+Intent: Each report command parses with a file, and fetch parses with its required options and no file.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.options import COMMANDS, parse_args
+
+path = os.path.join("somewhere", "feed.geojson")
+start = "2025-01-01"
+end = "2025-01-08"
+out = os.path.join("somewhere", "out.geojson")
+for command in ("summary", "daily", "regions", "top"):
+    assert command in COMMANDS
+    inv = parse_args([command, path])
+    assert inv.command == command
+    assert inv.file == path
+assert "near" in COMMANDS
+assert "fetch" in COMMANDS
+fetch = parse_args(["fetch", "--end", end, "--start", start, "--out", out, "--min-mag", "4.5"])
+assert fetch.command == "fetch"
+assert fetch.file is None
+assert fetch.options["start"] == start
+assert fetch.options["end"] == end
+assert fetch.options["out"] == out
+assert fetch.options["min-mag"] == "4.5"
+assert len(COMMANDS) == 6
+=== END AC dispatch-every-command-parses ===
+
+=== AC dispatch-usage-errors ===
+Intent: Every malformed command line raises UsageError.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.errors import UsageError
+from cli.options import parse_args
+
+path = os.path.join("somewhere", "feed.geojson")
+start = "2025-01-01"
+end = "2025-01-08"
+out = os.path.join("somewhere", "out.geojson")
+bad = [
+    [],
+    ["frobnicate", path],
+    ["summary"],
+    ["summary", path, path],
+    ["summary", "--n", "3", path],
+    ["summary", "--bogus", "1", path],
+    ["summary", "--min-mag", "big", path],
+    ["summary", "--min-mag", ".5", path],
+    ["summary", "--min-mag"],
+    ["summary", "--min-mag", "5", "--min-mag", "6", path],
+    ["top", "--n", "0", path],
+    ["top", "--n", "-1", path],
+    ["top", "--n", "2.5", path],
+    ["top", "--n", "many", path],
+    ["daily", "--lat", "1", path],
+    ["fetch", "--start", start, "--end", end],
+    ["fetch", "--start", start, "--out", out],
+    ["fetch", "--end", end, "--out", out],
+    ["fetch", "--start", start, "--end", end, "--out", out, path],
+    ["fetch", "--start", "yesterday", "--end", end, "--out", out],
+]
+accepted = []
+for argv in bad:
+    try:
+        parse_args(list(argv))
+    except UsageError:
+        continue
+    accepted.append(argv)
+print(f"{len(bad) - len(accepted)} rejected, {len(accepted)} accepted")
+assert accepted == []
+=== END AC dispatch-usage-errors ===
+
+=== AC dispatch-routes-to-handler ===
+Intent: dispatch calls the registered handler with the invocation and returns its text unchanged.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli import commands
+from cli.options import parse_args
+
+path = os.path.join("somewhere", "feed.geojson")
+text = "col_a,col_b\nvalue,1\n"
+seen = []
+
+def fake(invocation):
+    seen.append(invocation)
+    return text
+
+commands.HANDLERS["summary"] = fake
+inv = parse_args(["summary", path])
+assert commands.dispatch(inv) == text
+assert len(seen) == 1
+assert seen[0] is inv
+=== END AC dispatch-routes-to-handler ===
+
+=== AC dispatch-missing-handler ===
+Intent: Dispatching a command with no registered handler raises OperationalFailure.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli import commands
+from cli.errors import OperationalFailure
+from cli.options import parse_args
+
+path = os.path.join("somewhere", "feed.geojson")
+commands.HANDLERS.pop("daily", None)
+inv = parse_args(["daily", path])
+try:
+    commands.dispatch(inv)
+except OperationalFailure:
+    pass
+else:
+    raise AssertionError("dispatch of an unregistered command did not raise")
+=== END AC dispatch-missing-handler ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- An option the command does not list is a usage error, never ignored.
+- The parser never opens the file; reading it belongs to the feed reader.
+- Handlers return text; only `main` writes to standard output.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-ExitCodes.md ===
+# FEATURE: Exit Codes
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Map outcomes to exit codes 0, 1 and 2 and guarantee empty standard output with one standard-error line on failure. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CliDispatch.md |
+| Provides    | exit code contract |
+| Consumes    | quakes <command> dispatch, cli.errors.UsageError, cli.errors.OperationalFailure, cli.commands.dispatch |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`cli.main` turns the result of parsing and dispatching into a process exit code and guarantees that a
+failing command writes nothing to standard output.
+
+## Rules
+
+| Code | Meaning |
+|---|---|
+| `0` | Success, including a report with no matching events. The handler text is written to standard output exactly once. |
+| `1` | Operational failure (`OperationalFailure`): file unreadable or not a FeatureCollection; fetch network or HTTP failure. |
+| `2` | Usage error (`UsageError`): any malformed command line. |
+
+- `main` writes the handler's text to standard output only after the handler returned, so a failing
+  command has written nothing to standard output.
+- A failure writes exactly one diagnostic line to standard error (the exception message on a single
+  line, no traceback). Standard error is never compared.
+- `main` configures standard output as UTF-8 with `\n` newlines when the stream supports
+  `reconfigure`, and writes the text without adding or altering line endings.
+
+## Programmatic Acceptance
+
+=== AC exit-success-writes-text ===
+Intent: A handler that returns text yields exit 0 and exactly that text on standard output.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli import commands
+from cli.testing import cli_runner
+
+path = os.path.join("somewhere", "feed.geojson")
+text = "col_a,col_b\nvalue,1\n"
+commands.HANDLERS["summary"] = lambda invocation: text
+code, out, err = cli_runner("summary", path)
+print(code, repr(out), repr(err))
+assert code == 0
+assert out == text
+=== END AC exit-success-writes-text ===
+
+=== AC exit-empty-result-is-success ===
+Intent: A handler that returns no text still exits 0 with empty standard output.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli import commands
+from cli.testing import cli_runner
+
+path = os.path.join("somewhere", "feed.geojson")
+commands.HANDLERS["daily"] = lambda invocation: ""
+code, out, err = cli_runner("daily", path)
+assert code == 0
+assert out == ""
+=== END AC exit-empty-result-is-success ===
+
+=== AC exit-operational-failure ===
+Intent: An OperationalFailure from a handler gives exit 1, empty standard output and a diagnostic on standard error.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli import commands
+from cli.errors import OperationalFailure
+from cli.testing import cli_runner
+
+path = os.path.join("somewhere", "feed.geojson")
+
+def failing(invocation):
+    raise OperationalFailure("cannot read the feed")
+
+commands.HANDLERS["regions"] = failing
+code, out, err = cli_runner("regions", path)
+print(code, repr(out), repr(err))
+assert code == 1
+assert out == ""
+assert err.strip() != ""
+assert len(err.strip().splitlines()) == 1
+=== END AC exit-operational-failure ===
+
+=== AC exit-usage-error-from-handler ===
+Intent: A UsageError raised by a handler gives exit 2 and empty standard output.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli import commands
+from cli.errors import UsageError
+from cli.testing import cli_runner
+
+path = os.path.join("somewhere", "feed.geojson")
+
+def rejecting(invocation):
+    raise UsageError("bad value")
+
+commands.HANDLERS["top"] = rejecting
+code, out, err = cli_runner("top", path)
+assert code == 2
+assert out == ""
+assert len(err.strip().splitlines()) == 1
+=== END AC exit-usage-error-from-handler ===
+
+=== AC exit-parse-usage-errors ===
+Intent: Malformed command lines exit 2 with empty standard output and one diagnostic line.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.testing import cli_runner
+
+path = os.path.join("somewhere", "feed.geojson")
+cases = [
+    [],
+    ["frobnicate", path],
+    ["summary"],
+    ["summary", "--n", "3", path],
+    ["summary", "--min-mag", "big", path],
+    ["top", "--n", "0", path],
+]
+bad = []
+for argv in cases:
+    code, out, err = cli_runner(*argv)
+    if code != 2 or out != "" or len(err.strip().splitlines()) != 1:
+        bad.append((argv, code, out, err))
+print(bad)
+assert bad == []
+=== END AC exit-parse-usage-errors ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- A failing command never writes to standard output.
+- Standard error carries one diagnostic line and no traceback; it is never compared.
+- Exit code `0` is used for success including a report with no matching events.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Help.md ===
+# FEATURE: Help
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Provide help text for the program and for each command, shown by `--help`. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CliDispatch.md |
+| Provides    | --help for quakes and each command, cli.help.wants_help, cli.help.help_text |
+| Consumes    | quakes <command> dispatch, cli.options.COMMANDS |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Every command has help text so a user can discover its options. Help is requested output, not a
+failure: it is written to standard output and exits `0` (decision Q-001).
+
+## Interface
+
+- `cli.help.help_text(command: str | None) -> str`: program-level help when `command` is `None`
+  (listing every command), otherwise that command's synopsis and options. Each command's text is
+  distinct.
+- `cli.help.wants_help(argv: list[str]) -> bool`: `True` when `argv[0]` is `--help`, or when
+  `argv[0]` is a known command and `--help` appears later in `argv`; otherwise `False`.
+
+## Rules
+
+1. `quakes --help` writes the program help and exits `0`.
+2. `quakes <command> --help` for each of `fetch`, `summary`, `top`, `daily`, `regions`, `near` writes
+   that command's help and exits `0`.
+3. Help is written before any file is read or any other validation is attempted.
+4. `quakes frobnicate --help` is not help: the unknown command is a usage error (exit `2`).
+5. `main` checks `wants_help` first, as step 2 of the control flow in ARCHITECTURE.md.
+
+## Programmatic Acceptance
+
+=== AC help-program ===
+Intent: quakes --help prints program help to standard output and exits 0.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.help import help_text
+from cli.testing import cli_runner
+
+code, out, err = cli_runner("--help")
+print(code, repr(err))
+assert code == 0
+assert out.strip() != ""
+assert out == help_text(None)
+=== END AC help-program ===
+
+=== AC help-every-command ===
+Intent: Every command has its own non-empty help text shown by --help with exit 0.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.help import help_text
+from cli.options import COMMANDS
+from cli.testing import cli_runner
+
+texts = {}
+for command in COMMANDS:
+    code, out, err = cli_runner(command, "--help")
+    print(command, code, repr(err))
+    assert code == 0
+    assert out.strip() != ""
+    assert out == help_text(command)
+    texts[command] = out
+assert len(set(texts.values())) == len(COMMANDS)
+assert help_text(None) not in texts.values()
+=== END AC help-every-command ===
+
+=== AC help-wants-help ===
+Intent: wants_help recognises --help for the program and for known commands only.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.help import wants_help
+from cli.options import COMMANDS
+
+path = os.path.join("somewhere", "feed.geojson")
+assert wants_help(["--help"]) is True
+for command in COMMANDS:
+    assert wants_help([command, "--help"]) is True
+    assert wants_help([command, "--min-mag", "5", "--help"]) is True
+assert wants_help(["summary", path]) is False
+assert wants_help([]) is False
+=== END AC help-wants-help ===
+
+=== AC help-unknown-command ===
+Intent: An unknown command with --help is a usage error, not help.
+Requires: executable=python3; scope=test
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.testing import cli_runner
+
+code, out, err = cli_runner("frobnicate", "--help")
+assert code == 2
+assert out == ""
+=== END AC help-unknown-command ===
+
+## User Acceptance
+
+- Commander reads the help text for each command and finds the options listed in the instructions understandable.
+
+## Guardrails
+
+- Help never reads a file or touches the network.
+- `--help` is the only otherwise unlisted option that is accepted.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-FeedReader.md ===
+# FEATURE: Feed Reader
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | Read a saved USGS GeoJSON FeatureCollection file into a list of events. |
+| Depends On  | ARCHITECTURE.md |
+| Provides    | read_events(path), cli.reader.Event |
+| Consumes    | cli.errors.OperationalFailure |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`read_events` is the only function that reads a feed file. It turns the file into events, ignores
+every field it does not need, and excludes events with no magnitude. Normalisation (time, region),
+filtering and formatting are other functions.
+
+## Interface
+
+`cli.reader.Event` is a frozen dataclass:
+
+| Field | Type | Source |
+|---|---|---|
+| `id` | `str` | feature `id` |
+| `mag` | `decimal.Decimal` | `Decimal(str(properties.mag))` |
+| `place` | `str \| None` | `properties.place`, unchanged (`None` stays `None`) |
+| `time_ms` | `int` | `properties.time`, milliseconds since the Unix epoch |
+| `tsunami` | `int` | `properties.tsunami` (`1` or `0`) |
+| `lon` | `float` | `geometry.coordinates[0]` |
+| `lat` | `float` | `geometry.coordinates[1]` |
+| `depth_km` | `float` | `geometry.coordinates[2]` |
+
+`cli.reader.read_events(path: str | os.PathLike) -> list[Event]` returns events in file order.
+
+## Rules
+
+1. The file is read as UTF-8. A file that cannot be read, is not valid UTF-8, or is not JSON raises
+   `cli.errors.OperationalFailure`.
+2. The top level must be an object with `"type": "FeatureCollection"` and a `features` array;
+   otherwise `OperationalFailure`.
+3. Every other field of a feature is ignored.
+4. A feature whose `properties.mag` is `null` is excluded.
+5. A feature that lacks a field the reader needs (other than a null `mag`, and a null `place` which is
+   kept as `None`) raises `OperationalFailure` rather than being skipped (decision Q-004).
+6. An empty `features` array yields an empty list.
+
+## Programmatic Acceptance
+
+=== AC reader-fields ===
+Intent: read_events returns one Event per feature with the mapped fields, in file order, excluding null-magnitude features.
+Requires: executable=python3; scope=test
+
+import json
+import os
+import sys
+import tempfile
+from decimal import Decimal
+
+sys.path.insert(0, os.getcwd())
+
+from cli.reader import Event, read_events
+
+def feature(fid, mag, place, ms, tsunami, lon, lat, depth):
+    return {
+        "type": "Feature",
+        "properties": {"mag": mag, "place": place, "time": ms, "tsunami": tsunami,
+                       "updated": 1, "status": "reviewed", "sig": 400},
+        "geometry": {"type": "Point", "coordinates": [lon, lat, depth]},
+        "id": fid,
+    }
+
+features = [
+    feature("ev-a", 5.1, "12 km N of Alpha, Beta", 1735706358208, 0, 169.3819, -20.9273, 22),
+    feature("ev-null", None, "ignored", 1735706358209, 0, 1.0, 2.0, 3),
+    feature("ev-b", 7, None, 1736211916734, 1, 87.3781, 28.6036, 10.5),
+]
+doc = {"type": "FeatureCollection", "metadata": {"count": 3}, "features": features}
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, "feed.geojson")
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(doc, handle)
+    events = read_events(path)
+
+expected = [f for f in features if f["properties"]["mag"] is not None]
+assert len(events) == len(expected)
+for event, src in zip(events, expected):
+    assert isinstance(event, Event)
+    props = src["properties"]
+    lon, lat, depth = src["geometry"]["coordinates"]
+    assert event.id == src["id"]
+    assert event.mag == Decimal(str(props["mag"]))
+    assert event.place == props["place"]
+    assert event.time_ms == props["time"]
+    assert event.tsunami == props["tsunami"]
+    assert event.lon == lon
+    assert event.lat == lat
+    assert event.depth_km == depth
+=== END AC reader-fields ===
+
+=== AC reader-empty-collection ===
+Intent: A FeatureCollection with an empty features array yields no events.
+Requires: executable=python3; scope=test
+
+import json
+import os
+import sys
+import tempfile
+
+sys.path.insert(0, os.getcwd())
+
+from cli.reader import read_events
+
+doc = {"type": "FeatureCollection", "features": []}
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, "empty.geojson")
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(doc, handle)
+    assert read_events(path) == []
+=== END AC reader-empty-collection ===
+
+=== AC reader-only-null-mag ===
+Intent: A collection whose only feature has a null magnitude yields no events.
+Requires: executable=python3; scope=test
+
+import json
+import os
+import sys
+import tempfile
+
+sys.path.insert(0, os.getcwd())
+
+from cli.reader import read_events
+
+feature = {
+    "type": "Feature",
+    "properties": {"mag": None, "place": "somewhere", "time": 1000, "tsunami": 0},
+    "geometry": {"type": "Point", "coordinates": [1.0, 2.0, 3.0]},
+    "id": "only-null",
+}
+doc = {"type": "FeatureCollection", "features": [feature]}
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, "null.geojson")
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(doc, handle)
+    assert read_events(path) == []
+=== END AC reader-only-null-mag ===
+
+=== AC reader-operational-failures ===
+Intent: Unreadable, non-JSON, non-UTF-8, non-FeatureCollection, and malformed-feature files raise OperationalFailure.
+Requires: executable=python3; scope=test
+
+import json
+import os
+import sys
+import tempfile
+
+sys.path.insert(0, os.getcwd())
+
+from cli.errors import OperationalFailure
+from cli.reader import read_events
+
+good_feature = {
+    "type": "Feature",
+    "properties": {"mag": 5.0, "place": "p", "time": 1000, "tsunami": 0},
+    "geometry": {"type": "Point", "coordinates": [1.0, 2.0, 3.0]},
+    "id": "ok",
+}
+no_geometry = {
+    "type": "Feature",
+    "properties": {"mag": 5.0, "place": "p", "time": 1000, "tsunami": 0},
+    "id": "broken",
+}
+payloads = {
+    "not-json": b"this is not json\n",
+    "not-utf8": b"\xff\xfe\xfa\xfb",
+    "single-feature": json.dumps({"type": "Feature", "properties": {}, "geometry": None}).encode("utf-8"),
+    "no-features": json.dumps({"type": "FeatureCollection"}).encode("utf-8"),
+    "features-not-list": json.dumps({"type": "FeatureCollection", "features": {}}).encode("utf-8"),
+    "json-list": json.dumps([good_feature]).encode("utf-8"),
+    "missing-geometry": json.dumps({"type": "FeatureCollection", "features": [good_feature, no_geometry]}).encode("utf-8"),
+}
+survivors = []
+with tempfile.TemporaryDirectory() as tmp:
+    for name, payload in payloads.items():
+        path = os.path.join(tmp, name + ".json")
+        with open(path, "wb") as handle:
+            handle.write(payload)
+        try:
+            read_events(path)
+        except OperationalFailure:
+            continue
+        survivors.append(name)
+    try:
+        read_events(os.path.join(tmp, "no-such-file.geojson"))
+    except OperationalFailure:
+        pass
+    else:
+        survivors.append("no-such-file")
+print(survivors)
+assert survivors == []
+=== END AC reader-operational-failures ===
+
+=== AC reader-utf8-place ===
+Intent: Non-ASCII place text is read as UTF-8 and returned unchanged.
+Encoding: utf-8
+Requires: executable=python3; scope=test
+
+import json
+import os
+import sys
+import tempfile
+
+sys.path.insert(0, os.getcwd())
+
+from cli.reader import read_events
+
+place = "13 km NW of \u0100wash, Ethiopia"
+feature = {
+    "type": "Feature",
+    "properties": {"mag": 5, "place": place, "time": 1735718987701, "tsunami": 0},
+    "geometry": {"type": "Point", "coordinates": [40.0976, 9.0855, 10]},
+    "id": "utf8-event",
+}
+doc = {"type": "FeatureCollection", "features": [feature]}
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, "utf8.geojson")
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(doc, handle, ensure_ascii=False)
+    events = read_events(path)
+assert len(events) == 1
+assert events[0].place == place
+=== END AC reader-utf8-place ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- The reader never reads `sources/run.sh` or the snapshot and embeds no event data.
+- Every field other than `id`, `mag`, `place`, `time`, `tsunami` and `geometry.coordinates` is ignored.
+- A failure to read the file never produces partial events.
+=== END ARTIFACT ===

@@ -1,0 +1,171 @@
+# Blueprint Analysis: drydock Quakes Uat Case
+
+## Commander Expectations
+
+- assert the product downloads the USGS earthquake feed as GeoJSON to a file
+- assert the product reports the saved feed as five CSV reports (summary, top, daily, regions, near)
+- assert every report is computed only from the file it is given, never from embedded answers
+- assert the supplied grader `sources/run.sh` exits zero against the completed application
+- assert the test suite never uses the network
+
+## Crew
+
+| Crew | Charge |
+|---|---|
+| Commander | Defines intent and decides what done means. |
+| Team Lead | Confirms epic completeness and stakeholder expectations. |
+| Planning Crew | Authors atomic specifications and the ordered Manifest. |
+| Shipyard Crew | Builds the tickets without synchronous Commander access. |
+
+## Story List
+
+### Feature: Fetch
+
+| ID | Story | High-level AC |
+|---|---|---|
+| FETCH-001 | Fetch the USGS feed for a date range and save it | Requests the FDSN query in GeoJSON with the given range and `--min-mag` (default 2.5, ordered by time-asc); writes the response body unchanged to `--out`; prints `fetched,<count>` |
+| FETCH-002 | Fail fetch without writing a file on network or HTTP error | On network error or HTTP status other than 200, exits 1 and writes no file |
+| FETCH-003 | Reject a fetch body that is not a GeoJSON FeatureCollection | A body that is not a FeatureCollection exits 1 and writes no file |
+
+### Feature: Feed Reading
+
+| ID | Story | High-level AC |
+|---|---|---|
+| FEED-001 | Read a saved GeoJSON FeatureCollection file | Reads `id`, `mag`, `place`, `time`, `tsunami`, `coordinates`; ignores other fields; excludes features with null `mag`; a non-JSON or non-FeatureCollection file exits 1 |
+| FEED-002 | Normalise event time, date, and region | Time written as UTC `YYYY-MM-DDTHH:MM:SSZ` truncated to seconds; date is first 10 chars; region is text after last `, ` or whole place; null place is `Unknown` |
+| FEED-003 | Apply the `--min-mag` filter to every report | Keeps only events with `mag >= m` in every report |
+
+### Feature: Summary Report
+
+| ID | Story | High-level AC |
+|---|---|---|
+| SUM-001 | Report event count, time span, magnitude range, mean, and tsunami count | `summary` prints the header `events,first,last,min_mag,max_mag,mean_mag,tsunami`; mean is 2 dp half-up; with no events prints `0,,,,,,0` |
+
+### Feature: Top Events Report
+
+| ID | Story | High-level AC |
+|---|---|---|
+| TOP-001 | List the largest events by magnitude | `top` prints `time,mag,depth_km,place,id` ordered by mag descending then time ascending |
+| TOP-002 | Limit the top list with `--n` | `--n` default 10, positive integer; limits rows; `--n 0` is a usage error |
+
+### Feature: Daily Report
+
+| ID | Story | High-level AC |
+|---|---|---|
+| DAY-001 | Count events and max magnitude per day | One row per date with events, ascending; `TOTAL,<events>,<max_mag>` final row; with no events `TOTAL,0,` |
+
+### Feature: Regions Report
+
+| ID | Story | High-level AC |
+|---|---|---|
+| REG-001 | Count events and max magnitude per region | One row per region ordered by events descending then region ascending |
+
+### Feature: Distance Search
+
+| ID | Story | High-level AC |
+|---|---|---|
+| NEAR-001 | List events within a haversine radius of a point | `near --lat --lon --radius` lists events with distance <= radius on a 6371.0 km sphere, ordered by distance then time; distance 1 dp half-up |
+| NEAR-002 | Validate near coordinates and radius | `--lat` outside −90..90, `--lon` outside −180..180, non-positive `--radius`, or missing any of the three is a usage error (exit 2) |
+
+### Feature: Command Line Interface
+
+| ID | Story | High-level AC |
+|---|---|---|
+| CLI-001 | Dispatch commands and parse options | Command first, options in any order, file last; unknown command or option, missing or extra file, malformed value is usage error exit 2 |
+| CLI-002 | Map errors to exit codes and silent stdout on failure | Exit 0 on success including empty results; exit 1 on operational failure; exit 2 on usage error; a failing command writes nothing to stdout and one diagnostic line to stderr |
+| CLI-003 | Provide help text for every command and sub-verb | Every command and sub-verb has help text |
+
+### Feature: Test Suite
+
+| ID | Story | High-level AC |
+|---|---|---|
+| TEST-001 | Provide `bin/test.sh` running the pytest suite | POSIX-compatible `bin/test.sh` runs the pytest suite from the application root and exits zero only when every test passes |
+| TEST-002 | Test fetch through a stubbed HTTP call | Fetch tests replace the HTTP call with a stub and never open a network connection |
+
+## Story Guidance
+
+Named stories planning must produce. Authoritative record: `STORY_GUIDANCE.json`.
+
+None.
+
+## Surfaced Acceptance Criteria
+
+| ID | Story ID | Criterion |
+|---|---|---|
+| AC-001 | FETCH-001 | Fetch writes `fetched,<count>` where count equals the number of features in the response |
+| AC-002 | FEED-001 | Features with null `mag` are excluded from every report |
+| AC-003 | FEED-002 | A null `place` is normalised to `Unknown` and is also its region |
+| AC-004 | SUM-001 | Summary `first` and `last` are the earliest and latest event times |
+| AC-005 | SUM-001 | Summary `tsunami` counts events whose `tsunami` equals `1` |
+| AC-006 | DAY-001 | Daily max_mag is empty on the TOTAL row when there are no events |
+| AC-007 | REG-001 | Region text is compared by byte value and written as UTF-8 |
+| AC-008 | NEAR-001 | Distance and depth values are written with one decimal place, rounded half up |
+| AC-009 | CLI-002 | A failing command writes nothing to stdout |
+
+## Source Inventory
+
+| Path | Content kind | Disposition | Reason |
+|---|---|---|---|
+| `sources/INSTRUCTIONS.md` | markdown | analyzed | readable UTF-8 |
+| `sources/quakes_2025-01-01_07.geojson` | text | analyzed | readable UTF-8 |
+| `sources/run.sh` | code | analyzed | readable UTF-8 |
+
+## Relationship Model
+
+| Source or group | Relationship type | Related source or group | Evidence | Delivery implication |
+|---|---|---|---|---|
+| `sources/run.sh` | instruction-to-test | `quakes` executable at app root | `sources/run.sh` runs `$APP/quakes` and compares exit code and stdout | Build must produce executable `quakes`; grader gates every report story |
+| `sources/quakes_2025-01-01_07.geojson` | dependency | `sources/run.sh` | `QUAKES=$DATA/quakes_2025-01-01_07.geojson` | Stage snapshot alongside the harness so grader can find it |
+| `sources/INSTRUCTIONS.md` | reference-to-replacement | `sources/run.sh` | Read-only scoring assets section | Application must never read `run.sh` or embed answers |
+| `FEED-001` | parser-to-normalizer | `FEED-002`, `FEED-003` | Reading steps 1–6 in INSTRUCTIONS.md | Parser precedes time/region normalisation and min-mag filter |
+| `FEED-001` | parser-to-report | SUM-001, TOP-001, DAY-001, REG-001, NEAR-001 | All reports consume the parsed event list | Reports depend on the reader |
+| `FETCH-001` | dependency | `FETCH-002`, `FETCH-003` | Fetch error behavior in INSTRUCTIONS.md | Fetch error handling built on the fetch path |
+| `CLI-001` | implementation-to-helper | every report story | Command dispatch and exit-code mapping | CLI dispatch precedes all commands |
+| `TEST-002` | test-kit-to-implementation | `FETCH-001` | Stubbed HTTP requirement | Fetch must expose a replaceable HTTP call |
+
+## Source Roles
+
+| Path | Role | Plan disposition | Build disposition |
+|---|---|---|---|
+| `sources/INSTRUCTIONS.md` | normative specification | compass | prompt-only |
+| `sources/run.sh` | conformance harness | context | stage |
+| `sources/quakes_2025-01-01_07.geojson` | asset | context | stage |
+
+## Planning Instructions
+
+### Delivery Shape
+
+The system is a Python 3.11+ standard-library command-line tool named `quakes` at the application root. Inputs are the USGS FDSN event query (via `fetch`) and a saved GeoJSON FeatureCollection file. Outputs are CSV reports on standard output and a saved GeoJSON file from `fetch`. Execution flow: `fetch` writes a file; each report command reads one file, applies `--min-mag`, computes its report, and writes CSV.
+
+### Story Realization Map
+
+- FETCH-001..003 → `quakes` fetch command; HTTP via `urllib.request`; tests stub the HTTP call.
+- FEED-001..003 → shared reader module; evidence: INSTRUCTIONS.md "Reading a file" steps 1–6.
+- SUM-001, TOP-001..002, DAY-001, REG-001, NEAR-001..002 → one report each, reading the FEED stories; evidence: INSTRUCTIONS.md "Reports" and "Distance" sections; graded by `sources/run.sh` checks A1–E3, B1–B5, C1–C4, D1–D2, U1–U8.
+- CLI-001..003 → command dispatch, exit-code mapping, help text; evidence: INSTRUCTIONS.md "Commands" and "Exit codes".
+- TEST-001 → `bin/test.sh` wrapping pytest; TEST-002 → stubbed fetch tests.
+
+### Test and Acceptance Strategy
+
+Focused story tests run per feature using pytest with fixture files written by the tests. The terminal verification story runs `sh sources/run.sh` as the full acceptance gate. TEST-001 owns `bin/test.sh` and runs the full pytest suite as its terminal gate. Feature stories run only their own test slice.
+
+### Sequencing and Dependencies
+
+Build order: CLI-001 dispatch → FEED-001 reader → FEED-002 normalisation → FEED-003 min-mag filter → report stories → NEAR-002 validation → FETCH stories → TEST-001 → terminal grader verification (`sh sources/run.sh`). Fetch can be built in parallel with reports since it has no report dependency.
+
+### Source Conflicts and Gaps
+
+No cross-source conflicts found. The Python 3.11 requirement and the `pytest` test runner are both stated in INSTRUCTIONS.md. The `sources/run.sh` grader is the sole acceptance verdict.
+
+## Analysis Notes
+generated: 2026-10-24
+blueprint: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.211905/workspace/targets/Quakes/blueprint
+
+Quality: Ready
+  blockers: 0
+  questions: 0
+  features: 9
+  stories: 19
+  stack: Python 3.11+, standard library, pytest
+  display_name: not proposed
+  short_description: not proposed

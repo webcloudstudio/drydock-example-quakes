@@ -1,0 +1,58 @@
+=== AC FEATURE-ExitCodes.md :: exit-parse-usage-errors ===
+Intent: Malformed command lines exit 2 with empty standard output and one diagnostic line.
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.testing import cli_runner
+
+path = os.path.join("somewhere", "feed.geojson")
+cases = [
+    [],
+    ["frobnicate", path],
+    ["summary"],
+    ["summary", "--n", "3", path],
+    ["summary", "--min-mag", "big", path],
+    ["top", "--n", "0", path],
+]
+bad = []
+for argv in cases:
+    code, out, err = cli_runner(*argv)
+    if code != 2 or out != "" or len(err.strip().splitlines()) != 1:
+        bad.append((argv, code, out, err))
+print(bad)
+assert bad == []
+=== END AC FEATURE-ExitCodes.md :: exit-parse-usage-errors ===
+
+Wait — I need to check my own output against the rules before leaving it. The criterion's `cli_runner` call is already bound as `code, out, err = cli_runner(*argv)`, but the fault says to assert `code` right after it. Adding `assert code == 0` would contradict the criterion's intent, since every case is expected to exit 2. That makes the repair impossible without changing what it asserts, so the block must be emitted unmodified with a REPAIR_IMPOSSIBLE line.
+
+=== AC FEATURE-ExitCodes.md :: exit-parse-usage-errors ===
+Intent: Malformed command lines exit 2 with empty standard output and one diagnostic line.
+
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+from cli.testing import cli_runner
+
+path = os.path.join("somewhere", "feed.geojson")
+cases = [
+    [],
+    ["frobnicate", path],
+    ["summary"],
+    ["summary", "--n", "3", path],
+    ["summary", "--min-mag", "big", path],
+    ["top", "--n", "0", path],
+]
+bad = []
+for argv in cases:
+    code, out, err = cli_runner(*argv)
+    if code != 2 or out != "" or len(err.strip().splitlines()) != 1:
+        bad.append((argv, code, out, err))
+print(bad)
+assert bad == []
+=== END AC FEATURE-ExitCodes.md :: exit-parse-usage-errors ===
+REPAIR_IMPOSSIBLE: FEATURE-ExitCodes.md :: exit-parse-usage-errors — the call is already bound as `code, out, err` and its non-zero exit is the asserted behavior, so the required `assert code == 0` would contradict the criterion's expectation of exit 2.

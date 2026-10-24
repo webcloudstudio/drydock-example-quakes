@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Summary.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Summary.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Summary.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Summary</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>The summary report: event count, time span, magnitude range, mean and tsunami count.</td></tr><tr><td>Depends On</td><td>FEATURE-MinMagFilter.md, FEATURE-ExitCodes.md</td></tr><tr><td>Provides</td><td>quakes summary</td></tr><tr><td>Consumes</td><td>filter_min_mag(events, m), format_time</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;</code> writes the header <code>events,first,last,min_mag,max_mag,mean_mag,tsunami</code> and one row. <code>first</code> and <code>last</code> are the earliest and latest event times, <code>min_mag</code> and <code>max_mag</code> have one decimal, <code>mean_mag</code> has two decimals rounded half up, and <code>tsunami</code> counts events whose <code>tsunami</code> equals <code>1</code>. With no events the row is <code>0,,,,,,0</code>. Output is written with the <code>csv</code> module and <code>\n</code> line endings; the report is computed fully before anything is written.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC summary-values ===<br>Intent: The summary row carries the count, earliest and latest time, magnitude range, half-up mean and tsunami count computed from the file.</p>
+<p>import csv import io import json import os import tempfile from datetime import datetime, timezone from decimal import Decimal, ROUND_HALF_UP</p>
+<p>from cli.testing import cli_runner</p>
+<p>def iso(ms): return datetime.fromtimestamp(ms // 1000, timezone.utc).strftime(&quot;%Y-%m-%dT%H:%M:%SZ&quot;)</p>
+<p>mags = [5.0, 5.1, 5.1] times = [1735800000999, 1735700000000, 1735900000500] tsunamis = [1, 0, 1] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mags[i], &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: times[i], &quot;tsunami&quot;: tsunamis[i]}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 20.0, 15]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(mags)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;summary&quot;, path)</p>
+<p>print(out) print(err) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert len(rows) == 2 assert rows[0] == [&quot;events&quot;, &quot;first&quot;, &quot;last&quot;, &quot;min_mag&quot;, &quot;max_mag&quot;, &quot;mean_mag&quot;, &quot;tsunami&quot;] mean = (sum(Decimal(str(m)) for m in mags) / len(mags)).quantize(Decimal(&quot;0.01&quot;), rounding=ROUND_HALF_UP) expected = [ str(len(mags)), iso(min(times)), iso(max(times)), f&quot;{min(mags):.1f}&quot;, f&quot;{max(mags):.1f}&quot;, str(mean), str(sum(1 for t in tsunamis if t == 1)), ] assert rows[1] == expected assert &quot;\r&quot; not in out === END AC summary-values ===</p>
+<p>=== AC summary-no-events ===<br>Intent: When no event matches, the summary row is a zero count, empty fields and a zero tsunami count.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;Somewhere&quot;, &quot;time&quot;: 1735700000000, &quot;tsunami&quot;: 1}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev0&quot;} ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, &quot;9&quot;, path)</p>
+<p>print(out) print(err) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert len(rows) == 2 assert rows[1] == [&quot;0&quot;] + [&quot;&quot;] * 5 + [&quot;0&quot;] === END AC summary-no-events ===</p>
+<p>=== AC summary-empty-collection ===<br>Intent: A valid FeatureCollection with no features also reports the empty row and exits 0.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}, fh) code, out, err = cli_runner(&quot;summary&quot;, path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert len(rows) == 2 assert rows[1] == [&quot;0&quot;] + [&quot;&quot;] * 5 + [&quot;0&quot;] === END AC summary-empty-collection ===</p>
+<p>=== AC summary-null-mag-excluded ===<br>Intent: A feature whose magnitude is null is excluded from the summary entirely.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>mags = [5.2, None, 6.0, None] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mags[i], &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: 1735700000000 + i * 60000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(mags)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;summary&quot;, path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) real = [m for m in mags if m is not None] assert rows[1][0] == str(len(real)) assert rows[1][3] == f&quot;{min(real):.1f}&quot; assert rows[1][4] == f&quot;{max(real):.1f}&quot; === END AC summary-null-mag-excluded ===</p>
+<p>=== AC summary-tsunami-counts-ones ===<br>Intent: Only events whose tsunami value equals 1 are counted in the tsunami column.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>tsunamis = [0, 1, 0, 1, 1, 0] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.5, &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: 1735700000000 + i * 60000, &quot;tsunami&quot;: tsunamis[i]}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(tsunamis)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;summary&quot;, path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert rows[1][6] == str(tsunamis.count(1)) === END AC summary-tsunami-counts-ones ===</p>
+<p>=== AC summary-min-mag-option ===<br>Intent: summary honours --min-mag by computing every column over only the events at or above the threshold.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>mags = [5.0, 5.5, 6.0, 5.4] threshold = 5.5 feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mags[i], &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: 1735700000000 + i * 60000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(mags)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, str(threshold), path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) kept = [m for m in mags if m &gt;= threshold] assert rows[1][0] == str(len(kept)) assert rows[1][3] == f&quot;{min(kept):.1f}&quot; assert rows[1][4] == f&quot;{max(kept):.1f}&quot; === END AC summary-min-mag-option ===</p>
+<p>=== AC summary-failure-silent-stdout ===<br>Intent: An unreadable file makes summary exit 1 with nothing on standard output.</p>
+<p>import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as d: missing = os.path.join(d, &quot;no-such-file.geojson&quot;) code, out, err = cli_runner(&quot;summary&quot;, missing)</p>
+<p>assert code == 1 assert out == &quot;&quot; === END AC summary-failure-silent-stdout ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>No count, time or magnitude is hardcoded; every value comes from the file read.</li><li>A failing command writes nothing to standard output.</li><li>Standard error carries diagnostics only.</li></ul></article>
+</main>
+</body>
+</html>

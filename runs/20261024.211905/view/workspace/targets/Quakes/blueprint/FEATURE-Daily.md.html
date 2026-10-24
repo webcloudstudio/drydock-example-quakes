@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Daily.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Daily.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Daily.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Daily</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>The per-day report: events and maximum magnitude per UTC date, with a TOTAL row.</td></tr><tr><td>Depends On</td><td>FEATURE-MinMagFilter.md, FEATURE-ExitCodes.md</td></tr><tr><td>Provides</td><td>quakes daily</td></tr><tr><td>Consumes</td><td>filter_min_mag(events, m), format_time</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;</code> writes the header <code>date,events,max_mag</code>, one row per UTC date that has events in ascending order, then <code>TOTAL,&lt;events&gt;,&lt;max_mag&gt;</code> covering all events. The date is the first 10 characters of the event time. Magnitudes have one decimal. With no events the only row after the header is <code>TOTAL,0,</code> with an empty maximum.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC daily-per-date-rows ===<br>Intent: One row per UTC date with the event count and maximum magnitude, in ascending date order, followed by the TOTAL row.</p>
+<p>import csv import io import json import os import tempfile from datetime import datetime, timezone</p>
+<p>from cli.testing import cli_runner</p>
+<p>def day(ms): return datetime.fromtimestamp(ms // 1000, timezone.utc).date().isoformat()</p>
+<p>mags = [5.1, 6.0, 5.4, 5.0, 5.9, 5.2, 5.6] times = [ 1735862400000, 1735689600000, 1735775999999, 1735776000000, 1735689600001, 1735948800000, 1735862399999, ] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mags[i], &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: times[i], &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(mags)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;daily&quot;, path)</p>
+<p>print(out) print(err) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert rows[0] == [&quot;date&quot;, &quot;events&quot;, &quot;max_mag&quot;] by_day = {} for m, t in zip(mags, times): by_day.setdefault(day(t), []).append(m) expected = [[k, str(len(v)), f&quot;{max(v):.1f}&quot;] for k, v in sorted(by_day.items())] expected.append([&quot;TOTAL&quot;, str(len(mags)), f&quot;{max(mags):.1f}&quot;]) assert rows[1:] == expected assert &quot;\r&quot; not in out === END AC daily-per-date-rows ===</p>
+<p>=== AC daily-total-row-sums ===<br>Intent: The TOTAL row&#x27;s event count equals the sum of the per-date counts and its maximum equals the largest per-date maximum.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>mags = [5.0, 5.3, 6.2, 5.5, 5.1, 5.9] base = 1735689600000 times = [base + i * 40000000 for i in range(len(mags))] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mags[i], &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: times[i], &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(mags)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;daily&quot;, path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) body, total = rows[1:-1], rows[-1] assert total[0] == &quot;TOTAL&quot; assert int(total[1]) == sum(int(r[1]) for r in body) == len(mags) assert float(total[2]) == max(float(r[2]) for r in body) assert [r[0] for r in body] == sorted(r[0] for r in body) === END AC daily-total-row-sums ===</p>
+<p>=== AC daily-no-events ===<br>Intent: When no event matches, daily writes the header and a TOTAL row with zero events and an empty maximum.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;Somewhere&quot;, &quot;time&quot;: 1735700000000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev0&quot;} ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;daily&quot;, &quot;--min-mag&quot;, &quot;9&quot;, path)</p>
+<p>print(out) print(err) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert rows == [[&quot;date&quot;, &quot;events&quot;, &quot;max_mag&quot;], [&quot;TOTAL&quot;, &quot;0&quot;, &quot;&quot;]] === END AC daily-no-events ===</p>
+<p>=== AC daily-null-mag-excluded ===<br>Intent: Features with a null magnitude do not count toward any date or the total.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>mags = [5.2, None, 6.0, None, 5.4] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mags[i], &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: 1735700000000 + i * 1000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(mags)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;daily&quot;, path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) real = [m for m in mags if m is not None] assert rows[-1] == [&quot;TOTAL&quot;, str(len(real)), f&quot;{max(real):.1f}&quot;] === END AC daily-null-mag-excluded ===</p>
+<p>=== AC daily-min-mag-option ===<br>Intent: daily honours --min-mag, dropping dates whose events are all below the threshold.</p>
+<p>import csv import io import json import os import tempfile from datetime import datetime, timezone</p>
+<p>from cli.testing import cli_runner</p>
+<p>def day(ms): return datetime.fromtimestamp(ms // 1000, timezone.utc).date().isoformat()</p>
+<p>threshold = 5.5 mags = [5.0, 5.6, 5.2, 6.0] times = [1735689600000, 1735776000000, 1735862400000, 1735948800000] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mags[i], &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: times[i], &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(mags)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;daily&quot;, &quot;--min-mag&quot;, str(threshold), path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) kept = [(m, t) for m, t in zip(mags, times) if m &gt;= threshold] assert [r[0] for r in rows[1:-1]] == [day(t) for m, t in kept] assert rows[-1] == [&quot;TOTAL&quot;, str(len(kept)), f&quot;{max(m for m, t in kept):.1f}&quot;] === END AC daily-min-mag-option ===</p>
+<p>=== AC daily-failure-silent-stdout ===<br>Intent: A file that is not a FeatureCollection makes daily exit 1 with nothing on standard output.</p>
+<p>import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;garbage.json&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: fh.write(&quot;this is not json\n&quot;) code, out, err = cli_runner(&quot;daily&quot;, path)</p>
+<p>assert code == 1 assert out == &quot;&quot; === END AC daily-failure-silent-stdout ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>No date, count or magnitude is hardcoded; every value comes from the file read.</li><li>Dates follow the UTC day, never the local time zone.</li><li>A failing command writes nothing to standard output.</li></ul></article>
+</main>
+</body>
+</html>

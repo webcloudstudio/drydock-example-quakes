@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompt_outputs/20261024.212635.057Z_quakes_plan_claude.output.txt</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompt_outputs/20261024.212635.057Z_quakes_plan_claude.output.txt</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompt_outputs/20261024.212635.057Z_quakes_plan_claude.output.txt">Raw file</a></div></header>
+<article class="doc"><pre>=== BEGIN ARTIFACT FEATURE-Regions.md ===
+# FEATURE: Regions
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | The regions report counts events and the maximum magnitude per region of a saved feed. |
+| Depends On  | FEATURE-MinMagFilter.md, FEATURE-ExitCodes.md |
+| Provides    | quakes regions |
+| Consumes    | filter_min_mag(events, m), region_of |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;` answers which regions are most active. It reads the file,
+applies the magnitude filter, groups events by region, and writes one CSV row per region.
+
+## Trigger
+
+The command line `quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;`.
+
+## Sequence
+
+1. Read the file and drop events with a null magnitude (reader).
+2. Keep events with `mag &gt;= m` when `--min-mag` is given (filter).
+3. Compute one row per region: event count and maximum magnitude (compute).
+4. Format and write CSV with the `csv` module, `\n` line endings, UTF-8 (formatter).
+
+## Output
+
+Header `region,events,max_mag`. Rows are ordered by `events` descending, then `region` ascending.
+Region text is compared by byte value (its UTF-8 encoding). `max_mag` is written with one decimal
+place. The region of an event is the text after the last `, ` in its place, or the whole place when
+there is none; a null place is `Unknown`, which is its own region. With no matching events only the
+header is written and the exit status is 0.
+
+## Reads
+
+The saved GeoJSON file named on the command line. Nothing else.
+
+## Writes
+
+CSV on standard output only.
+
+## Programmatic Acceptance
+
+=== AC regions-counts-and-order ===
+Intent: Regions are grouped, counted and ordered by events descending then region bytes ascending.
+
+import csv
+import io
+import json
+import os
+import tempfile
+from cli.testing import cli_runner
+
+BASE = 1735689600000
+
+def feat(i, mag, place, t):
+    return {&quot;type&quot;: &quot;Feature&quot;,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: place, &quot;time&quot;: t, &quot;tsunami&quot;: 0},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 5.0, 10]},
+            &quot;id&quot;: &quot;ev%d&quot; % i}
+
+# (place, region, mag)
+specs = [
+    (&quot;5 km N of Town, Beta&quot;, &quot;Beta&quot;, 5.0),
+    (&quot;6 km N of Town, Beta&quot;, &quot;Beta&quot;, 6.2),
+    (&quot;7 km N of Town, Alpha&quot;, &quot;Alpha&quot;, 5.5),
+    (&quot;8 km N of Town, Alpha&quot;, &quot;Alpha&quot;, 5.1),
+    (&quot;9 km N of Town, Gamma&quot;, &quot;Gamma&quot;, 7.0),
+    (&quot;1 km N of Town, alpha&quot;, &quot;alpha&quot;, 5.3),
+    (&quot;2 km N of Town, alpha&quot;, &quot;alpha&quot;, 5.4),
+    (&quot;3 km N of Town, alpha&quot;, &quot;alpha&quot;, 5.0),
+    (&quot;Plain Region Name&quot;, &quot;Plain Region Name&quot;, 5.6),
+    (&quot;4 km N of Town, Sub, Outer&quot;, &quot;Outer&quot;, 5.2),
+    (None, &quot;Unknown&quot;, 5.7),
+]
+features = [feat(i, m, p, BASE + i * 60000) for i, (p, r, m) in enumerate(specs)]
+features.append(feat(99, None, &quot;1 km N of Town, Nullland&quot;, BASE))
+
+counts = {}
+maxes = {}
+for p, r, m in specs:
+    counts[r] = counts.get(r, 0) + 1
+    maxes[r] = max(maxes.get(r, m), m)
+expected = sorted(counts, key=lambda r: (-counts[r], r.encode(&quot;utf-8&quot;)))
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, fh)
+    code, out, err = cli_runner(&quot;regions&quot;, path)
+print(out)
+print(err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows[0] == [&quot;region&quot;, &quot;events&quot;, &quot;max_mag&quot;]
+body = rows[1:]
+assert [r[0] for r in body] == expected
+for r in body:
+    assert int(r[1]) == counts[r[0]]
+    assert float(r[2]) == maxes[r[0]]
+assert &quot;Nullland&quot; not in [r[0] for r in body]
+=== END AC regions-counts-and-order ===
+
+=== AC regions-min-mag-and-empty ===
+Intent: --min-mag restricts the regions report and an empty result is only the header with exit 0.
+
+import csv
+import io
+import json
+import os
+import tempfile
+from cli.testing import cli_runner
+
+BASE = 1735689600000
+
+def feat(i, mag, place):
+    return {&quot;type&quot;: &quot;Feature&quot;,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: place, &quot;time&quot;: BASE + i * 1000, &quot;tsunami&quot;: 0},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 5.0, 10]},
+            &quot;id&quot;: &quot;ev%d&quot; % i}
+
+threshold = 6.0
+specs = [(&quot;1 km N of T, Low&quot;, 5.0), (&quot;2 km N of T, Low&quot;, 5.9),
+         (&quot;3 km N of T, High&quot;, 6.0), (&quot;4 km N of T, High&quot;, 6.8)]
+features = [feat(i, m, p) for i, (p, m) in enumerate(specs)]
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, fh)
+    code, out, err = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, str(threshold), path)
+    print(out)
+    assert code == 0
+    rows = list(csv.reader(io.StringIO(out)))
+    kept = [m for p, m in specs if m &gt;= threshold]
+    assert len(rows) == 2
+    assert rows[1][0] == &quot;High&quot;
+    assert int(rows[1][1]) == len(kept)
+    assert float(rows[1][2]) == max(kept)
+
+    code, out, err = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, &quot;99&quot;, path)
+    print(out)
+    assert code == 0
+    rows = list(csv.reader(io.StringIO(out)))
+    assert rows == [[&quot;region&quot;, &quot;events&quot;, &quot;max_mag&quot;]]
+=== END AC regions-min-mag-and-empty ===
+
+=== AC regions-failure-contract ===
+Intent: A missing file exits 1 and an extra file argument exits 2, both with empty standard output.
+
+import os
+import tempfile
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    missing = os.path.join(tmp, &quot;absent.geojson&quot;)
+    code, out, err = cli_runner(&quot;regions&quot;, missing)
+    assert code == 1
+    assert out == &quot;&quot;
+    code, out, err = cli_runner(&quot;regions&quot;, missing, missing)
+    assert code == 2
+    assert out == &quot;&quot;
+=== END AC regions-failure-contract ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Region text is compared by byte value, never by locale collation.
+- No report value is embedded in code; every row is computed from the file being read.
+- A failing command writes nothing to standard output.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Near.md ===
+# FEATURE: Near
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | The near report lists events within a haversine distance of a point, nearest first. |
+| Depends On  | FEATURE-MinMagFilter.md, FEATURE-ExitCodes.md |
+| Provides    | quakes near, haversine_km |
+| Consumes    | filter_min_mag(events, m), format_time |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes near --lat &lt;deg&gt; --lon &lt;deg&gt; --radius &lt;km&gt; [--min-mag &lt;m&gt;] &lt;file&gt;` lists the events whose
+great-circle distance from the given point is at most the radius.
+
+## Trigger
+
+The command line `quakes near ...` with all of `--lat`, `--lon` and `--radius`.
+
+## Sequence
+
+1. Read the file and drop events with a null magnitude.
+2. Apply `--min-mag` when given.
+3. Compute each event&#x27;s haversine distance from (`--lat`, `--lon`) with `haversine_km`.
+4. Keep events whose unrounded distance is `&lt;= --radius` (decision Q-003).
+5. Order by unrounded distance ascending, then time ascending.
+6. Write CSV; distance is rounded half up to one decimal place.
+
+## Distance
+
+Haversine on a sphere of radius 6371.0 km, angles in radians:
+
+```text
+h = sin^2((lat2 - lat1) / 2) + cos(lat1) * cos(lat2) * sin^2((lon2 - lon1) / 2)
+d = 2 * 6371.0 * asin(sqrt(h))
+```
+
+`haversine_km(lat1, lon1, lat2, lon2) -&gt; float` is a pure function in the compute module.
+
+## Output
+
+Header `distance_km,time,mag,place,id`. Time is UTC `YYYY-MM-DDTHH:MM:SSZ`; magnitude has one decimal
+place. Places containing commas are quoted by the `csv` module. With no matching events only the
+header is written and the exit status is 0.
+
+## Reads
+
+The saved GeoJSON file named on the command line.
+
+## Writes
+
+CSV on standard output only.
+
+## Programmatic Acceptance
+
+=== AC near-order-and-distance ===
+Intent: Events within the radius are listed nearest first with ties broken by time and one-decimal distances.
+
+import csv
+import datetime
+import io
+import json
+import math
+import os
+import re
+import tempfile
+from cli.testing import cli_runner
+
+BASE = 1735689600000
+
+def hav(lat1, lon1, lat2, lon2):
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = p2 - p1
+    dl = math.radians(lon2 - lon1)
+    h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6371.0 * math.asin(math.sqrt(h))
+
+def feat(i, mag, place, t, lon, lat):
+    return {&quot;type&quot;: &quot;Feature&quot;,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: place, &quot;time&quot;: t, &quot;tsunami&quot;: 0},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [lon, lat, 10]},
+            &quot;id&quot;: &quot;ev%d&quot; % i}
+
+# (id suffix, mag, place, time, lon, lat); center is (0, 0)
+events = [
+    (0, 5.5, &quot;far, Faraway&quot;, BASE + 1000, 3.0, 0.0),
+    (1, 5.1, &quot;late one, Nearby&quot;, BASE + 9000, 1.0, 0.0),
+    (2, 5.2, &quot;mid, Midway&quot;, BASE + 5000, 2.0, 0.0),
+    (3, 5.3, &quot;early one, Nearby&quot;, BASE + 2000, 1.0, 0.0),
+]
+features = [feat(i, m, p, t, lo, la) for (i, m, p, t, lo, la) in events]
+radius = 250.0
+lat0, lon0 = 0.0, 0.0
+
+inside = [e for e in events if hav(lat0, lon0, e[5], e[4]) &lt;= radius]
+inside.sort(key=lambda e: (hav(lat0, lon0, e[5], e[4]), e[3]))
+assert 0 &lt; len(inside) &lt; len(events)
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, fh)
+    code, out, err = cli_runner(&quot;near&quot;, &quot;--lat&quot;, str(lat0), &quot;--lon&quot;, str(lon0),
+                                &quot;--radius&quot;, str(radius), path)
+print(out)
+print(err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows[0] == [&quot;distance_km&quot;, &quot;time&quot;, &quot;mag&quot;, &quot;place&quot;, &quot;id&quot;]
+body = rows[1:]
+assert [r[4] for r in body] == [&quot;ev%d&quot; % e[0] for e in inside]
+for r, e in zip(body, inside):
+    d = hav(lat0, lon0, e[5], e[4])
+    assert re.fullmatch(r&quot;\d+\.\d&quot;, r[0])
+    assert abs(float(r[0]) - d) &lt;= 0.0501
+    stamp = datetime.datetime.fromtimestamp(e[3] / 1000, datetime.timezone.utc)
+    assert r[1] == stamp.strftime(&quot;%Y-%m-%dT%H:%M:%SZ&quot;)
+    assert float(r[2]) == e[1]
+    assert r[3] == e[2]
+=== END AC near-order-and-distance ===
+
+=== AC near-radius-uses-unrounded-distance ===
+Intent: The radius comparison uses the unrounded distance, so a radius just below it excludes the event and one just above includes it.
+
+import csv
+import io
+import json
+import math
+import os
+import tempfile
+from cli.testing import cli_runner
+
+BASE = 1735689600000
+
+def hav(lat1, lon1, lat2, lon2):
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dl = math.radians(lon2 - lon1)
+    h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6371.0 * math.asin(math.sqrt(h))
+
+event = {&quot;type&quot;: &quot;Feature&quot;,
+         &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;x, Region&quot;, &quot;time&quot;: BASE, &quot;tsunami&quot;: 0},
+         &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 0.0, 10]},
+         &quot;id&quot;: &quot;only&quot;}
+d = hav(0.0, 0.0, 0.0, 1.0)
+below = math.floor(d * 10) / 10
+above = math.ceil(d * 10) / 10
+assert below &lt; d &lt; above
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [event]}, fh)
+    code, out, err = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;%.1f&quot; % below, path)
+    assert code == 0
+    assert len(list(csv.reader(io.StringIO(out)))) == 1
+    code, out, err = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;%.1f&quot; % above, path)
+    print(out)
+    assert code == 0
+    rows = list(csv.reader(io.StringIO(out)))
+    assert len(rows) == 2
+    assert rows[1][4] == &quot;only&quot;
+=== END AC near-radius-uses-unrounded-distance ===
+
+=== AC near-min-mag-and-empty ===
+Intent: --min-mag applies to near and a search with no matches writes only the header with exit 0.
+
+import csv
+import io
+import json
+import os
+import tempfile
+from cli.testing import cli_runner
+
+BASE = 1735689600000
+
+def feat(i, mag, lon):
+    return {&quot;type&quot;: &quot;Feature&quot;,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;p%d, Region&quot; % i, &quot;time&quot;: BASE + i, &quot;tsunami&quot;: 0},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [lon, 0.0, 10]},
+            &quot;id&quot;: &quot;ev%d&quot; % i}
+
+specs = [(0, 5.0, 0.5), (1, 6.5, 0.6), (2, 5.5, 0.7)]
+threshold = 5.5
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [feat(*s) for s in specs]}, fh)
+    code, out, err = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;500&quot;,
+                                &quot;--min-mag&quot;, str(threshold), path)
+    print(out)
+    assert code == 0
+    rows = list(csv.reader(io.StringIO(out)))
+    kept = sorted(&quot;ev%d&quot; % i for i, m, lo in specs if m &gt;= threshold)
+    assert sorted(r[4] for r in rows[1:]) == kept
+
+    code, out, err = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;60&quot;, &quot;--lon&quot;, &quot;100&quot;, &quot;--radius&quot;, &quot;10&quot;, path)
+    assert code == 0
+    assert list(csv.reader(io.StringIO(out))) == [[&quot;distance_km&quot;, &quot;time&quot;, &quot;mag&quot;, &quot;place&quot;, &quot;id&quot;]]
+=== END AC near-min-mag-and-empty ===
+
+=== AC near-haversine-function ===
+Intent: haversine_km is a pure function that returns zero for identical points and a symmetric positive distance otherwise.
+
+import importlib
+import pkgutil
+import cli
+
+found = None
+for mod in pkgutil.walk_packages(cli.__path__, &quot;cli.&quot;):
+    if mod.name.endswith(&quot;.testing&quot;):
+        continue
+    m = importlib.import_module(mod.name)
+    if hasattr(m, &quot;haversine_km&quot;):
+        found = m.haversine_km
+        break
+assert found is not None
+assert found(10.0, 20.0, 10.0, 20.0) == 0
+a = found(0.0, 0.0, 0.0, 90.0)
+b = found(0.0, 90.0, 0.0, 0.0)
+assert a &gt; 0
+assert abs(a - b) &lt; 1e-9
+=== END AC near-haversine-function ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Distance uses a sphere of radius 6371.0 km; no other earth model.
+- The radius comparison uses the unrounded distance; rounding is for display only.
+- No distance is embedded in code; every value is computed from the file being read.
+- A failing command writes nothing to standard output.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-NearValidation.md ===
+# FEATURE: Near Validation
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | The near command rejects out-of-range or missing coordinates and radius as usage errors. |
+| Depends On  | FEATURE-Near.md |
+| Provides    | near option validation |
+| Consumes    | quakes near |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Guarantee that `quakes near` only runs with a valid point and radius, and otherwise fails as a usage
+error before reading the file.
+
+## Rules
+
+- `--lat` must be within -90 to 90 inclusive.
+- `--lon` must be within -180 to 180 inclusive.
+- `--radius` must be greater than zero.
+- All three of `--lat`, `--lon` and `--radius` are required.
+- Any violation exits 2, writes nothing to standard output, and writes one diagnostic line to
+  standard error.
+- The boundary values -90, 90, -180 and 180 are valid.
+
+## Reads
+
+The command line only.
+
+## Writes
+
+Nothing on standard output on failure; one line on standard error.
+
+## Programmatic Acceptance
+
+=== AC near-validation-rejects ===
+Intent: Out-of-range or missing near options exit 2 with empty standard output and one diagnostic line.
+
+import json
+import os
+import tempfile
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}, fh)
+    cases = [
+        [&quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;],
+        [&quot;--lat&quot;, &quot;-90.5&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;],
+        [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;180.5&quot;, &quot;--radius&quot;, &quot;10&quot;],
+        [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;-181&quot;, &quot;--radius&quot;, &quot;10&quot;],
+        [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;0&quot;],
+        [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;-5&quot;],
+        [&quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;],
+        [&quot;--lat&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;],
+        [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;],
+        [],
+    ]
+    for opts in cases:
+        code, out, err = cli_runner(&quot;near&quot;, *opts, path)
+        print(opts, code, repr(err))
+        assert code == 2
+        assert out == &quot;&quot;
+        assert len(err.strip().splitlines()) == 1
+=== END AC near-validation-rejects ===
+
+=== AC near-validation-accepts-boundaries ===
+Intent: The inclusive boundary values for latitude and longitude and a small positive radius are accepted.
+
+import csv
+import io
+import json
+import os
+import tempfile
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}, fh)
+    cases = [
+        [&quot;--lat&quot;, &quot;90&quot;, &quot;--lon&quot;, &quot;180&quot;, &quot;--radius&quot;, &quot;10&quot;],
+        [&quot;--lat&quot;, &quot;-90&quot;, &quot;--lon&quot;, &quot;-180&quot;, &quot;--radius&quot;, &quot;0.5&quot;],
+    ]
+    for opts in cases:
+        code, out, err = cli_runner(&quot;near&quot;, *opts, path)
+        print(opts, code, out)
+        assert code == 0
+        rows = list(csv.reader(io.StringIO(out)))
+        assert len(rows) == 1
+=== END AC near-validation-accepts-boundaries ===
+
+=== AC near-validation-precedes-file-read ===
+Intent: A usage error is reported as exit 2 even when the file does not exist.
+
+import os
+import tempfile
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    missing = os.path.join(tmp, &quot;absent.geojson&quot;)
+    code, out, err = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;, missing)
+    assert code == 2
+    assert out == &quot;&quot;
+=== END AC near-validation-precedes-file-read ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Validation failures never write to standard output.
+- Messages are diagnostics only and are never part of the contract.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Fetch.md ===
+# FEATURE: Fetch
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | The fetch command downloads a period of the USGS event feed as GeoJSON and saves the body unchanged. |
+| Depends On  | FEATURE-CliDispatch.md, FEATURE-ExitCodes.md, FEATURE-FeedReader.md |
+| Provides    | quakes fetch, http_get |
+| Consumes    | quakes &lt;command&gt; dispatch |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;` saves a period
+of the USGS FDSN event feed so that report commands can read it later.
+
+## Request
+
+GET `https://earthquake.usgs.gov/fdsnws/event/1/query` with the query parameters `format=geojson`,
+`starttime=&lt;start&gt;`, `endtime=&lt;end&gt;`, `minmagnitude=&lt;m&gt;` (default `2.5`) and `orderby=time-asc`.
+
+## HTTP seam
+
+All network access goes through one replaceable function, `http_get(url)`, which returns the status
+code and the body bytes. It calls `urllib.request.urlopen` through the module attribute
+(`urllib.request.urlopen(...)`, never `from urllib.request import urlopen`), so a test can replace
+the HTTP call with a stub. An `HTTPError` is returned as its status code. No test uses the network.
+
+## Sequence
+
+1. Parse and validate options (`--start`, `--end`, `--out` required; `--min-mag` optional).
+2. Request the URL through `http_get`.
+3. On status 200, parse the body as a GeoJSON FeatureCollection (failure handling is in
+   FEATURE-FetchErrors.md).
+4. Write the body bytes unchanged to `--out`.
+5. Write `fetched,&lt;count&gt;` to standard output, where `&lt;count&gt;` is the number of features.
+
+Missing `--start`, `--end` or `--out`, an extra positional argument, or a malformed `--min-mag` is a
+usage error (exit 2).
+
+## Reads
+
+The USGS event service.
+
+## Writes
+
+The file named by `--out`; `fetched,&lt;count&gt;` on standard output.
+
+## Programmatic Acceptance
+
+=== AC fetch-request-and-save ===
+Intent: Fetch requests the FDSN query with the given range and default magnitude, saves the body unchanged and reports the feature count.
+
+import json
+import os
+import tempfile
+import urllib.parse
+import urllib.request
+from unittest import mock
+from cli.testing import cli_runner
+
+class FakeResponse:
+    def __init__(self, body, status=200):
+        self._body = body
+        self.status = status
+        self.headers = {}
+    def read(self, *a):
+        return self._body
+    def getcode(self):
+        return self.status
+    def __enter__(self):
+        return self
+    def __exit__(self, *a):
+        return False
+
+start, end = &quot;2025-01-01&quot;, &quot;2025-01-08&quot;
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0 + i / 10, &quot;place&quot;: &quot;p, R&quot;, &quot;time&quot;: 1735689600000 + i,
+                                               &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}, &quot;id&quot;: &quot;id%d&quot; % i}
+            for i in range(3)]
+body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, indent=3).encode(&quot;utf-8&quot;) + b&quot;\n&quot;
+seen = []
+
+def fake_urlopen(req, *a, **kw):
+    seen.append(getattr(req, &quot;full_url&quot;, req))
+    return FakeResponse(body)
+
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;urllib.request.urlopen&quot;, fake_urlopen):
+        code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--end&quot;, end, &quot;--out&quot;, out_path)
+    print(out)
+    print(err)
+    assert code == 0
+    with open(out_path, &quot;rb&quot;) as fh:
+        assert fh.read() == body
+    fields = out.strip().split(&quot;,&quot;)
+    assert fields[0] == &quot;fetched&quot;
+    assert int(fields[1]) == len(features)
+
+assert len(seen) == 1
+parsed = urllib.parse.urlparse(seen[0])
+assert parsed.scheme == &quot;https&quot;
+assert parsed.netloc == &quot;earthquake.usgs.gov&quot;
+assert parsed.path == &quot;/fdsnws/event/1/query&quot;
+q = urllib.parse.parse_qs(parsed.query)
+assert q[&quot;format&quot;] == [&quot;geojson&quot;]
+assert q[&quot;starttime&quot;] == [start]
+assert q[&quot;endtime&quot;] == [end]
+assert q[&quot;minmagnitude&quot;] == [&quot;2.5&quot;]
+assert q[&quot;orderby&quot;] == [&quot;time-asc&quot;]
+=== END AC fetch-request-and-save ===
+
+=== AC fetch-min-mag-option ===
+Intent: An explicit --min-mag value is sent as minmagnitude.
+
+import json
+import os
+import tempfile
+import urllib.parse
+from unittest import mock
+from cli.testing import cli_runner
+
+class FakeResponse:
+    def __init__(self, body, status=200):
+        self._body = body
+        self.status = status
+        self.headers = {}
+    def read(self, *a):
+        return self._body
+    def getcode(self):
+        return self.status
+    def __enter__(self):
+        return self
+    def __exit__(self, *a):
+        return False
+
+mag = &quot;5.5&quot;
+body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;)
+seen = []
+
+def fake_urlopen(req, *a, **kw):
+    seen.append(getattr(req, &quot;full_url&quot;, req))
+    return FakeResponse(body)
+
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;urllib.request.urlopen&quot;, fake_urlopen):
+        code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-02-01&quot;, &quot;--end&quot;, &quot;2025-02-02&quot;,
+                                    &quot;--min-mag&quot;, mag, &quot;--out&quot;, out_path)
+    print(out, err)
+    assert code == 0
+    assert int(out.strip().split(&quot;,&quot;)[1]) == 0
+    assert os.path.exists(out_path)
+q = urllib.parse.parse_qs(urllib.parse.urlparse(seen[0]).query)
+assert q[&quot;minmagnitude&quot;] == [mag]
+=== END AC fetch-min-mag-option ===
+
+=== AC fetch-usage-errors ===
+Intent: Fetch without a required option or with an extra argument is a usage error that makes no request and writes no file.
+
+import os
+import tempfile
+from unittest import mock
+from cli.testing import cli_runner
+
+def boom(*a, **kw):
+    raise AssertionError(&quot;network must not be used&quot;)
+
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    cases = [
+        [&quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path],
+        [&quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--out&quot;, out_path],
+        [&quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;],
+        [&quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path, &quot;extra.json&quot;],
+        [&quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--min-mag&quot;, &quot;big&quot;, &quot;--out&quot;, out_path],
+    ]
+    with mock.patch(&quot;urllib.request.urlopen&quot;, boom):
+        for args in cases:
+            code, out, err = cli_runner(&quot;fetch&quot;, *args)
+            print(args, code)
+            assert code == 2
+            assert out == &quot;&quot;
+    assert not os.path.exists(out_path)
+=== END AC fetch-usage-errors ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Tests replace the HTTP call with a stub and never open a network connection.
+- The response body is written unchanged, byte for byte; it is never re-serialised.
+- Only the Python standard library is used for HTTP.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-FetchErrors.md ===
+# FEATURE: Fetch Errors
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261024 V1 |
+| Description | The fetch command fails with exit 1 and writes no file on network, HTTP or body errors. |
+| Depends On  | FEATURE-Fetch.md |
+| Provides    | fetch failure behavior |
+| Consumes    | http_get |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Make `quakes fetch` safe: it never leaves a file behind that report commands could mistake for a
+valid feed.
+
+## Failure cases
+
+Each of these is an operational failure: exit 1, nothing on standard output, one diagnostic line on
+standard error, and no file written at `--out`.
+
+- A network error (for example `URLError`, a timeout, or `OSError`).
+- An HTTP status other than 200.
+- A body that is not valid JSON (including bytes that are not UTF-8).
+- A JSON body that is not an object with `&quot;type&quot;: &quot;FeatureCollection&quot;` and a `features` array.
+
+The body is validated completely before the output path is opened.
+
+## Reads
+
+The USGS event service through `http_get`.
+
+## Writes
+
+Nothing on failure.
+
+## Programmatic Acceptance
+
+=== AC fetch-network-and-http-errors ===
+Intent: A network error or a non-200 HTTP status exits 1 and creates no output file.
+
+import os
+import tempfile
+import urllib.error
+from unittest import mock
+from cli.testing import cli_runner
+
+class FakeResponse:
+    def __init__(self, body, status):
+        self._body = body
+        self.status = status
+        self.headers = {}
+    def read(self, *a):
+        return self._body
+    def getcode(self):
+        return self.status
+    def __enter__(self):
+        return self
+    def __exit__(self, *a):
+        return False
+
+def raise_url(*a, **kw):
+    raise urllib.error.URLError(&quot;unreachable&quot;)
+
+def raise_http(*a, **kw):
+    raise urllib.error.HTTPError(&quot;http://example.invalid&quot;, 503, &quot;unavailable&quot;, {}, None)
+
+def raise_os(*a, **kw):
+    raise OSError(&quot;boom&quot;)
+
+def status_500(*a, **kw):
+    return FakeResponse(b&#x27;{&quot;type&quot;:&quot;FeatureCollection&quot;,&quot;features&quot;:[]}&#x27;, 500)
+
+with tempfile.TemporaryDirectory() as tmp:
+    for stub in (raise_url, raise_http, raise_os, status_500):
+        out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+        with mock.patch(&quot;urllib.request.urlopen&quot;, stub):
+            code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;,
+                                        &quot;--out&quot;, out_path)
+        print(stub.__name__, code, repr(err))
+        assert code == 1
+        assert out == &quot;&quot;
+        assert len(err.strip().splitlines()) == 1
+        assert not os.path.exists(out_path)
+=== END AC fetch-network-and-http-errors ===
+
+=== AC fetch-rejects-bad-bodies ===
+Intent: A 200 response whose body is not a GeoJSON FeatureCollection exits 1 and creates no output file.
+
+import json
+import os
+import tempfile
+from unittest import mock
+from cli.testing import cli_runner
+
+class FakeResponse:
+    def __init__(self, body):
+        self._body = body
+        self.status = 200
+        self.headers = {}
+    def read(self, *a):
+        return self._body
+    def getcode(self):
+        return 200
+    def __enter__(self):
+        return self
+    def __exit__(self, *a):
+        return False
+
+bodies = [
+    b&quot;this is not json&quot;,
+    b&quot;\xff\xfe\x00 not utf-8&quot;,
+    json.dumps({&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {}, &quot;geometry&quot;: None}).encode(&quot;utf-8&quot;),
+    json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;}).encode(&quot;utf-8&quot;),
+    json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: &quot;nope&quot;}).encode(&quot;utf-8&quot;),
+    json.dumps([1, 2, 3]).encode(&quot;utf-8&quot;),
+]
+
+with tempfile.TemporaryDirectory() as tmp:
+    for body in bodies:
+        out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+        with mock.patch(&quot;urllib.request.urlopen&quot;, lambda *a, _b=body, **kw: FakeResponse(_b)):
+            code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;,
+                                        &quot;--out&quot;, out_path)
+        print(body[:20], code)
+        assert code == 1
+        assert out == &quot;&quot;
+        assert len(err.strip().splitlines()) == 1
+        assert not os.path.exists(out_path)
+=== END AC fetch-rejects-bad-bodies ===
+
+=== AC fetch-failure-leaves-existing-file ===
+Intent: A failed fetch does not touch a file that already exists at the output path.
+
+import os
+import tempfile
+import urllib.error
+from unittest import mock
+from cli.testing import cli_runner
+
+def raise_url(*a, **kw):
+    raise urllib.error.URLError(&quot;unreachable&quot;)
+
+previous = b&quot;previous contents\n&quot;
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    with open(out_path, &quot;wb&quot;) as fh:
+        fh.write(previous)
+    with mock.patch(&quot;urllib.request.urlopen&quot;, raise_url):
+        code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;,
+                                    &quot;--out&quot;, out_path)
+    assert code == 1
+    assert out == &quot;&quot;
+    with open(out_path, &quot;rb&quot;) as fh:
+        assert fh.read() == previous
+=== END AC fetch-failure-leaves-existing-file ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- A failing fetch writes nothing to standard output and no file.
+- Tests stub the HTTP call and never use the network.
+- Diagnostics go to standard error and are never compared.
+=== END ARTIFACT ===</pre></article>
+</main>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-FetchStubTests.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-FetchStubTests.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-FetchStubTests.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Fetch Stub Tests</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Pytest tests that exercise fetch through a stubbed HTTP call and never open a network connection.</td></tr><tr><td>Depends On</td><td>FEATURE-FetchErrors.md, FEATURE-TestRunner.md</td></tr><tr><td>Provides</td><td>tests/test_fetch.py</td></tr><tr><td>Consumes</td><td>http_get</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>The fetch command performs its request through one replaceable function, <code>http_get</code>. The tests in <code>tests/test_fetch.py</code> replace it with a stub (monkeypatch) and cover: a successful fetch writing the body unchanged and printing the feature count, a non-200 status, a network error, and a body that is not a GeoJSON FeatureCollection. In the failure cases the tests assert exit status 1 and that no output file exists. No test opens a network connection.</p>
+<h2>Behavior</h2>
+<ol><li>Each test writes its own fixture body and output path under a temporary directory.</li><li>Each test replaces <code>http_get</code> with a stub; the real <code>urllib.request</code> call is never reached.</li><li>Failure tests assert the exit status and that the output file was not created.</li></ol>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC fetchtests-file-collected ===<br>Intent: tests/test_fetch.py exists and pytest collects at least one test from it.</p>
+<p>import subprocess import sys from pathlib import Path</p>
+<p>path = Path(&quot;tests&quot;) / &quot;test_fetch.py&quot; assert path.is_file() result = subprocess.run( [sys.executable, &quot;-m&quot;, &quot;pytest&quot;, &quot;--collect-only&quot;, &quot;-q&quot;, str(path)], capture_output=True, text=True, ) print(result.stdout) print(result.stderr, file=sys.stderr) assert result.returncode == 0 === END AC fetchtests-file-collected ===</p>
+<p>=== AC fetchtests-pass-without-network ===<br>Intent: The fetch tests pass while every socket connection attempt raises, proving they never use the network.</p>
+<p>import os import subprocess import sys import tempfile from pathlib import Path</p>
+<p>guard = ( &quot;import socket\n&quot; &quot;def _blocked(*a, <strong>k):\n&quot; &quot;    raise OSError(&#x27;network disabled for tests&#x27;)\n&quot; &quot;socket.socket.connect = _blocked\n&quot; &quot;socket.create_connection = _blocked\n&quot; &quot;socket.getaddrinfo = _blocked\n&quot; ) with tempfile.TemporaryDirectory() as guard_dir: Path(guard_dir, &quot;sitecustomize.py&quot;).write_text(guard) existing = os.environ.get(&quot;PYTHONPATH&quot;, &quot;&quot;) pythonpath = guard_dir if not existing else guard_dir + os.pathsep + existing result = subprocess.run( [sys.executable, &quot;-m&quot;, &quot;pytest&quot;, &quot;-q&quot;, str(Path(&quot;tests&quot;) / &quot;test_fetch.py&quot;)], capture_output=True, text=True, env={</strong>os.environ, &quot;PYTHONPATH&quot;: pythonpath}, ) print(result.stdout) print(result.stderr, file=sys.stderr) assert result.returncode == 0 === END AC fetchtests-pass-without-network ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>No test opens a network connection; the HTTP call is always replaced by a stub.</li><li>Tests write their own fixture files and do not read anything under <code>sources/</code>.</li></ul></article>
+</main>
+</body>
+</html>

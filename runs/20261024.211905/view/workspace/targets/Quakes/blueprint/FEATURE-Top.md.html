@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Top.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Top.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Top.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Top</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>The top report: the largest events by magnitude, limited by --n.</td></tr><tr><td>Depends On</td><td>FEATURE-MinMagFilter.md, FEATURE-ExitCodes.md</td></tr><tr><td>Provides</td><td>quakes top</td></tr><tr><td>Consumes</td><td>filter_min_mag(events, m), format_time</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;</code> writes the header <code>time,mag,depth_km,place,id</code> and the <code>--n</code> largest events ordered by <code>mag</code> descending, then time ascending. <code>--n</code> is a positive integer defaulting to <code>10</code>; <code>0</code>, a negative number or a non-integer is a usage error (exit 2). Magnitude and depth have one decimal (depth rounded half up). Rows are written with the <code>csv</code> module, so a place containing a comma is quoted, and as UTF-8.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC top-ordering ===<br>Intent: Events are ordered by magnitude descending and then by time ascending.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>mags = [5.5, 6.1, 5.5, 6.1, 5.0] times = [1735700300000, 1735700200000, 1735700100000, 1735700000000, 1735700400000] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mags[i], &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: times[i], &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(mags)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;top&quot;, path)</p>
+<p>print(out) print(err) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert rows[0] == [&quot;time&quot;, &quot;mag&quot;, &quot;depth_km&quot;, &quot;place&quot;, &quot;id&quot;] order = sorted(range(len(mags)), key=lambda i: (-mags[i], times[i])) assert [r[4] for r in rows[1:]] == [&quot;ev&quot; + str(i) for i in order] assert &quot;\r&quot; not in out === END AC top-ordering ===</p>
+<p>=== AC top-n-limits-rows ===<br>Intent: --n limits the number of rows and the default limit is ten.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>count = 12 feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0 + i / 10, &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: 1735700000000 + i * 1000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(count) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) default_code, default_out, _ = cli_runner(&quot;top&quot;, path) n = 3 limited_code, limited_out, _ = cli_runner(&quot;top&quot;, &quot;--n&quot;, str(n), path) big_code, big_out, _ = cli_runner(&quot;top&quot;, &quot;--n&quot;, &quot;100&quot;, path)</p>
+<p>assert default_code == 0 and limited_code == 0 and big_code == 0 default_rows = list(csv.reader(io.StringIO(default_out))) limited_rows = list(csv.reader(io.StringIO(limited_out))) big_rows = list(csv.reader(io.StringIO(big_out))) assert len(default_rows) - 1 == min(10, count) assert len(limited_rows) - 1 == n assert len(big_rows) - 1 == count assert limited_rows[1:] == default_rows[1:1 + n] === END AC top-n-limits-rows ===</p>
+<p>=== AC top-n-usage-errors ===<br>Intent: A zero, negative or non-integer --n is a usage error with exit 2 and nothing on standard output.</p>
+<p>import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}, fh) for bad in (&quot;0&quot;, &quot;-1&quot;, &quot;abc&quot;, &quot;2.5&quot;): code, out, err = cli_runner(&quot;top&quot;, &quot;--n&quot;, bad, path) assert code == 2, bad assert out == &quot;&quot;, bad === END AC top-n-usage-errors ===</p>
+<p>=== AC top-columns-formatted ===<br>Intent: Each row carries the UTC time, one-decimal magnitude, half-up one-decimal depth, place and id.</p>
+<p>import csv import io import json import os import tempfile from datetime import datetime, timezone from decimal import Decimal, ROUND_HALF_UP</p>
+<p>from cli.testing import cli_runner</p>
+<p>ms = 1736211916734 mag = 7 depth = 10.25 place = &quot;Plain place&quot; feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: place, &quot;time&quot;: ms, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [87.0, 28.0, depth]}, &quot;id&quot;: &quot;us-test-1&quot;} ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;top&quot;, path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) expected_time = datetime.fromtimestamp(ms // 1000, timezone.utc).strftime(&quot;%Y-%m-%dT%H:%M:%SZ&quot;) expected_depth = str(Decimal(str(depth)).quantize(Decimal(&quot;0.1&quot;), rounding=ROUND_HALF_UP)) assert rows[1] == [expected_time, f&quot;{float(mag):.1f}&quot;, expected_depth, place, &quot;us-test-1&quot;] === END AC top-columns-formatted ===</p>
+<p>=== AC top-place-with-comma-roundtrips ===<br>Intent: A place containing a comma is quoted so the CSV parses back to the original place, including non-ASCII text written as UTF-8.<br>Encoding: utf-8</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>place = &quot;13 km NW of \u0100wash, Ethiopia&quot; feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: place, &quot;time&quot;: 1735718987701, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [40.0, 9.0, 10]}, &quot;id&quot;: &quot;ev-comma&quot;} ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh, ensure_ascii=False) code, out, err = cli_runner(&quot;top&quot;, path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert len(rows) == 2 assert len(rows[1]) == 5 assert rows[1][3] == place === END AC top-place-with-comma-roundtrips ===</p>
+<p>=== AC top-min-mag-option ===<br>Intent: top honours --min-mag and --n together, listing the largest events at or above the threshold.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>mags = [5.0, 5.2, 5.4, 5.6, 5.8, 6.0] threshold = 5.2 n = 2 feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mags[i], &quot;place&quot;: &quot;Place &quot; + str(i), &quot;time&quot;: 1735700000000 + i * 1000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i in range(len(mags)) ] with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}, fh) code, out, err = cli_runner(&quot;top&quot;, &quot;--min-mag&quot;, str(threshold), &quot;--n&quot;, str(n), path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) kept = [i for i in range(len(mags)) if mags[i] &gt;= threshold] order = sorted(kept, key=lambda i: (-mags[i], i))[:n] assert [r[4] for r in rows[1:]] == [&quot;ev&quot; + str(i) for i in order] === END AC top-min-mag-option ===</p>
+<p>=== AC top-no-events ===<br>Intent: When no event matches, top exits 0 and writes only the header.</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}, fh) code, out, err = cli_runner(&quot;top&quot;, path)</p>
+<p>assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert len(rows) == 1 assert rows[0] == [&quot;time&quot;, &quot;mag&quot;, &quot;depth_km&quot;, &quot;place&quot;, &quot;id&quot;] === END AC top-no-events ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>No row, count or place is hardcoded; every value comes from the file read.</li><li>Output is written with the <code>csv</code> module and <code>\n</code> line endings.</li><li>A failing command writes nothing to standard output.</li></ul></article>
+</main>
+</body>
+</html>

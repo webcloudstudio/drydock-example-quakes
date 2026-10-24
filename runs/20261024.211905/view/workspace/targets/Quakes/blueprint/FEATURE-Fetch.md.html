@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Fetch.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Fetch.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Fetch.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Fetch</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>The fetch command downloads a period of the USGS event feed as GeoJSON and saves the body unchanged.</td></tr><tr><td>Depends On</td><td>FEATURE-CliDispatch.md, FEATURE-ExitCodes.md, FEATURE-FeedReader.md</td></tr><tr><td>Provides</td><td>quakes fetch, http_get</td></tr><tr><td>Consumes</td><td>quakes &lt;command&gt; dispatch</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;</code> saves a period of the USGS FDSN event feed so that report commands can read it later.</p>
+<h2>Request</h2>
+<p>GET <code>https://earthquake.usgs.gov/fdsnws/event/1/query</code> with the query parameters <code>format=geojson</code>, <code>starttime=&lt;start&gt;</code>, <code>endtime=&lt;end&gt;</code>, <code>minmagnitude=&lt;m&gt;</code> (default <code>2.5</code>) and <code>orderby=time-asc</code>.</p>
+<h2>HTTP seam</h2>
+<p>All network access goes through one replaceable function, <code>http_get(url)</code>, which returns the status code and the body bytes. It calls <code>urllib.request.urlopen</code> through the module attribute (<code>urllib.request.urlopen(...)</code>, never <code>from urllib.request import urlopen</code>), so a test can replace the HTTP call with a stub. An <code>HTTPError</code> is returned as its status code. No test uses the network.</p>
+<h2>Sequence</h2>
+<ol><li>Parse and validate options (<code>--start</code>, <code>--end</code>, <code>--out</code> required; <code>--min-mag</code> optional).</li><li>Request the URL through <code>http_get</code>.</li><li>On status 200, parse the body as a GeoJSON FeatureCollection (failure handling is in</li></ol>
+<p>FEATURE-FetchErrors.md).</p>
+<ol><li>Write the body bytes unchanged to <code>--out</code>.</li><li>Write <code>fetched,&lt;count&gt;</code> to standard output, where <code>&lt;count&gt;</code> is the number of features.</li></ol>
+<p>Missing <code>--start</code>, <code>--end</code> or <code>--out</code>, an extra positional argument, or a malformed <code>--min-mag</code> is a usage error (exit 2).</p>
+<h2>Reads</h2>
+<p>The USGS event service.</p>
+<h2>Writes</h2>
+<p>The file named by <code>--out</code>; <code>fetched,&lt;count&gt;</code> on standard output.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC fetch-request-and-save ===<br>Intent: Fetch requests the FDSN query with the given range and default magnitude, saves the body unchanged and reports the feature count.</p>
+<p>import json import os import tempfile import urllib.parse import urllib.request from unittest import mock from cli.testing import cli_runner</p>
+<p>class FakeResponse: def <strong>init</strong>(self, body, status=200): self._body = body self.status = status self.headers = {} def read(self, *a): return self._body def getcode(self): return self.status def <strong>enter</strong>(self): return self def <strong>exit</strong>(self, *a): return False</p>
+<p>start, end = &quot;2025-01-01&quot;, &quot;2025-01-08&quot; features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0 + i / 10, &quot;place&quot;: &quot;p, R&quot;, &quot;time&quot;: 1735689600000 + i, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}, &quot;id&quot;: &quot;id%d&quot; % i} for i in range(3)] body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, indent=3).encode(&quot;utf-8&quot;) + b&quot;\n&quot; seen = []</p>
+<p>def fake_urlopen(req, *a, **kw): seen.append(getattr(req, &quot;full_url&quot;, req)) return FakeResponse(body)</p>
+<p>with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) with mock.patch(&quot;urllib.request.urlopen&quot;, fake_urlopen): code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--end&quot;, end, &quot;--out&quot;, out_path) print(out) print(err) assert code == 0 with open(out_path, &quot;rb&quot;) as fh: assert fh.read() == body fields = out.strip().split(&quot;,&quot;) assert fields[0] == &quot;fetched&quot; assert int(fields[1]) == len(features)</p>
+<p>assert len(seen) == 1 parsed = urllib.parse.urlparse(seen[0]) assert parsed.scheme == &quot;https&quot; assert parsed.netloc == &quot;earthquake.usgs.gov&quot; assert parsed.path == &quot;/fdsnws/event/1/query&quot; q = urllib.parse.parse_qs(parsed.query) assert q[&quot;format&quot;] == [&quot;geojson&quot;] assert q[&quot;starttime&quot;] == [start] assert q[&quot;endtime&quot;] == [end] assert q[&quot;minmagnitude&quot;] == [&quot;2.5&quot;] assert q[&quot;orderby&quot;] == [&quot;time-asc&quot;] === END AC fetch-request-and-save ===</p>
+<p>=== AC fetch-min-mag-option ===<br>Intent: An explicit --min-mag value is sent as minmagnitude.</p>
+<p>import json import os import tempfile import urllib.parse from unittest import mock from cli.testing import cli_runner</p>
+<p>class FakeResponse: def <strong>init</strong>(self, body, status=200): self._body = body self.status = status self.headers = {} def read(self, *a): return self._body def getcode(self): return self.status def <strong>enter</strong>(self): return self def <strong>exit</strong>(self, *a): return False</p>
+<p>mag = &quot;5.5&quot; body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;) seen = []</p>
+<p>def fake_urlopen(req, *a, **kw): seen.append(getattr(req, &quot;full_url&quot;, req)) return FakeResponse(body)</p>
+<p>with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) with mock.patch(&quot;urllib.request.urlopen&quot;, fake_urlopen): code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-02-01&quot;, &quot;--end&quot;, &quot;2025-02-02&quot;, &quot;--min-mag&quot;, mag, &quot;--out&quot;, out_path) print(out, err) assert code == 0 assert int(out.strip().split(&quot;,&quot;)[1]) == 0 assert os.path.exists(out_path) q = urllib.parse.parse_qs(urllib.parse.urlparse(seen[0]).query) assert q[&quot;minmagnitude&quot;] == [mag] === END AC fetch-min-mag-option ===</p>
+<p>=== AC fetch-usage-errors ===<br>Intent: Fetch without a required option or with an extra argument is a usage error that makes no request and writes no file.</p>
+<p>import os import tempfile from unittest import mock from cli.testing import cli_runner</p>
+<p>def boom(*a, **kw): raise AssertionError(&quot;network must not be used&quot;)</p>
+<p>with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) cases = [ [&quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path], [&quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--out&quot;, out_path], [&quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;], [&quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path, &quot;extra.json&quot;], [&quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--min-mag&quot;, &quot;big&quot;, &quot;--out&quot;, out_path], ] with mock.patch(&quot;urllib.request.urlopen&quot;, boom): for args in cases: code, out, err = cli_runner(&quot;fetch&quot;, *args) print(args, code) assert code == 2 assert out == &quot;&quot; assert not os.path.exists(out_path) === END AC fetch-usage-errors ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Tests replace the HTTP call with a stub and never open a network connection.</li><li>The response body is written unchanged, byte for byte; it is never re-serialised.</li><li>Only the Python standard library is used for HTTP.</li></ul></article>
+</main>
+</body>
+</html>

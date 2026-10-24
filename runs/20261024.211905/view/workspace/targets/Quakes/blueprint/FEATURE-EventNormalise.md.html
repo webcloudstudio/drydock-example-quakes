@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-EventNormalise.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-EventNormalise.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-EventNormalise.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Event Normalise</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Normalise event time, date and region and provide the shared number-formatting helpers.</td></tr><tr><td>Depends On</td><td>FEATURE-FeedReader.md, ARCHITECTURE.md</td></tr><tr><td>Provides</td><td>format_time, region_of, format_mag, format_one_decimal, format_two_decimal</td></tr><tr><td>Consumes</td><td>read_events(path)</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>Turn the raw values the reader returns into the text every report writes. These are pure functions in modules under the <code>cli</code> package, so each is unit-tested on its own.</p>
+<h2>Interface</h2>
+<div class="scroll"><table><thead><tr><th>Function</th><th>Input</th><th>Output</th></tr></thead><tbody><tr><td><code>format_time(ms)</code></td><td>integer milliseconds since the Unix epoch</td><td>UTC <code>YYYY-MM-DDTHH:MM:SSZ</code>, truncated (not rounded) to whole seconds</td></tr><tr><td><code>region_of(place)</code></td><td>place text or <code>None</code></td><td>text after the last <code>,</code> in <code>place</code>, the whole <code>place</code> when it has none, <code>Unknown</code> for <code>None</code></td></tr><tr><td><code>format_mag(mag)</code></td><td>number</td><td>one decimal place, so <code>5</code> becomes <code>5.0</code></td></tr><tr><td><code>format_one_decimal(value)</code></td><td>number</td><td>one decimal place, rounded half up (depth and distance)</td></tr><tr><td><code>format_two_decimal(value)</code></td><td>number</td><td>two decimal places, rounded half up (mean magnitude)</td></tr></tbody></table></div>
+<p>An event&#x27;s date is the first 10 characters of its formatted time. Half-up rounding uses <code>decimal</code> over <code>Decimal(str(value))</code>, never float formatting.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC normalise-format-time ===<br>Intent: format_time writes UTC to whole seconds, truncating the milliseconds rather than rounding them.</p>
+<p>import importlib import pkgutil from datetime import datetime, timezone</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>format_time = find(&quot;format_time&quot;) for ms in (0, 1735706358208, 1735706358999, 1736211916000, 1767225599999): expected = datetime.fromtimestamp(ms // 1000, timezone.utc).strftime(&quot;%Y-%m-%dT%H:%M:%SZ&quot;) assert format_time(ms) == expected, ms === END AC normalise-format-time ===</p>
+<p>=== AC normalise-date-prefix ===<br>Intent: The date of an event is the first 10 characters of its time and follows the UTC day boundary.</p>
+<p>import importlib import pkgutil from datetime import datetime, timezone</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>format_time = find(&quot;format_time&quot;) last_second = 1735775999999 next_day = 1735776000000 for ms in (last_second, next_day): day = datetime.fromtimestamp(ms // 1000, timezone.utc).date().isoformat() assert format_time(ms)[:10] == day, ms assert format_time(last_second)[:10] != format_time(next_day)[:10] === END AC normalise-date-prefix ===</p>
+<p>=== AC normalise-region ===<br>Intent: region_of returns the text after the last comma-space, or the whole place when there is none.</p>
+<p>import importlib import pkgutil</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>region_of = find(&quot;region_of&quot;)</p>
+<p>region = &quot;Papua New Guinea&quot; assert region_of(&quot;64 km NW of Rabaul, &quot; + region) == region</p>
+<p>nested_region = &quot;Japan&quot; assert region_of(&quot;Izu Islands, Honshu, &quot; + nested_region) == nested_region</p>
+<p>whole = &quot;South Sandwich Islands region&quot; assert region_of(whole) == whole</p>
+<p>comma_no_space = &quot;Alpha,Beta&quot; assert region_of(comma_no_space) == comma_no_space</p>
+<p>trailing = &quot;Somewhere, &quot; assert region_of(trailing) == &quot;&quot; === END AC normalise-region ===</p>
+<p>=== AC normalise-null-place ===<br>Intent: A null place has the region Unknown.</p>
+<p>import importlib import pkgutil</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>region_of = find(&quot;region_of&quot;) assert region_of(None) == &quot;Unknown&quot; === END AC normalise-null-place ===</p>
+<p>=== AC normalise-format-mag ===<br>Intent: format_mag writes one decimal place, including for whole-number magnitudes.</p>
+<p>import importlib import pkgutil</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>format_mag = find(&quot;format_mag&quot;) for mag in (5, 5.0, 5.4, 7.1, 6): assert format_mag(mag) == f&quot;{float(mag):.1f}&quot;, mag === END AC normalise-format-mag ===</p>
+<p>=== AC normalise-one-decimal-half-up ===<br>Intent: format_one_decimal rounds half up to one decimal place.</p>
+<p>import importlib import pkgutil from decimal import Decimal, ROUND_HALF_UP</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>format_one_decimal = find(&quot;format_one_decimal&quot;) for value in (10.25, 2.75, 0.5, 10.0, 46, 358.0, 214.84, 0.25, 1288.35): expected = str(Decimal(str(value)).quantize(Decimal(&quot;0.1&quot;), rounding=ROUND_HALF_UP)) assert format_one_decimal(value) == expected, value === END AC normalise-one-decimal-half-up ===</p>
+<p>=== AC normalise-two-decimal-half-up ===<br>Intent: format_two_decimal rounds half up to two decimal places.</p>
+<p>import importlib import pkgutil from decimal import Decimal, ROUND_HALF_UP</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>format_two_decimal = find(&quot;format_two_decimal&quot;) for value in (5.125, 5.375, 5.0, 5.875, 5.3, 0.005): expected = str(Decimal(str(value)).quantize(Decimal(&quot;0.01&quot;), rounding=ROUND_HALF_UP)) assert format_two_decimal(value) == expected, value === END AC normalise-two-decimal-half-up ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Rounding uses <code>decimal</code> half up, never float formatting.</li><li>Time is always UTC and truncated to whole seconds, never rounded.</li><li>No value is embedded; every result is computed from the argument.</li></ul></article>
+</main>
+</body>
+</html>

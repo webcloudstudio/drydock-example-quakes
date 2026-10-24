@@ -1,0 +1,93 @@
+Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+2026-10-24 17:20:59 EDT  Calling CLAUDE/sonnet (plan · topology)...
+  Claude session: start id=391b56dd-ff54-4ce0-9950-6e76f89aec6b
+  Completed CLAUDE/claude-sonnet-5-5 (plan · topology)  rc=0
+========================================================================
+PLAN PROGRESS  ·  STAGE 1 · TOPOLOGY
+========================================================================
+Topology Created:  True
+Blueprints Created: 0 / 18
+Manifest Created:  False
+Blueprints Remaining: 18
+Batch Result:       Topology accepted
+========================================================================
+2026-10-24 17:21:54 EDT  Calling CLAUDE/sonnet (plan · blueprint batch 1)...
+  Claude session: start id=50527b41-d0df-48df-ab1c-8690ba0e5b77
+  Completed CLAUDE/claude-sonnet-5-5 (plan · blueprint batch 1)  rc=0
+========================================================================
+PLAN PROGRESS  ·  STAGE 2 · BLUEPRINT BATCH 1
+========================================================================
+Topology Created:  True
+Blueprints Created: 5 / 18
+Manifest Created:  False
+Blueprints Remaining: 13
+Batch Result:       Accepted 5 Blueprint(s)
+========================================================================
+2026-10-24 17:24:34 EDT  Calling CLAUDE/sonnet (plan · blueprint batch 2)...
+  Claude session: start id=d72639b2-53f2-4fad-8ea0-8fa94052de00
+  Completed CLAUDE/claude-sonnet-5-5 (plan · blueprint batch 2)  rc=0
+========================================================================
+PLAN PROGRESS  ·  STAGE 2 · BLUEPRINT BATCH 2
+========================================================================
+Topology Created:  True
+Blueprints Created: 10 / 18
+Manifest Created:  False
+Blueprints Remaining: 8
+Batch Result:       Accepted 5 Blueprint(s)
+========================================================================
+2026-10-24 17:26:35 EDT  Calling CLAUDE/sonnet (plan · blueprint batch 3)...
+  Claude session: start id=5be393e8-1659-47f9-83d4-61f6081ff05f
+  Completed CLAUDE/claude-sonnet-5-5 (plan · blueprint batch 3)  rc=0
+========================================================================
+PLAN PROGRESS  ·  STAGE 2 · BLUEPRINT BATCH 3
+========================================================================
+Topology Created:  True
+Blueprints Created: 15 / 18
+Manifest Created:  False
+Blueprints Remaining: 3
+Batch Result:       Accepted 5 Blueprint(s)
+========================================================================
+2026-10-24 17:28:19 EDT  Calling CLAUDE/sonnet (plan · blueprint batch 4)...
+  Claude session: start id=dd3559ea-5fda-4628-9415-ef625bc2d16d
+  Completed CLAUDE/claude-sonnet-5-5 (plan · blueprint batch 4)  rc=0
+========================================================================
+PLAN PROGRESS  ·  STAGE 2 · BLUEPRINT BATCH 4
+========================================================================
+Topology Created:  True
+Blueprints Created: 18 / 18
+Manifest Created:  False
+Blueprints Remaining: 0
+Batch Result:       Accepted 3 Blueprint(s)
+========================================================================
+========================================================================
+PLAN PROGRESS  ·  STAGE 3 · MANIFEST
+========================================================================
+Topology Created:  True
+Blueprints Created: 18 / 18
+Manifest Created:  True
+Blueprints Remaining: 0
+Batch Result:       Manifest validated and serialized
+========================================================================
+2026-10-24 17:29:09 EDT  Calling CLAUDE/sonnet (lineage_attribute)...
+  Completed CLAUDE/claude-sonnet-5-5 (lineage_attribute)  rc=0
+2026-10-24 17:29:22 EDT  Calling CLAUDE/sonnet (lineage_attribute)...
+  Completed CLAUDE/claude-sonnet-5-5 (lineage_attribute)  rc=0
+2026-10-24 17:29:27 EDT  Calling CLAUDE/sonnet (lineage_attribute)...
+  Completed CLAUDE/claude-sonnet-5-5 (lineage_attribute)  rc=0
+
+Mode: OVERWRITE (Blueprint specs regenerated from analysis)
+Provider: claude / sonnet
+Graph: 0 features, 18 stories, 0 spikes, 0 acceptance gates
+Warnings: 2
+Outcome: updated
+Execution: 20261024.212059.352Z-0dc20faf
+Elapsed: 9 minutes 12 seconds
+Review: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261024.211905/workspace/targets/Quakes/QuarterDeck
+
+⚠  Plan written but not buildable — the Manifest is draft and Build refuses it.
+plan verify: Quakes
+  1 criterion cannot run as written
+  ✗  FEATURE-ExitCodes.md [exit-parse-usage-errors]: calls `cli_runner` at line(s) 19 without asserting its exit status; bind it as `code, out, err = cli_runner(...)` and assert `code` before the next call
+  Run: drydock plan repair Quakes
+Next step: drydock plan verify Quakes || drydock plan repair Quakes
+Target - committed project workspace git store

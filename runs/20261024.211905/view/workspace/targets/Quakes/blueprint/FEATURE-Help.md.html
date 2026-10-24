@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Help.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Help.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Help.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Help</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Provide help text for the program and for each command, shown by <code>--help</code>.</td></tr><tr><td>Depends On</td><td>ARCHITECTURE.md, FEATURE-CliDispatch.md</td></tr><tr><td>Provides</td><td>--help for quakes and each command, cli.help.wants_help, cli.help.help_text</td></tr><tr><td>Consumes</td><td>quakes &lt;command&gt; dispatch, cli.options.COMMANDS</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>Every command has help text so a user can discover its options. Help is requested output, not a failure: it is written to standard output and exits <code>0</code> (decision Q-001).</p>
+<h2>Interface</h2>
+<ul><li><code>cli.help.help_text(command: str | None) -&gt; str</code>: program-level help when <code>command</code> is <code>None</code></li></ul>
+<p>(listing every command), otherwise that command&#x27;s synopsis and options. Each command&#x27;s text is distinct.</p>
+<ul><li><code>cli.help.wants_help(argv: list[str]) -&gt; bool</code>: <code>True</code> when <code>argv[0]</code> is <code>--help</code>, or when</li></ul>
+<p><code>argv[0]</code> is a known command and <code>--help</code> appears later in <code>argv</code>; otherwise <code>False</code>.</p>
+<h2>Rules</h2>
+<ol><li><code>quakes --help</code> writes the program help and exits <code>0</code>.</li><li><code>quakes &lt;command&gt; --help</code> for each of <code>fetch</code>, <code>summary</code>, <code>top</code>, <code>daily</code>, <code>regions</code>, <code>near</code> writes</li></ol>
+<p>that command&#x27;s help and exits <code>0</code>.</p>
+<ol><li>Help is written before any file is read or any other validation is attempted.</li><li><code>quakes frobnicate --help</code> is not help: the unknown command is a usage error (exit <code>2</code>).</li><li><code>main</code> checks <code>wants_help</code> first, as step 2 of the control flow in ARCHITECTURE.md.</li></ol>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC help-program ===<br>Intent: quakes --help prints program help to standard output and exits 0.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli.help import help_text from cli.testing import cli_runner</p>
+<p>code, out, err = cli_runner(&quot;--help&quot;) print(code, repr(err)) assert code == 0 assert out.strip() != &quot;&quot; assert out == help_text(None) === END AC help-program ===</p>
+<p>=== AC help-every-command ===<br>Intent: Every command has its own non-empty help text shown by --help with exit 0.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli.help import help_text from cli.options import COMMANDS from cli.testing import cli_runner</p>
+<p>texts = {} for command in COMMANDS: code, out, err = cli_runner(command, &quot;--help&quot;) print(command, code, repr(err)) assert code == 0 assert out.strip() != &quot;&quot; assert out == help_text(command) texts[command] = out assert len(set(texts.values())) == len(COMMANDS) assert help_text(None) not in texts.values() === END AC help-every-command ===</p>
+<p>=== AC help-wants-help ===<br>Intent: wants_help recognises --help for the program and for known commands only.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli.help import wants_help from cli.options import COMMANDS</p>
+<p>path = os.path.join(&quot;somewhere&quot;, &quot;feed.geojson&quot;) assert wants_help([&quot;--help&quot;]) is True for command in COMMANDS: assert wants_help([command, &quot;--help&quot;]) is True assert wants_help([command, &quot;--min-mag&quot;, &quot;5&quot;, &quot;--help&quot;]) is True assert wants_help([&quot;summary&quot;, path]) is False assert wants_help([]) is False === END AC help-wants-help ===</p>
+<p>=== AC help-unknown-command ===<br>Intent: An unknown command with --help is a usage error, not help.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli.testing import cli_runner</p>
+<p>code, out, err = cli_runner(&quot;frobnicate&quot;, &quot;--help&quot;) assert code == 2 assert out == &quot;&quot; === END AC help-unknown-command ===</p>
+<h2>User Acceptance</h2>
+<ul><li>Commander reads the help text for each command and finds the options listed in the instructions understandable.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Help never reads a file or touches the network.</li><li><code>--help</code> is the only otherwise unlisted option that is accepted.</li></ul></article>
+</main>
+</body>
+</html>

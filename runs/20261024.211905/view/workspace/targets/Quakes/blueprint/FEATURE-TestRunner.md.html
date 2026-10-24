@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-TestRunner.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-TestRunner.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-TestRunner.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Test Runner</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Provide a POSIX-compatible bin/test.sh that runs the project&#x27;s pytest suite from the application root.</td></tr><tr><td>Depends On</td><td>ARCHITECTURE.md</td></tr><tr><td>Provides</td><td>bin/test.sh</td></tr><tr><td>Consumes</td><td>cli.testing.cli_runner</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>The application ships its own pytest suite, and <code>bin/test.sh</code> is the single entry point that runs it. The script is POSIX <code>sh</code>, changes to the application root regardless of the caller&#x27;s working directory, activates the <code>.venv</code> launcher, runs <code>pytest -q</code>, and exits zero only when every test passes. Unit tests for each pure function (read, filter, compute, format) live under <code>tests/</code>.</p>
+<h2>Interface</h2>
+<ul><li><code>sh bin/test.sh</code> — no arguments. Exit status is the pytest exit status.</li><li>Standard output and standard error carry pytest&#x27;s own output; neither is compared.</li></ul>
+<h2>Behavior</h2>
+<ol><li>Resolve the application root from the script&#x27;s own location, not the caller&#x27;s working directory.</li><li>Use the <code>.venv</code> environment created by <code>uv venv</code> when present.</li><li>Run <code>pytest -q</code> and propagate its exit status unchanged.</li></ol>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC testrunner-syntax ===<br>Intent: bin/test.sh exists and is syntactically valid POSIX sh.<br>Requires: executable=sh; scope=test</p>
+<p>import subprocess from pathlib import Path</p>
+<p>script = Path(&quot;bin&quot;) / &quot;test.sh&quot; assert script.is_file() result = subprocess.run([&quot;sh&quot;, &quot;-n&quot;, str(script)], capture_output=True, text=True) print(result.stdout) print(result.stderr) assert result.returncode == 0 === END AC testrunner-syntax ===</p>
+<p>=== AC testrunner-suite-exists ===<br>Intent: The project&#x27;s own pytest suite exists under tests/ with at least one test module.</p>
+<p>from pathlib import Path</p>
+<p>modules = sorted(Path(&quot;tests&quot;).glob(&quot;test_*.py&quot;)) print([m.name for m in modules]) assert len(modules) &gt;= 1 === END AC testrunner-suite-exists ===</p>
+<p>=== AC testrunner-runs-green ===<br>Intent: Running bin/test.sh from a different working directory exits zero when the suite passes.<br>Requires: executable=sh; scope=test</p>
+<p>import os import subprocess import sys import tempfile from pathlib import Path</p>
+<p>script = (Path(&quot;bin&quot;) / &quot;test.sh&quot;).resolve() with tempfile.TemporaryDirectory() as elsewhere: result = subprocess.run( [&quot;sh&quot;, str(script)], capture_output=True, text=True, cwd=elsewhere, env={**os.environ, &quot;QUAKES_TEST_RUNNER_NESTED&quot;: &quot;1&quot;}, ) print(result.stdout) print(result.stderr, file=sys.stderr) assert result.returncode == 0 === END AC testrunner-runs-green ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li><code>bin/test.sh</code> must be POSIX <code>sh</code>; it must not require bash features.</li><li>Tests must not open a network connection.</li><li><code>bin/test.sh</code> must not modify anything under <code>sources/</code>.</li></ul></article>
+</main>
+</body>
+</html>

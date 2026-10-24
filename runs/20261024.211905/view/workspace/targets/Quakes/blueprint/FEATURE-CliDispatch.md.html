@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-CliDispatch.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-CliDispatch.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-CliDispatch.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Cli Dispatch</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Parse the command and its options in any order with the file last, and dispatch to the registered command handler.</td></tr><tr><td>Depends On</td><td>ARCHITECTURE.md</td></tr><tr><td>Provides</td><td>quakes &lt;command&gt; dispatch, cli.options.parse_args, cli.options.COMMANDS, cli.options.Invocation, cli.commands.HANDLERS, cli.commands.dispatch</td></tr><tr><td>Consumes</td><td>cli.main, cli.errors.UsageError, cli.errors.OperationalFailure</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes &lt;command&gt; [options] [&lt;file&gt;]</code>. The command comes first, options follow in any order, and the file is last. Any malformed command line is a usage error. This feature parses and validates the shape of the command line and routes a parsed invocation to a handler; reports, validation of <code>near</code> ranges, and exit-code mapping belong to other features.</p>
+<h2>Trigger</h2>
+<p>Every invocation of <code>quakes</code>.</p>
+<h2>Interface</h2>
+<ul><li><code>cli.options.COMMANDS</code>: tuple <code>(&quot;fetch&quot;, &quot;summary&quot;, &quot;top&quot;, &quot;daily&quot;, &quot;regions&quot;, &quot;near&quot;)</code>.</li><li><code>cli.options.Invocation</code>: frozen dataclass with <code>command: str</code>, <code>options: dict[str, str]</code>, and</li></ul>
+<p><code>file: str | None</code>. <code>options</code> is keyed by the option name without its leading <code>--</code> (<code>min-mag</code>, <code>n</code>, <code>lat</code>, <code>lon</code>, <code>radius</code>, <code>start</code>, <code>end</code>, <code>out</code>) and holds the value text exactly as given. An option that was not given is absent from the dict; the owning command applies defaults (<code>n</code> = 10, fetch <code>min-mag</code> = 2.5).</p>
+<ul><li><code>cli.options.parse_args(argv: list[str]) -&gt; Invocation</code>, raising <code>cli.errors.UsageError</code>.</li><li><code>cli.commands.HANDLERS</code>: plain <code>dict[str, Callable[[Invocation], str]]</code>; each handler returns the</li></ul>
+<p>complete standard-output text.</p>
+<ul><li><code>cli.commands.dispatch(invocation) -&gt; str</code>: calls <code>HANDLERS[invocation.command]</code>; when no handler is</li></ul>
+<p>registered it raises <code>cli.errors.OperationalFailure</code>.</p>
+<h2>Rules</h2>
+<ol><li><code>argv[0]</code> is the command; an unknown command or an empty <code>argv</code> is a usage error.</li><li>The token after an option name is always that option&#x27;s value, even when it begins with <code>-</code></li></ol>
+<p>(so <code>--lat -5.25</code> is valid). A missing value is a usage error.</p>
+<ol><li>Options accepted per command:</li></ol>
+<div class="scroll"><table><thead><tr><th>Command</th><th>Options</th><th>Positional file</th></tr></thead><tbody><tr><td><code>fetch</code></td><td><code>--start</code>, <code>--end</code>, <code>--out</code> (all required), <code>--min-mag</code></td><td>none (an extra positional is a usage error)</td></tr><tr><td><code>summary</code>, <code>daily</code>, <code>regions</code></td><td><code>--min-mag</code></td><td>exactly one, last</td></tr><tr><td><code>top</code></td><td><code>--min-mag</code>, <code>--n</code></td><td>exactly one, last</td></tr><tr><td><code>near</code></td><td><code>--lat</code>, <code>--lon</code>, <code>--radius</code>, <code>--min-mag</code></td><td>exactly one, last</td></tr></tbody></table></div>
+<ol><li>Any other option, or an option the command does not list, is a usage error.</li><li>An option given more than once is a usage error.</li><li><code>--min-mag</code>, <code>--lat</code>, <code>--lon</code> and <code>--radius</code> values must match <code>-?[0-9]+(\.[0-9]+)?</code>. <code>--n</code> must be</li></ol>
+<p>a positive integer (<code>0</code>, negatives, decimals and text are usage errors). <code>--start</code> and <code>--end</code> must have the shape <code>YYYY-MM-DD</code>.</p>
+<ol><li>A report command with no file, or with more than one file, is a usage error.</li><li>For <code>near</code>, the presence of <code>--lat</code>, <code>--lon</code>, <code>--radius</code> and the range checks belong to</li></ol>
+<p>FEATURE-NearValidation.md; the parser only accepts them.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC dispatch-option-order ===<br>Intent: Options may appear in any order and parse to the same invocation with the file last.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli.options import parse_args</p>
+<p>path = os.path.join(&quot;somewhere&quot;, &quot;feed.geojson&quot;) mag = &quot;5.5&quot; count = &quot;3&quot; first = parse_args([&quot;top&quot;, &quot;--min-mag&quot;, mag, &quot;--n&quot;, count, path]) second = parse_args([&quot;top&quot;, &quot;--n&quot;, count, &quot;--min-mag&quot;, mag, path]) assert first.command == &quot;top&quot; assert first.options == second.options assert first.options[&quot;min-mag&quot;] == mag assert first.options[&quot;n&quot;] == count assert first.file == path assert second.file == path === END AC dispatch-option-order ===</p>
+<p>=== AC dispatch-negative-values ===<br>Intent: A value beginning with a minus sign is read as the option&#x27;s value, not as an option.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli.options import parse_args</p>
+<p>path = os.path.join(&quot;somewhere&quot;, &quot;feed.geojson&quot;) lat = &quot;-5.25&quot; lon = &quot;-170&quot; radius = &quot;100&quot; inv = parse_args([&quot;near&quot;, &quot;--lat&quot;, lat, &quot;--lon&quot;, lon, &quot;--radius&quot;, radius, path]) assert inv.command == &quot;near&quot; assert inv.options[&quot;lat&quot;] == lat assert inv.options[&quot;lon&quot;] == lon assert inv.options[&quot;radius&quot;] == radius assert inv.file == path === END AC dispatch-negative-values ===</p>
+<p>=== AC dispatch-every-command-parses ===<br>Intent: Each report command parses with a file, and fetch parses with its required options and no file.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli.options import COMMANDS, parse_args</p>
+<p>path = os.path.join(&quot;somewhere&quot;, &quot;feed.geojson&quot;) start = &quot;2025-01-01&quot; end = &quot;2025-01-08&quot; out = os.path.join(&quot;somewhere&quot;, &quot;out.geojson&quot;) for command in (&quot;summary&quot;, &quot;daily&quot;, &quot;regions&quot;, &quot;top&quot;): assert command in COMMANDS inv = parse_args([command, path]) assert inv.command == command assert inv.file == path assert &quot;near&quot; in COMMANDS assert &quot;fetch&quot; in COMMANDS fetch = parse_args([&quot;fetch&quot;, &quot;--end&quot;, end, &quot;--start&quot;, start, &quot;--out&quot;, out, &quot;--min-mag&quot;, &quot;4.5&quot;]) assert fetch.command == &quot;fetch&quot; assert fetch.file is None assert fetch.options[&quot;start&quot;] == start assert fetch.options[&quot;end&quot;] == end assert fetch.options[&quot;out&quot;] == out assert fetch.options[&quot;min-mag&quot;] == &quot;4.5&quot; assert len(COMMANDS) == 6 === END AC dispatch-every-command-parses ===</p>
+<p>=== AC dispatch-usage-errors ===<br>Intent: Every malformed command line raises UsageError.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli.errors import UsageError from cli.options import parse_args</p>
+<p>path = os.path.join(&quot;somewhere&quot;, &quot;feed.geojson&quot;) start = &quot;2025-01-01&quot; end = &quot;2025-01-08&quot; out = os.path.join(&quot;somewhere&quot;, &quot;out.geojson&quot;) bad = [ [], [&quot;frobnicate&quot;, path], [&quot;summary&quot;], [&quot;summary&quot;, path, path], [&quot;summary&quot;, &quot;--n&quot;, &quot;3&quot;, path], [&quot;summary&quot;, &quot;--bogus&quot;, &quot;1&quot;, path], [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;big&quot;, path], [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;.5&quot;, path], [&quot;summary&quot;, &quot;--min-mag&quot;], [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5&quot;, &quot;--min-mag&quot;, &quot;6&quot;, path], [&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, path], [&quot;top&quot;, &quot;--n&quot;, &quot;-1&quot;, path], [&quot;top&quot;, &quot;--n&quot;, &quot;2.5&quot;, path], [&quot;top&quot;, &quot;--n&quot;, &quot;many&quot;, path], [&quot;daily&quot;, &quot;--lat&quot;, &quot;1&quot;, path], [&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--end&quot;, end], [&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--out&quot;, out], [&quot;fetch&quot;, &quot;--end&quot;, end, &quot;--out&quot;, out], [&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--end&quot;, end, &quot;--out&quot;, out, path], [&quot;fetch&quot;, &quot;--start&quot;, &quot;yesterday&quot;, &quot;--end&quot;, end, &quot;--out&quot;, out], ] accepted = [] for argv in bad: try: parse_args(list(argv)) except UsageError: continue accepted.append(argv) print(f&quot;{len(bad) - len(accepted)} rejected, {len(accepted)} accepted&quot;) assert accepted == [] === END AC dispatch-usage-errors ===</p>
+<p>=== AC dispatch-routes-to-handler ===<br>Intent: dispatch calls the registered handler with the invocation and returns its text unchanged.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli import commands from cli.options import parse_args</p>
+<p>path = os.path.join(&quot;somewhere&quot;, &quot;feed.geojson&quot;) text = &quot;col_a,col_b\nvalue,1\n&quot; seen = []</p>
+<p>def fake(invocation): seen.append(invocation) return text</p>
+<p>commands.HANDLERS[&quot;summary&quot;] = fake inv = parse_args([&quot;summary&quot;, path]) assert commands.dispatch(inv) == text assert len(seen) == 1 assert seen[0] is inv === END AC dispatch-routes-to-handler ===</p>
+<p>=== AC dispatch-missing-handler ===<br>Intent: Dispatching a command with no registered handler raises OperationalFailure.<br>Requires: executable=python3; scope=test</p>
+<p>import os import sys</p>
+<p>sys.path.insert(0, os.getcwd())</p>
+<p>from cli import commands from cli.errors import OperationalFailure from cli.options import parse_args</p>
+<p>path = os.path.join(&quot;somewhere&quot;, &quot;feed.geojson&quot;) commands.HANDLERS.pop(&quot;daily&quot;, None) inv = parse_args([&quot;daily&quot;, path]) try: commands.dispatch(inv) except OperationalFailure: pass else: raise AssertionError(&quot;dispatch of an unregistered command did not raise&quot;) === END AC dispatch-missing-handler ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>An option the command does not list is a usage error, never ignored.</li><li>The parser never opens the file; reading it belongs to the feed reader.</li><li>Handlers return text; only <code>main</code> writes to standard output.</li></ul></article>
+</main>
+</body>
+</html>

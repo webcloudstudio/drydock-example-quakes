@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-MinMagFilter.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-MinMagFilter.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-MinMagFilter.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Min Magnitude Filter</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>Keep only events with magnitude at least the --min-mag value, for every report.</td></tr><tr><td>Depends On</td><td>FEATURE-EventNormalise.md, FEATURE-CliDispatch.md</td></tr><tr><td>Provides</td><td>filter_min_mag(events, m), --min-mag option</td></tr><tr><td>Consumes</td><td>read_events(path)</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>filter_min_mag(events, m)</code> is a pure function over the event list the reader returns. It keeps events with <code>mag &gt;= m</code>, preserving order. It sits in the common pipeline (read, filter, compute, format) shared by every report command, so <code>--min-mag</code> means the same thing in all of them. When <code>--min-mag</code> is absent no filtering beyond the reader&#x27;s null-magnitude exclusion happens. A <code>--min-mag</code> value that does not match <code>-?[0-9]+(\.[0-9]+)?</code> is a usage error (exit 2).</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC minmag-keeps-at-least ===<br>Intent: filter_min_mag keeps events whose magnitude is greater than or equal to the threshold, boundary included.</p>
+<p>import importlib import json import os import pkgutil import tempfile from pathlib import Path</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>read_events = find(&quot;read_events&quot;) filter_min_mag = find(&quot;filter_min_mag&quot;)</p>
+<p>mags = [4.9, 5.0, 5.5, 6.1, 5.0] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: m, &quot;place&quot;: &quot;P&quot; + str(i), &quot;time&quot;: 1735700000000 + i * 1000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i, m in enumerate(mags) ] with tempfile.TemporaryDirectory() as d: path = Path(d) / &quot;q.geojson&quot; path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}), encoding=&quot;utf-8&quot;) events = read_events(path) assert len(events) == len(mags) for threshold in (5.0, 5.5, 6.1): kept = filter_min_mag(events, threshold) assert len(kept) == sum(1 for m in mags if m &gt;= threshold), threshold === END AC minmag-keeps-at-least ===</p>
+<p>=== AC minmag-extremes ===<br>Intent: A threshold below every event keeps all of them and one above every event keeps none.</p>
+<p>import importlib import json import pkgutil import tempfile from pathlib import Path</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>read_events = find(&quot;read_events&quot;) filter_min_mag = find(&quot;filter_min_mag&quot;)</p>
+<p>mags = [5.0, 5.3, 7.1] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: m, &quot;place&quot;: &quot;P&quot; + str(i), &quot;time&quot;: 1735700000000 + i * 1000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i, m in enumerate(mags) ] with tempfile.TemporaryDirectory() as d: path = Path(d) / &quot;q.geojson&quot; path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}), encoding=&quot;utf-8&quot;) events = read_events(path) assert len(filter_min_mag(events, 0.0)) == len(mags) assert len(filter_min_mag(events, 9.0)) == 0 assert len(filter_min_mag(events, -1.0)) == len(mags) === END AC minmag-extremes ===</p>
+<p>=== AC minmag-does-not-mutate ===<br>Intent: filter_min_mag returns a new selection and leaves the input event list unchanged.</p>
+<p>import importlib import json import pkgutil import tempfile from pathlib import Path</p>
+<p>import cli</p>
+<p>def find(name): mods = [cli] for info in pkgutil.walk_packages(cli.<strong>path</strong>, &quot;cli.&quot;): try: mods.append(importlib.import_module(info.name)) except Exception: pass for mod in mods: if hasattr(mod, name): return getattr(mod, name) raise AssertionError(&quot;no function named &quot; + name + &quot; under the cli package&quot;)</p>
+<p>read_events = find(&quot;read_events&quot;) filter_min_mag = find(&quot;filter_min_mag&quot;)</p>
+<p>mags = [5.0, 6.0, 5.5] feats = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: m, &quot;place&quot;: &quot;P&quot; + str(i), &quot;time&quot;: 1735700000000 + i * 1000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 10]}, &quot;id&quot;: &quot;ev&quot; + str(i)} for i, m in enumerate(mags) ] with tempfile.TemporaryDirectory() as d: path = Path(d) / &quot;q.geojson&quot; path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: feats}), encoding=&quot;utf-8&quot;) events = read_events(path) before = len(events) kept = filter_min_mag(events, 5.5) assert len(events) == before assert len(kept) == sum(1 for m in mags if m &gt;= 5.5) === END AC minmag-does-not-mutate ===</p>
+<p>=== AC minmag-malformed-value-usage-error ===<br>Intent: A --min-mag value that is not a decimal is a usage error with exit 2 and nothing on standard output.</p>
+<p>import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as d: path = os.path.join(d, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}, fh) for bad in (&quot;big&quot;, &quot;5.&quot;, &quot;.5&quot;, &quot;1e3&quot;): code, out, err = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, bad, path) assert code == 2, bad assert out == &quot;&quot;, bad === END AC minmag-malformed-value-usage-error ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li><code>--min-mag</code> applies to every report, never to a subset of them.</li><li>The comparison is <code>mag &gt;= m</code>; an event equal to the threshold is kept.</li><li>No default threshold is applied when the option is absent.</li></ul></article>
+</main>
+</body>
+</html>

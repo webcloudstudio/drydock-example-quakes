@@ -1,0 +1,239 @@
+{
+  "acceptance_status": "NOT_RUN",
+  "assertions": {
+    "failed": 0,
+    "harness_defects": 0,
+    "passed": 0,
+    "product_defects": 0,
+    "unverified": 0
+  },
+  "attestations": [],
+  "build_passes": 0,
+  "commands": [
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "init",
+        "Quakes"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 13352,
+      "label": "01-init",
+      "llm_executions": [],
+      "returncode": 0,
+      "stderr_path": "evidence/commands/01-init.stderr.log",
+      "stdout_path": "evidence/commands/01-init.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "import",
+        "Quakes",
+        "sources",
+        "--format",
+        "markdown"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 25620,
+      "label": "02-import-sources",
+      "llm_executions": [],
+      "returncode": 0,
+      "stderr_path": "evidence/commands/02-import-sources.stderr.log",
+      "stdout_path": "evidence/commands/02-import-sources.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "analyze",
+        "Quakes"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 53778,
+      "label": "03-analyze",
+      "llm_executions": [
+        "20261024.211956.411Z-17f9f3d9"
+      ],
+      "returncode": 0,
+      "stderr_path": "evidence/commands/03-analyze.stderr.log",
+      "stdout_path": "evidence/commands/03-analyze.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "plan",
+        "Quakes",
+        "--override",
+        "--plan-override-model",
+        "sonnet"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 560542,
+      "label": "04-plan",
+      "llm_executions": [
+        "20261024.212059.352Z-0dc20faf",
+        "20261024.212154.868Z-f20d6ea4",
+        "20261024.212434.019Z-2cb2e81d",
+        "20261024.212635.057Z-613d03fa",
+        "20261024.212819.459Z-8d6b6151",
+        "20261024.212909.102Z-8a707e29",
+        "20261024.212922.995Z-f2210b88",
+        "20261024.212927.759Z-8fd38daf"
+      ],
+      "returncode": 0,
+      "stderr_path": "evidence/commands/04-plan.stderr.log",
+      "stdout_path": "evidence/commands/04-plan.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "plan",
+        "verify",
+        "Quakes",
+        "--plan-override-model",
+        "sonnet"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 21169,
+      "label": "05-plan-verify",
+      "llm_executions": [],
+      "returncode": 1,
+      "stderr_path": "evidence/commands/05-plan-verify.stderr.log",
+      "stdout_path": "evidence/commands/05-plan-verify.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "plan",
+        "repair",
+        "Quakes",
+        "--plan-override-model",
+        "sonnet"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 62431,
+      "label": "06-plan-repair",
+      "llm_executions": [
+        "20261024.213045.635Z-1e8af7d8"
+      ],
+      "returncode": 1,
+      "stderr_path": "evidence/commands/06-plan-repair.stderr.log",
+      "stdout_path": "evidence/commands/06-plan-repair.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "plan",
+        "verify",
+        "Quakes",
+        "--plan-override-model",
+        "sonnet"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 23928,
+      "label": "07-plan-verify-after-repair",
+      "llm_executions": [],
+      "returncode": 1,
+      "stderr_path": "evidence/commands/07-plan-verify-after-repair.stderr.log",
+      "stdout_path": "evidence/commands/07-plan-verify-after-repair.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "build",
+        "status",
+        "Quakes"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 344,
+      "label": "08-after-plan-build-status",
+      "llm_executions": [],
+      "returncode": 1,
+      "stderr_path": "evidence/commands/08-after-plan-build-status.stderr.log",
+      "stdout_path": "evidence/commands/08-after-plan-build-status.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "status",
+        "Quakes"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 862,
+      "label": "09-after-plan-target-status",
+      "llm_executions": [],
+      "returncode": 0,
+      "stderr_path": "evidence/commands/09-after-plan-target-status.stderr.log",
+      "stdout_path": "evidence/commands/09-after-plan-target-status.stdout.log"
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/barlo/projects/drydock/.venv/bin/python",
+        "-m",
+        "drydock",
+        "status"
+      ],
+      "cwd": "workspace",
+      "elapsed_ms": 483,
+      "label": "10-after-plan-workspace-status",
+      "llm_executions": [],
+      "returncode": 0,
+      "stderr_path": "evidence/commands/10-after-plan-workspace-status.stderr.log",
+      "stdout_path": "evidence/commands/10-after-plan-workspace-status.stdout.log"
+    }
+  ],
+  "degraded": [],
+  "elapsed_ms": 769030,
+  "environment": {
+    "drydock_version": "0.8.0",
+    "effort": "",
+    "finished_at": "2026-10-24T21:31:56.592949Z",
+    "git_commit": "c555de2aeaba1a10e854e1a6ba1753bf7d47f94e",
+    "model": "claude-haiku-5-5, claude-sonnet-5-5",
+    "plan_model": "sonnet",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+    "provider": "claude",
+    "python_version": "3.12.13",
+    "requested_model": "claude-haiku-5-5",
+    "started_at": "2026-10-24T21:19:07.525503Z"
+  },
+  "error": "Quakes: stopped at plan-repair: acceptance criteria still cannot run after one repair pass",
+  "evidence_dir": "evidence",
+  "execution_status": "ERROR",
+  "expected_verdict": "PASSED",
+  "fixture": "Quakes",
+  "observed_verdict": "ERROR",
+  "output_dir": ".",
+  "release_verdict": "",
+  "resumed_from": "",
+  "run_id": "20261024.211905",
+  "score_exit_codes": {},
+  "status": "failed",
+  "target": "Quakes",
+  "usage": {
+    "cached_input_tokens": 16460,
+    "calls": 10,
+    "fresh_input_tokens": 20,
+    "input_tokens": 16480,
+    "invalid_records": 0,
+    "llm_elapsed_ms": 537964,
+    "output_tokens": 85323
+  }
+}

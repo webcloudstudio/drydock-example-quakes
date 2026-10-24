@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-NearValidation.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-NearValidation.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-NearValidation.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Near Validation</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>The near command rejects out-of-range or missing coordinates and radius as usage errors.</td></tr><tr><td>Depends On</td><td>FEATURE-Near.md</td></tr><tr><td>Provides</td><td>near option validation</td></tr><tr><td>Consumes</td><td>quakes near</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>Guarantee that <code>quakes near</code> only runs with a valid point and radius, and otherwise fails as a usage error before reading the file.</p>
+<h2>Rules</h2>
+<ul><li><code>--lat</code> must be within -90 to 90 inclusive.</li><li><code>--lon</code> must be within -180 to 180 inclusive.</li><li><code>--radius</code> must be greater than zero.</li><li>All three of <code>--lat</code>, <code>--lon</code> and <code>--radius</code> are required.</li><li>Any violation exits 2, writes nothing to standard output, and writes one diagnostic line to</li></ul>
+<p>standard error.</p>
+<ul><li>The boundary values -90, 90, -180 and 180 are valid.</li></ul>
+<h2>Reads</h2>
+<p>The command line only.</p>
+<h2>Writes</h2>
+<p>Nothing on standard output on failure; one line on standard error.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC near-validation-rejects ===<br>Intent: Out-of-range or missing near options exit 2 with empty standard output and one diagnostic line.</p>
+<p>import json import os import tempfile from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}, fh) cases = [ [&quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;], [&quot;--lat&quot;, &quot;-90.5&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;], [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;180.5&quot;, &quot;--radius&quot;, &quot;10&quot;], [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;-181&quot;, &quot;--radius&quot;, &quot;10&quot;], [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;0&quot;], [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;-5&quot;], [&quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;], [&quot;--lat&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;], [&quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;], [], ] for opts in cases: code, out, err = cli_runner(&quot;near&quot;, *opts, path) print(opts, code, repr(err)) assert code == 2 assert out == &quot;&quot; assert len(err.strip().splitlines()) == 1 === END AC near-validation-rejects ===</p>
+<p>=== AC near-validation-accepts-boundaries ===<br>Intent: The inclusive boundary values for latitude and longitude and a small positive radius are accepted.</p>
+<p>import csv import io import json import os import tempfile from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}, fh) cases = [ [&quot;--lat&quot;, &quot;90&quot;, &quot;--lon&quot;, &quot;180&quot;, &quot;--radius&quot;, &quot;10&quot;], [&quot;--lat&quot;, &quot;-90&quot;, &quot;--lon&quot;, &quot;-180&quot;, &quot;--radius&quot;, &quot;0.5&quot;], ] for opts in cases: code, out, err = cli_runner(&quot;near&quot;, *opts, path) print(opts, code, out) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert len(rows) == 1 === END AC near-validation-accepts-boundaries ===</p>
+<p>=== AC near-validation-precedes-file-read ===<br>Intent: A usage error is reported as exit 2 even when the file does not exist.</p>
+<p>import os import tempfile from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as tmp: missing = os.path.join(tmp, &quot;absent.geojson&quot;) code, out, err = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;, missing) assert code == 2 assert out == &quot;&quot; === END AC near-validation-precedes-file-read ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Validation failures never write to standard output.</li><li>Messages are diagnostics only and are never part of the contract.</li></ul></article>
+</main>
+</body>
+</html>

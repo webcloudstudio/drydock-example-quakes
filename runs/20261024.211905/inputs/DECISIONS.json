@@ -1,0 +1,94 @@
+[
+  {
+    "id": "Q-001",
+    "type": "choice",
+    "severity": "low",
+    "origin": "plan",
+    "blueprint": "FEATURE-Help.md",
+    "story": "feature-help",
+    "status": "recommended",
+    "archived": false,
+    "title": "Help exit code and channel",
+    "description": "The sources require help text but state no response contract for it. Options weighed: exit 0 with help on stdout, or exit 2 with help on stderr. Help is a requested output, not a failure, so exit 0 on stdout is the conventional narrowest choice.",
+    "options": [
+      {
+        "value": "stdout-0",
+        "label": "--help prints to stdout and exits 0"
+      },
+      {
+        "value": "stderr-2",
+        "label": "help is a usage error on stderr, exit 2"
+      }
+    ],
+    "system_choice": "stdout-0"
+  },
+  {
+    "id": "Q-002",
+    "type": "choice",
+    "severity": "low",
+    "origin": "plan",
+    "blueprint": "FEATURE-CliDispatch.md",
+    "story": "feature-cli-dispatch",
+    "status": "recommended",
+    "archived": false,
+    "title": "Repeated options",
+    "description": "The sources do not say what happens when an option is given twice. Rejecting is the narrowest behavior consistent with 'malformed value' usage errors; last-wins would silently accept ambiguity.",
+    "options": [
+      {
+        "value": "reject",
+        "label": "Repeated option is a usage error (exit 2)"
+      },
+      {
+        "value": "last-wins",
+        "label": "The last value wins"
+      }
+    ],
+    "system_choice": "reject"
+  },
+  {
+    "id": "Q-003",
+    "type": "choice",
+    "severity": "low",
+    "origin": "plan",
+    "blueprint": "FEATURE-Near.md",
+    "story": "feature-near",
+    "status": "recommended",
+    "archived": false,
+    "title": "Radius comparison precision",
+    "description": "The radius filter compares the unrounded haversine distance with --radius, then rounds only for display, since the sources define the filter as 'distance at most radius' and formatting separately.",
+    "options": [
+      {
+        "value": "unrounded",
+        "label": "Compare unrounded distance"
+      },
+      {
+        "value": "rounded",
+        "label": "Compare the 1 dp rounded distance"
+      }
+    ],
+    "system_choice": "unrounded"
+  },
+  {
+    "id": "Q-004",
+    "type": "choice",
+    "severity": "low",
+    "origin": "plan",
+    "blueprint": "FEATURE-FeedReader.md",
+    "story": "feature-feed-reader",
+    "status": "recommended",
+    "archived": false,
+    "title": "FeatureCollection without a features array or with malformed features",
+    "description": "A document with type FeatureCollection but no features array is an operational failure (exit 1) per the reading rules. A feature lacking required fields other than a null mag is likewise treated as an operational failure rather than skipped.",
+    "options": [
+      {
+        "value": "fail",
+        "label": "Exit 1"
+      },
+      {
+        "value": "skip",
+        "label": "Skip the feature silently"
+      }
+    ],
+    "system_choice": "fail"
+  }
+]

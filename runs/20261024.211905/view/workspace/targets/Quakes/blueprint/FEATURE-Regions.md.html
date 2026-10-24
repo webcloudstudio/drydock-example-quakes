@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Regions.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Regions.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Regions.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Regions</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261024 V1</td></tr><tr><td>Description</td><td>The regions report counts events and the maximum magnitude per region of a saved feed.</td></tr><tr><td>Depends On</td><td>FEATURE-MinMagFilter.md, FEATURE-ExitCodes.md</td></tr><tr><td>Provides</td><td>quakes regions</td></tr><tr><td>Consumes</td><td>filter_min_mag(events, m), region_of</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;</code> answers which regions are most active. It reads the file, applies the magnitude filter, groups events by region, and writes one CSV row per region.</p>
+<h2>Trigger</h2>
+<p>The command line <code>quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;</code>.</p>
+<h2>Sequence</h2>
+<ol><li>Read the file and drop events with a null magnitude (reader).</li><li>Keep events with <code>mag &gt;= m</code> when <code>--min-mag</code> is given (filter).</li><li>Compute one row per region: event count and maximum magnitude (compute).</li><li>Format and write CSV with the <code>csv</code> module, <code>\n</code> line endings, UTF-8 (formatter).</li></ol>
+<h2>Output</h2>
+<p>Header <code>region,events,max_mag</code>. Rows are ordered by <code>events</code> descending, then <code>region</code> ascending. Region text is compared by byte value (its UTF-8 encoding). <code>max_mag</code> is written with one decimal place. The region of an event is the text after the last <code>,</code> in its place, or the whole place when there is none; a null place is <code>Unknown</code>, which is its own region. With no matching events only the header is written and the exit status is 0.</p>
+<h2>Reads</h2>
+<p>The saved GeoJSON file named on the command line. Nothing else.</p>
+<h2>Writes</h2>
+<p>CSV on standard output only.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC regions-counts-and-order ===<br>Intent: Regions are grouped, counted and ordered by events descending then region bytes ascending.</p>
+<p>import csv import io import json import os import tempfile from cli.testing import cli_runner</p>
+<p>BASE = 1735689600000</p>
+<p>def feat(i, mag, place, t): return {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: place, &quot;time&quot;: t, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 5.0, 10]}, &quot;id&quot;: &quot;ev%d&quot; % i}</p>
+<h1>(place, region, mag)</h1>
+<p>specs = [ (&quot;5 km N of Town, Beta&quot;, &quot;Beta&quot;, 5.0), (&quot;6 km N of Town, Beta&quot;, &quot;Beta&quot;, 6.2), (&quot;7 km N of Town, Alpha&quot;, &quot;Alpha&quot;, 5.5), (&quot;8 km N of Town, Alpha&quot;, &quot;Alpha&quot;, 5.1), (&quot;9 km N of Town, Gamma&quot;, &quot;Gamma&quot;, 7.0), (&quot;1 km N of Town, alpha&quot;, &quot;alpha&quot;, 5.3), (&quot;2 km N of Town, alpha&quot;, &quot;alpha&quot;, 5.4), (&quot;3 km N of Town, alpha&quot;, &quot;alpha&quot;, 5.0), (&quot;Plain Region Name&quot;, &quot;Plain Region Name&quot;, 5.6), (&quot;4 km N of Town, Sub, Outer&quot;, &quot;Outer&quot;, 5.2), (None, &quot;Unknown&quot;, 5.7), ] features = [feat(i, m, p, BASE + i * 60000) for i, (p, r, m) in enumerate(specs)] features.append(feat(99, None, &quot;1 km N of Town, Nullland&quot;, BASE))</p>
+<p>counts = {} maxes = {} for p, r, m in specs: counts[r] = counts.get(r, 0) + 1 maxes[r] = max(maxes.get(r, m), m) expected = sorted(counts, key=lambda r: (-counts[r], r.encode(&quot;utf-8&quot;)))</p>
+<p>with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, fh) code, out, err = cli_runner(&quot;regions&quot;, path) print(out) print(err) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert rows[0] == [&quot;region&quot;, &quot;events&quot;, &quot;max_mag&quot;] body = rows[1:] assert [r[0] for r in body] == expected for r in body: assert int(r[1]) == counts[r[0]] assert float(r[2]) == maxes[r[0]] assert &quot;Nullland&quot; not in [r[0] for r in body] === END AC regions-counts-and-order ===</p>
+<p>=== AC regions-min-mag-and-empty ===<br>Intent: --min-mag restricts the regions report and an empty result is only the header with exit 0.</p>
+<p>import csv import io import json import os import tempfile from cli.testing import cli_runner</p>
+<p>BASE = 1735689600000</p>
+<p>def feat(i, mag, place): return {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: place, &quot;time&quot;: BASE + i * 1000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 5.0, 10]}, &quot;id&quot;: &quot;ev%d&quot; % i}</p>
+<p>threshold = 6.0 specs = [(&quot;1 km N of T, Low&quot;, 5.0), (&quot;2 km N of T, Low&quot;, 5.9), (&quot;3 km N of T, High&quot;, 6.0), (&quot;4 km N of T, High&quot;, 6.8)] features = [feat(i, m, p) for i, (p, m) in enumerate(specs)]</p>
+<p>with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, fh) code, out, err = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, str(threshold), path) print(out) assert code == 0 rows = list(csv.reader(io.StringIO(out))) kept = [m for p, m in specs if m &gt;= threshold] assert len(rows) == 2 assert rows[1][0] == &quot;High&quot; assert int(rows[1][1]) == len(kept) assert float(rows[1][2]) == max(kept)</p>
+<p>code, out, err = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, &quot;99&quot;, path) print(out) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert rows == [[&quot;region&quot;, &quot;events&quot;, &quot;max_mag&quot;]] === END AC regions-min-mag-and-empty ===</p>
+<p>=== AC regions-failure-contract ===<br>Intent: A missing file exits 1 and an extra file argument exits 2, both with empty standard output.</p>
+<p>import os import tempfile from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as tmp: missing = os.path.join(tmp, &quot;absent.geojson&quot;) code, out, err = cli_runner(&quot;regions&quot;, missing) assert code == 1 assert out == &quot;&quot; code, out, err = cli_runner(&quot;regions&quot;, missing, missing) assert code == 2 assert out == &quot;&quot; === END AC regions-failure-contract ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Region text is compared by byte value, never by locale collation.</li><li>No report value is embedded in code; every row is computed from the file being read.</li><li>A failing command writes nothing to standard output.</li></ul></article>
+</main>
+</body>
+</html>

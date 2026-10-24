@@ -1,0 +1,79 @@
+<requirement name="summary-report" stories="feature-summary,feature-feed-reader,feature-event-normalise">
+check A1 0 summary "$QUAKES" <<'EOF'
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+44,2025-01-01T04:39:18Z,2025-01-07T17:52:21Z,5.0,7.1,5.30,0
+EOF
+</requirement>
+<requirement name="top-report" stories="feature-top">
+check A2 0 top "$QUAKES" <<'EOF'
+time,mag,depth_km,place,id
+2025-01-07T01:05:16Z,7.1,10.0,2025 Southern Tibetan Plateau Earthquake,us6000pi9w
+2025-01-05T17:18:45Z,6.2,46.0,"56 km SSE of La Libertad, El Salvador",us6000pi09
+EOF
+</requirement>
+<requirement name="daily-report" stories="feature-daily">
+check A3 0 daily "$QUAKES" <<'EOF'
+date,events,max_mag
+2025-01-01,7,6.1
+2025-01-02,8,6.1
+TOTAL,44,7.1
+EOF
+</requirement>
+<requirement name="regions-report" stories="feature-regions">
+check A4 0 regions "$QUAKES" <<'EOF'
+region,events,max_mag
+Ethiopia,7,5.7
+Papua New Guinea,6,5.4
+EOF
+</requirement>
+<requirement name="top-n-limit" stories="feature-top">
+check B1 0 top --n 3 "$QUAKES" <<'EOF'
+</requirement>
+<requirement name="min-mag-filter" stories="feature-min-mag">
+check B2 0 summary --min-mag 5.5 "$QUAKES" <<'EOF'
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+10,2025-01-01T04:39:18Z,2025-01-07T08:31:30Z,5.5,7.1,5.88,0
+EOF
+</requirement>
+<requirement name="near-distance-search" stories="feature-near">
+check C1 0 near --lat 27.72 --lon 85.32 --radius 800 "$QUAKES" <<'EOF'
+distance_km,time,mag,place,id
+214.8,2025-01-07T01:10:54Z,5.2,"100 km NNE of Lobuche, Nepal",us6000pks6
+EOF
+</requirement>
+<requirement name="empty-result-output" stories="feature-summary,feature-daily,feature-near">
+check D1 0 summary --min-mag 9 "$QUAKES" <<'EOF'
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+0,,,,,,0
+EOF
+</requirement>
+<requirement name="operational-failure-exit-1" stories="feature-exit-codes,feature-feed-reader">
+check E1 1 summary "$WORK/no-such-file.geojson" < /dev/null
+check E2 1 summary "$WORK/garbage.json" < /dev/null
+check E3 1 summary "$WORK/feature.json" < /dev/null
+</requirement>
+<requirement name="usage-error-exit-2" stories="feature-exit-codes,feature-cli-dispatch,feature-near-validation">
+check U1 2 < /dev/null
+check U2 2 frobnicate "$QUAKES" < /dev/null
+check U3 2 near --lat 27.72 --lon 85.32 "$QUAKES" < /dev/null
+check U4 2 top --n 0 "$QUAKES" < /dev/null
+check U5 2 summary --min-mag big "$QUAKES" < /dev/null
+check U6 2 near --lat 95 --lon 0 --radius 10 "$QUAKES" < /dev/null
+check U7 2 summary --n 3 "$QUAKES" < /dev/null
+check U8 2 summary < /dev/null
+</requirement>
+<requirement name="executable-quakes-deliverable" stories="foundation">
+if [ ! -x "$BIN" ]; then
+    echo "error: no executable ./quakes at the application root $APP." >&2
+    echo "The deliverable is an executable named quakes at the application root." >&2
+    exit 1
+fi
+</requirement>
+<requirement name="grader-passes" stories="verification">
+# run.sh — Quakes grader. Do not filter, skip, or reinterpret.
+</requirement>
+<unattached story="feature-help"/>
+<unattached story="feature-fetch"/>
+<unattached story="feature-fetch-errors"/>
+<unattached story="feature-test-runner"/>
+<unattached story="feature-fetch-stub-tests"/>
