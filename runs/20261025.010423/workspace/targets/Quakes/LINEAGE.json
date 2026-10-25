@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "import": {
+    "root": "/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/sources",
+    "format": "markdown"
+  },
+  "sources": {
+    "INSTRUCTIONS.md": {
+      "state": "current",
+      "versions": [
+        {
+          "commit": "e9a87eb",
+          "date": "2026-10-24",
+          "hash": "8846c1aa162bdada31a845ba311cde0191ceca1e42be6169331250491c68d89d",
+          "release": "",
+          "state": "consumed",
+          "via": "plan",
+          "ticket": null,
+          "requirements": [
+            {
+              "name": "stack-and-executable",
+              "text": "Implement in Python 3.11 or newer using only the standard library (`urllib.request` for HTTP).\nTests run under pytest. The product is an executable named `quakes` at the application root.",
+              "stories": [
+                "architecture",
+                "cli-foundation"
+              ]
+            },
+            {
+              "name": "command-line-syntax",
+              "text": "The command comes first, options follow it in any order, and the file is last. An option that the\ncommand does not list is a usage error.",
+              "stories": [
+                "options"
+              ]
+            },
+            {
+              "name": "fetch-command",
+              "text": "`fetch` requests\n`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=<start>&endtime=<end>&minmagnitude=<m>&orderby=time-asc`\n(`--min-mag` defaults to `2.5`) and writes the response body unchanged to `<file>`. It writes\n`fetched,<count>` to standard output, where `<count>` is the number of features.",
+              "stories": [
+                "fetch"
+              ]
+            },
+            {
+              "name": "fetch-failure",
+              "text": "A network error,\nan HTTP status other than 200, or a body that is not a GeoJSON FeatureCollection is an operational\nfailure, and no file is written.",
+              "stories": [
+                "fetch-failure"
+              ]
+            },
+            {
+              "name": "read-feature-collection",
+              "text": "The file is a GeoJSON `FeatureCollection` as the USGS feed returns it. A file that cannot be\nread, is not JSON, or is not an object with `\"type\": \"FeatureCollection\"` and a `features`\narray is an operational failure.",
+              "stories": [
+                "feed-validation"
+              ]
+            },
+            {
+              "name": "extract-event-fields",
+              "text": "Each feature is one event. The tool reads `id`, `properties.mag`, `properties.place`,\n`properties.time` (milliseconds since the Unix epoch), `properties.tsunami` (`1` or `0`), and\n`geometry.coordinates` (`[longitude, latitude, depth_km]`). Every other field is ignored.",
+              "stories": [
+                "event-extraction"
+              ]
+            },
+            {
+              "name": "min-mag-filter",
+              "text": "`--min-mag <m>` keeps only events with `mag >= m`. It applies to every report.",
+              "stories": [
+                "mag-filter"
+              ]
+            },
+            {
+              "name": "output-formatting",
+              "text": "- Magnitudes are written with one decimal place: `5.0`, `7.1`.\n- `mean_mag` is written with two decimal places, rounded half up.\n- `depth_km` and `distance_km` are written with one decimal place, rounded half up.\n- Text is compared by byte value.\n- Output is CSV on standard output with `\\n` line endings, written with Python's `csv` module, so\n  a place containing a comma is quoted. Place names contain non-ASCII characters and are written\n  as UTF-8.",
+              "stories": [
+                "formatting"
+              ]
+            },
+            {
+              "name": "summary-report",
+              "text": "| `summary` | `events,first,last,min_mag,max_mag,mean_mag,tsunami` | One row. `first` and `last` are the earliest and latest event times. `tsunami` counts events with `tsunami` equal to `1`. With no events: `0,,,,,,0`. |",
+              "stories": [
+                "summary"
+              ]
+            },
+            {
+              "name": "top-report",
+              "text": "| `top` | `time,mag,depth_km,place,id` | The `--n` largest events, by `mag` descending, then time ascending. |",
+              "stories": [
+                "top"
+              ]
+            },
+            {
+              "name": "daily-report",
+              "text": "| `daily` | `date,events,max_mag` | One row per date that has events, ascending, then `TOTAL,<events>,<max_mag>`. With no events, the max is empty: `TOTAL,0,`. |",
+              "stories": [
+                "daily"
+              ]
+            },
+            {
+              "name": "regions-report",
+              "text": "| `regions` | `region,events,max_mag` | One row per region, by events descending, then region ascending. |",
+              "stories": [
+                "regions"
+              ]
+            },
+            {
+              "name": "near-report",
+              "text": "| `near` | `distance_km,time,mag,place,id` | Events whose distance from (`--lat`, `--lon`) is at most `--radius` km, by distance ascending, then time ascending. |",
+              "stories": [
+                "near"
+              ]
+            },
+            {
+              "name": "exit-codes",
+              "text": "A failing command writes nothing to standard output and one diagnostic line to standard error.",
+              "stories": [
+                "exit-codes"
+              ]
+            },
+            {
+              "name": "test-suite",
+              "text": "The completed application provides a POSIX-compatible `bin/test.sh` that runs its own pytest suite\nfrom the application root and exits zero only when every test passes.",
+              "stories": [
+                "test-suite"
+              ]
+            },
+            {
+              "name": "scoring-harness",
+              "text": "`drydock uat` runs `sh sources/run.sh` from the\ncompleted application root and takes its exit code and output as the score.",
+              "stories": [
+                "verification"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "quakes_2025-01-01_07.geojson": {
+      "state": "current",
+      "versions": [
+        {
+          "commit": "e9a87eb",
+          "date": "2026-10-24",
+          "hash": "e448bc977913aedd85b7636fcc13feeb76b4daf019c5e5a27c712b2d7b9a346c",
+          "release": "",
+          "state": "consumed",
+          "via": "plan",
+          "ticket": null,
+          "requirements": []
+        }
+      ]
+    },
+    "run.sh": {
+      "state": "current",
+      "versions": [
+        {
+          "commit": "e9a87eb",
+          "date": "2026-10-24",
+          "hash": "086f2fb1ebb76c54b97ed71e06aa5474734314fa98d8ec1e90e3ed900f59de3a",
+          "release": "",
+          "state": "consumed",
+          "via": "plan",
+          "ticket": null,
+          "requirements": [
+            {
+              "name": "summary-report",
+              "text": "check A1 0 summary \"$QUAKES\" <<'EOF'\nevents,first,last,min_mag,max_mag,mean_mag,tsunami\n44,2025-01-01T04:39:18Z,2025-01-07T17:52:21Z,5.0,7.1,5.30,0\nEOF",
+              "stories": [
+                "summary"
+              ]
+            },
+            {
+              "name": "top-report",
+              "text": "check A2 0 top \"$QUAKES\" <<'EOF'\ntime,mag,depth_km,place,id",
+              "stories": [
+                "top"
+              ]
+            },
+            {
+              "name": "daily-report",
+              "text": "check A3 0 daily \"$QUAKES\" <<'EOF'\ndate,events,max_mag",
+              "stories": [
+                "daily"
+              ]
+            },
+            {
+              "name": "regions-report",
+              "text": "check A4 0 regions \"$QUAKES\" <<'EOF'\nregion,events,max_mag",
+              "stories": [
+                "regions"
+              ]
+            },
+            {
+              "name": "top-n-option",
+              "text": "check B1 0 top --n 3 \"$QUAKES\" <<'EOF'",
+              "stories": [
+                "top",
+                "options"
+              ]
+            },
+            {
+              "name": "min-mag-filter",
+              "text": "check B2 0 summary --min-mag 5.5 \"$QUAKES\" <<'EOF'",
+              "stories": [
+                "mag-filter",
+                "options"
+              ]
+            },
+            {
+              "name": "near-search",
+              "text": "check C1 0 near --lat 27.72 --lon 85.32 --radius 800 \"$QUAKES\" <<'EOF'\ndistance_km,time,mag,place,id",
+              "stories": [
+                "near"
+              ]
+            },
+            {
+              "name": "empty-results",
+              "text": "check D1 0 summary --min-mag 9 \"$QUAKES\" <<'EOF'\nevents,first,last,min_mag,max_mag,mean_mag,tsunami\n0,,,,,,0\nEOF",
+              "stories": [
+                "summary",
+                "daily"
+              ]
+            },
+            {
+              "name": "operational-failures",
+              "text": "check E1 1 summary \"$WORK/no-such-file.geojson\" < /dev/null",
+              "stories": [
+                "exit-codes",
+                "feed-validation"
+              ]
+            },
+            {
+              "name": "usage-errors",
+              "text": "check U1 2 < /dev/null",
+              "stories": [
+                "exit-codes",
+                "options"
+              ]
+            },
+            {
+              "name": "grader-passes",
+              "text": "Exit 0 only when every check passes.",
+              "stories": [
+                "verification"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

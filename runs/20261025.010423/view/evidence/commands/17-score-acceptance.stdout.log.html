@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/commands/17-score-acceptance.stdout.log</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/commands/17-score-acceptance.stdout.log</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/commands/17-score-acceptance.stdout.log">Raw file</a></div></header>
+<article class="doc"><pre>Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+  ✓ PASS        [1/78]  arch-project-files                     architecture      ARCHITECTURE.md
+  ✓ PASS        [2/78]  arch-stdlib-only                       architecture      ARCHITECTURE.md
+  ✓ PASS        [3/78]  arch-pytest-available                  architecture      ARCHITECTURE.md
+  ✓ PASS        [4/78]  clifound-main-returns-int              cli-foundation    FEATURE-CliFoundation.md
+  ✓ PASS        [5/78]  clifound-runner-shape                  cli-foundation    FEATURE-CliFoundation.md
+  ✓ PASS        [6/78]  clifound-registry                      cli-foundation    FEATURE-CliFoundation.md
+  ✓ PASS        [7/78]  clifound-launcher                      cli-foundation    FEATURE-CliFoundation.md
+  ✓ PASS        [8/78]  options-valid-summary                  options           FEATURE-Options.md
+  ✓ PASS        [9/78]  options-defaults                       options           FEATURE-Options.md
+  ✓ PASS        [10/78]  options-any-order                      options           FEATURE-Options.md
+  ✓ PASS        [11/78]  options-near-valid                     options           FEATURE-Options.md
+  ✓ PASS        [12/78]  options-fetch-valid                    options           FEATURE-Options.md
+  ✓ PASS        [13/78]  options-usage-errors                   options           FEATURE-Options.md
+  ✓ PASS        [14/78]  options-exit-two                       options           FEATURE-Options.md
+  ✓ PASS        [15/78]  exit-usage-code                        exit-codes        FEATURE-ExitCodes.md
+  ✓ PASS        [16/78]  exit-operational-code                  exit-codes        FEATURE-ExitCodes.md
+  ✓ PASS        [17/78]  exit-success-code                      exit-codes        FEATURE-ExitCodes.md
+  ✓ PASS        [18/78]  exit-error-classes                     exit-codes        FEATURE-ExitCodes.md
+  ✓ PASS        [19/78]  exit-launcher-status                   exit-codes        FEATURE-ExitCodes.md
+  ✓ PASS        [20/78]  fmt-time                               formatting        FEATURE-Formatting.md
+  ✓ PASS        [21/78]  fmt-magnitude                          formatting        FEATURE-Formatting.md
+  ✓ PASS        [22/78]  fmt-mean-half-up                       formatting        FEATURE-Formatting.md
+  ✓ PASS        [23/78]  fmt-decimal-half-up                    formatting        FEATURE-Formatting.md
+  ✓ PASS        [24/78]  fmt-csv-roundtrip                      formatting        FEATURE-Formatting.md
+  ✓ PASS        [25/78]  fmt-write-csv                          formatting        FEATURE-Formatting.md
+  ✓ PASS        [26/78]  feed-valid-collection                  feed-validation   FEATURE-FeedValidation.md
+  ✓ PASS        [27/78]  feed-unreadable-file                   feed-validation   FEATURE-FeedValidation.md
+  ✓ PASS        [28/78]  feed-not-json                          feed-validation   FEATURE-FeedValidation.md
+  ✓ PASS        [29/78]  feed-wrong-shape                       feed-validation   FEATURE-FeedValidation.md
+  ✓ PASS        [30/78]  extract-fields                         event-extraction  FEATURE-EventExtraction.md
+  ✓ PASS        [31/78]  extract-null-mag-excluded              event-extraction  FEATURE-EventExtraction.md
+  ✓ PASS        [32/78]  extract-null-place-and-empty           event-extraction  FEATURE-EventExtraction.md
+  ✓ PASS        [33/78]  filter-threshold-inclusive             mag-filter        FEATURE-MagFilter.md
+  ✓ PASS        [34/78]  filter-none-keeps-all                  mag-filter        FEATURE-MagFilter.md
+  ✓ PASS        [35/78]  filter-nothing-matches                 mag-filter        FEATURE-MagFilter.md
+  ✓ PASS        [36/78]  testsuite-script-exists                test-suite        FEATURE-TestSuite.md
+  ✓ PASS        [37/78]  testsuite-runs-green                   test-suite        FEATURE-TestSuite.md
+  ✓ PASS        [38/78]  testsuite-runs-from-other-directory    test-suite        FEATURE-TestSuite.md
+  ✓ PASS        [39/78]  testsuite-propagates-failure           test-suite        FEATURE-TestSuite.md
+  ✓ PASS        [40/78]  testsuite-passes-when-tests-pass       test-suite        FEATURE-TestSuite.md
+  ✓ PASS        [41/78]  summary-values                         summary           FEATURE-Summary.md
+  ✓ PASS        [42/78]  summary-mean-half-up                   summary           FEATURE-Summary.md
+  ✓ PASS        [43/78]  summary-min-mag-filter                 summary           FEATURE-Summary.md
+  ✓ PASS        [44/78]  summary-null-mag-excluded              summary           FEATURE-Summary.md
+  ✓ PASS        [45/78]  summary-empty                          summary           FEATURE-Summary.md
+  ✓ PASS        [46/78]  summary-failure-codes                  summary           FEATURE-Summary.md
+  ✓ PASS        [47/78]  regions-extract-and-order              regions           FEATURE-Regions.md
+  ✓ PASS        [48/78]  regions-place-rules                    regions           FEATURE-Regions.md
+  ✓ PASS        [49/78]  regions-min-mag-and-empty              regions           FEATURE-Regions.md
+  ✓ PASS        [50/78]  regions-failure-contract               regions           FEATURE-Regions.md
+  ✓ PASS        [51/78]  daily-groups-by-utc-date               daily             FEATURE-Daily.md
+  ✓ PASS        [52/78]  daily-empty-report                     daily             FEATURE-Daily.md
+  ✓ PASS        [53/78]  daily-min-mag-and-null-mag             daily             FEATURE-Daily.md
+  ✓ PASS        [54/78]  daily-failure-contract                 daily             FEATURE-Daily.md
+  ✓ PASS        [55/78]  top-order-and-default-n                top               FEATURE-Top.md
+  ✓ PASS        [56/78]  top-n-option                           top               FEATURE-Top.md
+  ✓ PASS        [57/78]  top-min-mag-before-cut                 top               FEATURE-Top.md
+  ✓ PASS        [58/78]  top-place-with-comma                   top               FEATURE-Top.md
+  ✓ PASS        [59/78]  top-empty-result                       top               FEATURE-Top.md
+  ✓ PASS        [60/78]  top-usage-errors                       top               FEATURE-Top.md
+  ✓ PASS        [61/78]  fetch-saves-body-unchanged             fetch             FEATURE-Fetch.md
+  ✓ PASS        [62/78]  fetch-request-url                      fetch             FEATURE-Fetch.md
+  ✓ PASS        [63/78]  fetch-min-mag-passthrough              fetch             FEATURE-Fetch.md
+  ✓ PASS        [64/78]  fetch-usage-errors                     fetch             FEATURE-Fetch.md
+  ✓ PASS        [65/78]  fetch-http-get-uses-urllib             fetch             FEATURE-Fetch.md
+  ✓ PASS        [66/78]  fetch-failure-http-status              fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        [67/78]  fetch-failure-bad-body                 fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        [68/78]  fetch-failure-network-error            fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        [69/78]  fetch-failure-http-error-status        fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        [70/78]  fetch-failure-preserves-existing-file  fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        [71/78]  near-haversine-distance-and-radius     near              FEATURE-Near.md
+  ✓ PASS        [72/78]  near-ordering-ties-and-quoting         near              FEATURE-Near.md
+  ✓ PASS        [73/78]  near-min-mag-null-mag-and-empty        near              FEATURE-Near.md
+  ✓ PASS        [74/78]  near-usage-errors                      near              FEATURE-Near.md
+  ✓ PASS        [75/78]  near-unreadable-file                   near              FEATURE-Near.md
+  ✓ PASS        [76/78]  verification-grader                    verification      VERIFICATION.md
+  ✓ PASS        [77/78]  verification-test-suite                verification      VERIFICATION.md
+  ✓ PASS        [78/78]  verification-quakes-executable         verification      VERIFICATION.md
+
+Acceptance verification: Quakes  (2026-10-25T01:33:37+00:00)
+  PASS 63   FAIL 0   UNVERIFIED 0   PREPASSED 15   (78 AC)
+
+  ✓ PASS        arch-project-files                     architecture      ARCHITECTURE.md
+  ~ PREPASSED   arch-stdlib-only                       architecture      ARCHITECTURE.md
+  ~ PREPASSED   arch-pytest-available                  architecture      ARCHITECTURE.md
+  ✓ PASS        clifound-main-returns-int              cli-foundation    FEATURE-CliFoundation.md
+  ✓ PASS        clifound-runner-shape                  cli-foundation    FEATURE-CliFoundation.md
+  ✓ PASS        clifound-registry                      cli-foundation    FEATURE-CliFoundation.md
+  ✓ PASS        clifound-launcher                      cli-foundation    FEATURE-CliFoundation.md
+  ✓ PASS        options-valid-summary                  options           FEATURE-Options.md
+  ✓ PASS        options-defaults                       options           FEATURE-Options.md
+  ✓ PASS        options-any-order                      options           FEATURE-Options.md
+  ✓ PASS        options-near-valid                     options           FEATURE-Options.md
+  ✓ PASS        options-fetch-valid                    options           FEATURE-Options.md
+  ✓ PASS        options-usage-errors                   options           FEATURE-Options.md
+  ~ PREPASSED   options-exit-two                       options           FEATURE-Options.md
+  ~ PREPASSED   exit-usage-code                        exit-codes        FEATURE-ExitCodes.md
+  ✓ PASS        exit-operational-code                  exit-codes        FEATURE-ExitCodes.md
+  ✓ PASS        exit-success-code                      exit-codes        FEATURE-ExitCodes.md
+  ~ PREPASSED   exit-error-classes                     exit-codes        FEATURE-ExitCodes.md
+  ~ PREPASSED   exit-launcher-status                   exit-codes        FEATURE-ExitCodes.md
+  ✓ PASS        fmt-time                               formatting        FEATURE-Formatting.md
+  ✓ PASS        fmt-magnitude                          formatting        FEATURE-Formatting.md
+  ✓ PASS        fmt-mean-half-up                       formatting        FEATURE-Formatting.md
+  ✓ PASS        fmt-decimal-half-up                    formatting        FEATURE-Formatting.md
+  ✓ PASS        fmt-csv-roundtrip                      formatting        FEATURE-Formatting.md
+  ✓ PASS        fmt-write-csv                          formatting        FEATURE-Formatting.md
+  ✓ PASS        feed-valid-collection                  feed-validation   FEATURE-FeedValidation.md
+  ✓ PASS        feed-unreadable-file                   feed-validation   FEATURE-FeedValidation.md
+  ✓ PASS        feed-not-json                          feed-validation   FEATURE-FeedValidation.md
+  ✓ PASS        feed-wrong-shape                       feed-validation   FEATURE-FeedValidation.md
+  ✓ PASS        extract-fields                         event-extraction  FEATURE-EventExtraction.md
+  ✓ PASS        extract-null-mag-excluded              event-extraction  FEATURE-EventExtraction.md
+  ✓ PASS        extract-null-place-and-empty           event-extraction  FEATURE-EventExtraction.md
+  ✓ PASS        filter-threshold-inclusive             mag-filter        FEATURE-MagFilter.md
+  ✓ PASS        filter-none-keeps-all                  mag-filter        FEATURE-MagFilter.md
+  ✓ PASS        filter-nothing-matches                 mag-filter        FEATURE-MagFilter.md
+  ~ PREPASSED   testsuite-script-exists                test-suite        FEATURE-TestSuite.md
+  ~ PREPASSED   testsuite-runs-green                   test-suite        FEATURE-TestSuite.md
+  ~ PREPASSED   testsuite-runs-from-other-directory    test-suite        FEATURE-TestSuite.md
+  ~ PREPASSED   testsuite-propagates-failure           test-suite        FEATURE-TestSuite.md
+  ✓ PASS        testsuite-passes-when-tests-pass       test-suite        FEATURE-TestSuite.md
+  ✓ PASS        summary-values                         summary           FEATURE-Summary.md
+  ✓ PASS        summary-mean-half-up                   summary           FEATURE-Summary.md
+  ✓ PASS        summary-min-mag-filter                 summary           FEATURE-Summary.md
+  ✓ PASS        summary-null-mag-excluded              summary           FEATURE-Summary.md
+  ✓ PASS        summary-empty                          summary           FEATURE-Summary.md
+  ✓ PASS        summary-failure-codes                  summary           FEATURE-Summary.md
+  ✓ PASS        regions-extract-and-order              regions           FEATURE-Regions.md
+  ✓ PASS        regions-place-rules                    regions           FEATURE-Regions.md
+  ✓ PASS        regions-min-mag-and-empty              regions           FEATURE-Regions.md
+  ✓ PASS        regions-failure-contract               regions           FEATURE-Regions.md
+  ✓ PASS        daily-groups-by-utc-date               daily             FEATURE-Daily.md
+  ✓ PASS        daily-empty-report                     daily             FEATURE-Daily.md
+  ✓ PASS        daily-min-mag-and-null-mag             daily             FEATURE-Daily.md
+  ✓ PASS        daily-failure-contract                 daily             FEATURE-Daily.md
+  ✓ PASS        top-order-and-default-n                top               FEATURE-Top.md
+  ✓ PASS        top-n-option                           top               FEATURE-Top.md
+  ✓ PASS        top-min-mag-before-cut                 top               FEATURE-Top.md
+  ✓ PASS        top-place-with-comma                   top               FEATURE-Top.md
+  ✓ PASS        top-empty-result                       top               FEATURE-Top.md
+  ~ PREPASSED   top-usage-errors                       top               FEATURE-Top.md
+  ✓ PASS        fetch-saves-body-unchanged             fetch             FEATURE-Fetch.md
+  ✓ PASS        fetch-request-url                      fetch             FEATURE-Fetch.md
+  ✓ PASS        fetch-min-mag-passthrough              fetch             FEATURE-Fetch.md
+  ✓ PASS        fetch-usage-errors                     fetch             FEATURE-Fetch.md
+  ✓ PASS        fetch-http-get-uses-urllib             fetch             FEATURE-Fetch.md
+  ✓ PASS        fetch-failure-http-status              fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        fetch-failure-bad-body                 fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        fetch-failure-network-error            fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        fetch-failure-http-error-status        fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        fetch-failure-preserves-existing-file  fetch-failure     FEATURE-FetchFailure.md
+  ✓ PASS        near-haversine-distance-and-radius     near              FEATURE-Near.md
+  ✓ PASS        near-ordering-ties-and-quoting         near              FEATURE-Near.md
+  ✓ PASS        near-min-mag-null-mag-and-empty        near              FEATURE-Near.md
+  ~ PREPASSED   near-usage-errors                      near              FEATURE-Near.md
+  ✓ PASS        near-unreadable-file                   near              FEATURE-Near.md
+  ~ PREPASSED   verification-grader                    verification      VERIFICATION.md
+  ~ PREPASSED   verification-test-suite                verification      VERIFICATION.md
+  ~ PREPASSED   verification-quakes-executable         verification      VERIFICATION.md
+
+  ~ PREPASSED   arch-stdlib-only
+        intent: The project declares no runtime dependencies and requires Python 3.11 or newer.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   arch-pytest-available
+        intent: The pytest runner is importable in the project environment.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   options-exit-two
+        intent: Through the executable entry point, an unknown command and a missing command both exit 2.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   exit-usage-code
+        intent: A usage error returns exit code 2 with empty stdout and a single stderr line.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   exit-error-classes
+        intent: UsageError and OperationalError are distinct exception classes.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   exit-launcher-status
+        intent: The quakes executable surfaces exit 2 for a usage error with empty stdout.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   testsuite-script-exists
+        intent: bin/test.sh exists at the application root and declares a POSIX sh interpreter.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   testsuite-runs-green
+        intent: Running bin/test.sh over the built application&#x27;s own pytest suite exits zero.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   testsuite-runs-from-other-directory
+        intent: bin/test.sh resolves the application root itself, so an outside working directory gives the same exit status.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   testsuite-propagates-failure
+        intent: bin/test.sh exits nonzero when a test in its application root fails.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   top-usage-errors
+        intent: A non-positive or malformed --n, an unlisted option, and a missing file all exit 2 with empty stdout.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   near-usage-errors
+        intent: Missing required options and out-of-range values exit 2 with empty standard output.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   verification-grader
+        intent: The supplied grader sources/run.sh exits zero against the finished application.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   verification-test-suite
+        intent: The application&#x27;s own pytest suite, run through bin/test.sh, exits zero.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  ~ PREPASSED   verification-quakes-executable
+        intent: The quakes executable exists at the application root and is executable, as the grader requires.
+        green at this block&#x27;s baseline too, before its code existed — confirm the criterion exercises the story&#x27;s work
+
+  Run `drydock score ac Quakes --full` for untruncated output per failure.
+
+
+  Proof coverage: 63 of 78 criteria are proof — green here, and observed red before the work that turned them green.
+    15 are not. Each names a story whose acceptance did not test it.
+
+    PREPASSED  arch-stdlib-only  architecture  ARCHITECTURE.md
+               green before its block built
+    PREPASSED  arch-pytest-available  architecture  ARCHITECTURE.md
+               green before its block built
+    PREPASSED  options-exit-two  options  FEATURE-Options.md
+               green before its block built
+    PREPASSED  exit-usage-code  exit-codes  FEATURE-ExitCodes.md
+               green before its block built
+    PREPASSED  exit-error-classes  exit-codes  FEATURE-ExitCodes.md
+               green before its block built
+    PREPASSED  exit-launcher-status  exit-codes  FEATURE-ExitCodes.md
+               green before its block built
+    PREPASSED  testsuite-script-exists  test-suite  FEATURE-TestSuite.md
+               green before its block built
+    PREPASSED  testsuite-runs-green  test-suite  FEATURE-TestSuite.md
+               green before its block built
+    PREPASSED  testsuite-runs-from-other-directory  test-suite  FEATURE-TestSuite.md
+               green before its block built
+    PREPASSED  testsuite-propagates-failure  test-suite  FEATURE-TestSuite.md
+               green before its block built
+    PREPASSED  top-usage-errors  top  FEATURE-Top.md
+               green before its block built
+    PREPASSED  near-usage-errors  near  FEATURE-Near.md
+               green before its block built
+    PREPASSED  verification-grader  verification  VERIFICATION.md
+               green before its block built
+    PREPASSED  verification-test-suite  verification  VERIFICATION.md
+               green before its block built
+    PREPASSED  verification-quakes-executable  verification  VERIFICATION.md
+               green before its block built
+
+Soundings: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/SOUNDINGS.md
+Target - committed project workspace git store
+</pre></article>
+</main>
+</body>
+</html>

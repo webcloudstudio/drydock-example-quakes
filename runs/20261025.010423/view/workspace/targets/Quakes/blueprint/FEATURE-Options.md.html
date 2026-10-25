@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Options.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Options.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Options.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Options</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>Parses and validates the command, its options, and the file argument, raising a usage error for any malformed invocation.</td></tr><tr><td>Depends On</td><td>FEATURE-CliFoundation.md</td></tr><tr><td>Provides</td><td>parse_args</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>cli.options.parse_args(argv) -&gt; Parsed</code> turns the argument list into a validated <code>Parsed</code> record or raises <code>cli.errors.UsageError</code>. <code>UsageError</code> is defined in <code>cli/errors.py</code> (see <code>FEATURE-ExitCodes.md</code>); this story creates the module with both exception classes if it does not exist yet. The dispatcher maps <code>UsageError</code> to exit code 2.</p>
+<h2>Grammar</h2>
+<pre><code>quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;
+quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;
+quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;
+quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;
+quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;
+quakes near --lat &lt;deg&gt; --lon &lt;deg&gt; --radius &lt;km&gt; [--min-mag &lt;m&gt;] &lt;file&gt;</code></pre>
+<ul><li>The command is the first argument. Options follow in any order; the file (for report commands) is last.</li><li>Each command accepts only its listed options; any other option is a <code>UsageError</code>.</li><li><code>&lt;m&gt;</code>, <code>&lt;deg&gt;</code>, <code>&lt;km&gt;</code> match <code>-?[0-9]+(\.[0-9]+)?</code> and a value may begin with <code>-</code>. Anything else is malformed.</li><li><code>&lt;count&gt;</code> is a positive integer (digits only, greater than zero), default <code>10</code>.</li><li><code>--lat</code> is within -90 to 90, <code>--lon</code> within -180 to 180, <code>--radius</code> greater than zero. <code>near</code> requires all three.</li><li><code>fetch</code> requires <code>--start</code>, <code>--end</code>, <code>--out</code>; dates match <code>YYYY-MM-DD</code>. <code>fetch</code> takes no positional file. <code>--min-mag</code> defaults to <code>2.5</code> for <code>fetch</code>; for report commands it is <code>None</code> when omitted.</li><li>A missing command, unknown command, missing option value, missing file, extra positional argument, or repeated option is a <code>UsageError</code> (decision Q-001).</li><li><code>parse_args</code> does not touch the file system.</li></ul>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC options-valid-summary ===<br>Intent: A valid summary invocation parses into the expected command, filter, and file.</p>
+<p>from cli.options import parse_args</p>
+<p>path = &quot;quakes-file.geojson&quot; parsed = parse_args([&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5.5&quot;, path]) assert parsed.command == &quot;summary&quot; assert parsed.min_mag == 5.5 assert parsed.file == path === END AC options-valid-summary ===</p>
+<p>=== AC options-defaults ===<br>Intent: top defaults n to 10, reports default min_mag to None, and fetch defaults min_mag to 2.5.</p>
+<p>from cli.options import parse_args</p>
+<p>path = &quot;quakes-file.geojson&quot; top = parse_args([&quot;top&quot;, path]) assert top.n == 10 assert top.min_mag is None fetch = parse_args([&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, path]) assert fetch.min_mag == 2.5 === END AC options-defaults ===</p>
+<p>=== AC options-any-order ===<br>Intent: Options may appear in any order and produce the same parsed values.</p>
+<p>from cli.options import parse_args</p>
+<p>path = &quot;quakes-file.geojson&quot; a = parse_args([&quot;top&quot;, &quot;--n&quot;, &quot;3&quot;, &quot;--min-mag&quot;, &quot;5.1&quot;, path]) b = parse_args([&quot;top&quot;, &quot;--min-mag&quot;, &quot;5.1&quot;, &quot;--n&quot;, &quot;3&quot;, path]) assert a.n == b.n == 3 assert a.min_mag == b.min_mag == 5.1 assert a.file == b.file == path === END AC options-any-order ===</p>
+<p>=== AC options-near-valid ===<br>Intent: near parses its three required options, accepting the range boundaries and negative decimals.</p>
+<p>from cli.options import parse_args</p>
+<p>path = &quot;quakes-file.geojson&quot; parsed = parse_args([&quot;near&quot;, &quot;--lat&quot;, &quot;90&quot;, &quot;--lon&quot;, &quot;-180&quot;, &quot;--radius&quot;, &quot;0.5&quot;, path]) assert parsed.lat == 90.0 assert parsed.lon == -180.0 assert parsed.radius == 0.5 negative = parse_args([&quot;summary&quot;, &quot;--min-mag&quot;, &quot;-1&quot;, path]) assert negative.min_mag == -1.0 === END AC options-near-valid ===</p>
+<p>=== AC options-fetch-valid ===<br>Intent: fetch parses start, end, out, and an explicit min-mag.</p>
+<p>from cli.options import parse_args</p>
+<p>start, end, out = &quot;2025-01-01&quot;, &quot;2025-01-08&quot;, &quot;feed.geojson&quot; parsed = parse_args([&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--end&quot;, end, &quot;--min-mag&quot;, &quot;5&quot;, &quot;--out&quot;, out]) assert parsed.command == &quot;fetch&quot; assert parsed.start == start assert parsed.end == end assert parsed.out == out assert parsed.min_mag == 5.0 === END AC options-fetch-valid ===</p>
+<p>=== AC options-usage-errors ===<br>Intent: Every malformed invocation raises UsageError.</p>
+<p>from cli.errors import UsageError from cli.options import parse_args</p>
+<p>f = &quot;quakes-file.geojson&quot; bad = [ [], [&quot;frobnicate&quot;, f], [&quot;near&quot;, &quot;--lat&quot;, &quot;27.72&quot;, &quot;--lon&quot;, &quot;85.32&quot;, f], [&quot;near&quot;, &quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;, f], [&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;181&quot;, &quot;--radius&quot;, &quot;10&quot;, f], [&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;0&quot;, f], [&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, f], [&quot;top&quot;, &quot;--n&quot;, &quot;2.5&quot;, f], [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;big&quot;, f], [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5.&quot;, f], [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;.5&quot;, f], [&quot;summary&quot;, &quot;--n&quot;, &quot;3&quot;, f], [&quot;summary&quot;], [&quot;summary&quot;, f, f], [&quot;summary&quot;, &quot;--min-mag&quot;, f], [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5&quot;, &quot;--min-mag&quot;, &quot;6&quot;, f], [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;], [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--out&quot;, f], [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, f, f], [&quot;fetch&quot;, &quot;--start&quot;, &quot;yesterday&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, f], ] for argv in bad: try: parse_args(list(argv)) except UsageError: continue raise AssertionError(f&quot;no UsageError for {argv}&quot;) === END AC options-usage-errors ===</p>
+<p>=== AC options-exit-two ===<br>Intent: Through the executable entry point, an unknown command and a missing command both exit 2.</p>
+<p>from cli.testing import cli_runner</p>
+<p>code_unknown, out_unknown, _ = cli_runner(&quot;frobnicate&quot;, &quot;quakes-file.geojson&quot;) code_none, out_none, _ = cli_runner() assert code_unknown == 2 assert code_none == 2 assert out_unknown == &quot;&quot; assert out_none == &quot;&quot; === END AC options-exit-two ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Usage errors never print to standard output; the parser raises <code>UsageError</code> rather than using argparse&#x27;s default error behavior.</li><li>An option the command does not list is always a usage error.</li></ul></article>
+</main>
+</body>
+</html>

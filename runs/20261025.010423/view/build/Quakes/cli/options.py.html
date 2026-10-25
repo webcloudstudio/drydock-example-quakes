@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/cli/options.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/cli/options.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/cli/options.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Parse and validate the command line into a `Parsed` record.
+
+Parsing never touches the file system and never prints. Every malformed invocation raises
+`UsageError`, which `main` maps to exit code 2. The grammar is hand-written rather than argparse so
+that numeric values, repeated options, and extra positionals follow FEATURE-Options exactly.
+&quot;&quot;&quot;
+
+import datetime
+import re
+from dataclasses import dataclass
+
+from cli.errors import UsageError
+
+DEFAULT_TOP_COUNT = 10
+DEFAULT_FETCH_MIN_MAG = 2.5
+
+_NUMBER = re.compile(r&quot;-?[0-9]+(\.[0-9]+)?&quot;)
+_COUNT = re.compile(r&quot;[0-9]+&quot;)
+_DATE = re.compile(r&quot;[0-9]{4}-[0-9]{2}-[0-9]{2}&quot;)
+
+
+@dataclass(frozen=True)
+class Parsed:
+    &quot;&quot;&quot;A validated invocation. Options a command does not take keep their defaults.&quot;&quot;&quot;
+
+    command: str
+    min_mag: float | None = None
+    n: int = DEFAULT_TOP_COUNT
+    lat: float | None = None
+    lon: float | None = None
+    radius: float | None = None
+    start: str | None = None
+    end: str | None = None
+    out: str | None = None
+    file: str | None = None
+
+
+@dataclass(frozen=True)
+class _Spec:
+    &quot;&quot;&quot;Which options a command takes, which it requires, and whether it takes the file argument.&quot;&quot;&quot;
+
+    options: frozenset[str]
+    required: frozenset[str] = frozenset()
+    takes_file: bool = True
+
+
+_MIN_MAG = &quot;--min-mag&quot;
+
+_SPECS: dict[str, _Spec] = {
+    &quot;fetch&quot;: _Spec(
+        options=frozenset({&quot;--start&quot;, &quot;--end&quot;, &quot;--min-mag&quot;, &quot;--out&quot;}),
+        required=frozenset({&quot;--start&quot;, &quot;--end&quot;, &quot;--out&quot;}),
+        takes_file=False,
+    ),
+    &quot;summary&quot;: _Spec(options=frozenset({_MIN_MAG})),
+    &quot;top&quot;: _Spec(options=frozenset({_MIN_MAG, &quot;--n&quot;})),
+    &quot;daily&quot;: _Spec(options=frozenset({_MIN_MAG})),
+    &quot;regions&quot;: _Spec(options=frozenset({_MIN_MAG})),
+    &quot;near&quot;: _Spec(
+        options=frozenset({&quot;--lat&quot;, &quot;--lon&quot;, &quot;--radius&quot;, _MIN_MAG}),
+        required=frozenset({&quot;--lat&quot;, &quot;--lon&quot;, &quot;--radius&quot;}),
+    ),
+}
+
+
+def parse_args(argv: list[str]) -&gt; Parsed:
+    &quot;&quot;&quot;Return the validated `Parsed` for `argv`, or raise `UsageError` for any malformed invocation.&quot;&quot;&quot;
+    if not argv:
+        raise UsageError(&quot;missing command&quot;)
+    command, rest = argv[0], argv[1:]
+    spec = _SPECS.get(command)
+    if spec is None:
+        raise UsageError(f&quot;unknown command: {command!r}&quot;)
+
+    raw = _collect_options(command, spec, rest)
+    positionals = _collect_positionals(rest, spec)
+    missing = sorted(spec.required - raw.keys())
+    if missing:
+        raise UsageError(f&quot;{command} requires {&#x27;, &#x27;.join(missing)}&quot;)
+    if spec.takes_file and len(positionals) != 1:
+        raise UsageError(f&quot;{command} requires exactly one file argument&quot;)
+    if not spec.takes_file and positionals:
+        raise UsageError(f&quot;{command} takes no file argument: {positionals[0]!r}&quot;)
+
+    min_mag_default = DEFAULT_FETCH_MIN_MAG if command == &quot;fetch&quot; else None
+    return Parsed(
+        command=command,
+        min_mag=_number(raw[_MIN_MAG], _MIN_MAG) if _MIN_MAG in raw else min_mag_default,
+        n=_count(raw[&quot;--n&quot;]) if &quot;--n&quot; in raw else DEFAULT_TOP_COUNT,
+        lat=_ranged(raw, &quot;--lat&quot;, -90.0, 90.0),
+        lon=_ranged(raw, &quot;--lon&quot;, -180.0, 180.0),
+        radius=_positive(raw, &quot;--radius&quot;),
+        start=_date(raw[&quot;--start&quot;], &quot;--start&quot;) if &quot;--start&quot; in raw else None,
+        end=_date(raw[&quot;--end&quot;], &quot;--end&quot;) if &quot;--end&quot; in raw else None,
+        out=_non_empty(raw[&quot;--out&quot;], &quot;--out&quot;) if &quot;--out&quot; in raw else None,
+        file=positionals[0] if positionals else None,
+    )
+
+
+def _collect_options(command: str, spec: _Spec, rest: list[str]) -&gt; dict[str, str]:
+    &quot;&quot;&quot;Map each option the command takes to its raw value; reject unknown, repeated, or valueless ones.&quot;&quot;&quot;
+    raw: dict[str, str] = {}
+    i = 0
+    while i &lt; len(rest):
+        token = rest[i]
+        if not token.startswith(&quot;--&quot;):
+            i += 1
+            continue
+        if token not in spec.options:
+            raise UsageError(f&quot;{command} does not accept {token}&quot;)
+        if token in raw:
+            raise UsageError(f&quot;{token} given more than once&quot;)
+        if i + 1 &gt;= len(rest) or rest[i + 1] in spec.options:
+            raise UsageError(f&quot;{token} requires a value&quot;)
+        raw[token] = rest[i + 1]
+        i += 2
+    return raw
+
+
+def _collect_positionals(rest: list[str], spec: _Spec) -&gt; list[str]:
+    &quot;&quot;&quot;Return the non-option tokens, skipping each option&#x27;s value; a stray dash-token is malformed.&quot;&quot;&quot;
+    positionals: list[str] = []
+    i = 0
+    while i &lt; len(rest):
+        token = rest[i]
+        if token.startswith(&quot;--&quot;):
+            i += 2
+            continue
+        if token.startswith(&quot;-&quot;) and token != &quot;-&quot;:
+            raise UsageError(f&quot;unknown option: {token!r}&quot;)
+        positionals.append(token)
+        i += 1
+    return positionals
+
+
+def _number(text: str, option: str) -&gt; float:
+    if not _NUMBER.fullmatch(text):
+        raise UsageError(f&quot;{option} expects a decimal number, got {text!r}&quot;)
+    return float(text)
+
+
+def _count(text: str) -&gt; int:
+    if not _COUNT.fullmatch(text) or int(text) == 0:
+        raise UsageError(f&quot;--n expects a positive integer, got {text!r}&quot;)
+    return int(text)
+
+
+def _ranged(raw: dict[str, str], option: str, low: float, high: float) -&gt; float | None:
+    if option not in raw:
+        return None
+    value = _number(raw[option], option)
+    if not low &lt;= value &lt;= high:
+        raise UsageError(f&quot;{option} must be within {low:g} to {high:g}, got {raw[option]!r}&quot;)
+    return value
+
+
+def _positive(raw: dict[str, str], option: str) -&gt; float | None:
+    if option not in raw:
+        return None
+    value = _number(raw[option], option)
+    if value &lt;= 0:
+        raise UsageError(f&quot;{option} must be greater than zero, got {raw[option]!r}&quot;)
+    return value
+
+
+def _date(text: str, option: str) -&gt; str:
+    if not _DATE.fullmatch(text):
+        raise UsageError(f&quot;{option} expects YYYY-MM-DD, got {text!r}&quot;)
+    try:
+        datetime.date.fromisoformat(text)
+    except ValueError as exc:
+        raise UsageError(f&quot;{option} is not a real calendar date: {text!r}&quot;) from exc
+    return text
+
+
+def _non_empty(text: str, option: str) -&gt; str:
+    if not text:
+        raise UsageError(f&quot;{option} must not be empty&quot;)
+    return text
+</pre></article>
+</main>
+</body>
+</html>

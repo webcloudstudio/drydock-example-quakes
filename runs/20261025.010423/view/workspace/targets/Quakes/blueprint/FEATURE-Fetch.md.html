@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Fetch.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Fetch.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Fetch.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Fetch</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>The <code>fetch</code> command: download a USGS date range as GeoJSON and save the response unchanged to a file.</td></tr><tr><td>Depends On</td><td>FEATURE-Options.md, FEATURE-ExitCodes.md, FEATURE-FeedValidation.md</td></tr><tr><td>Provides</td><td>quakes fetch, build_url, http_get</td></tr><tr><td>Consumes</td><td>parse_args, read_feed</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;</code> saves a period of the USGS event feed so the report commands can read it.</p>
+<h2>Trigger</h2>
+<p>Command line. <code>--start</code>, <code>--end</code>, and <code>--out</code> are required; <code>--min-mag</code> defaults to <code>2.5</code>. A missing required option, an unlisted option, or any positional argument is a usage error (exit 2) and no HTTP call is made.</p>
+<h2>Module layout</h2>
+<p>Code lives in <code>cli/fetch.py</code>:</p>
+<ul><li><code>build_url(start, end, min_mag) -&gt; str</code> returns <code>https://earthquake.usgs.gov/fdsnws/event/1/query</code> with query parameters <code>format=geojson</code>, <code>starttime=&lt;start&gt;</code>, <code>endtime=&lt;end&gt;</code>, <code>minmagnitude=&lt;min_mag&gt;</code>, <code>orderby=time-asc</code>. <code>min_mag</code> is the text given on the command line (or <code>2.5</code>).</li><li><code>http_get(url) -&gt; tuple[int, bytes]</code> is the single replaceable network function. It calls <code>urllib.request.urlopen</code> through attribute access on the <code>urllib.request</code> module (so a test can patch <code>urllib.request.urlopen</code>), returns the HTTP status and body bytes, and is the only function in the product that opens a connection.</li><li>The command handler calls <code>http_get</code> through the module global (<code>cli.fetch.http_get</code>) so tests can replace it.</li></ul>
+<h2>Sequence</h2>
+<ol><li>Build the URL and call <code>http_get(url)</code>.</li><li>Validate: status 200, body parses as JSON, and is an object with <code>&quot;type&quot;: &quot;FeatureCollection&quot;</code> and a list <code>features</code> (reusing the <code>read_feed</code> validation rules on the body).</li><li>Only after validation, write the body bytes unchanged (binary write) to <code>--out</code>.</li><li>Write <code>fetched,&lt;count&gt;</code> to standard output, where <code>&lt;count&gt;</code> is the number of features.</li></ol>
+<p>Failure handling is specified in FEATURE-FetchFailure.md.</p>
+<h2>Output</h2>
+<p>Standard output is exactly one CSV line <code>fetched,&lt;count&gt;</code>; exit 0. The saved file is byte-for-byte the response body.</p>
+<h2>Reads</h2>
+<p>The USGS FDSN event web service over HTTPS.</p>
+<h2>Writes</h2>
+<p>The file named by <code>--out</code>, and standard output.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC fetch-saves-body-unchanged ===<br>Intent: fetch writes the response body byte for byte to --out and prints fetched with the feature count; the HTTP call is stubbed.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import csv import io import json import os import tempfile from unittest import mock</p>
+<p>from cli.testing import cli_runner</p>
+<p>features = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.1, &quot;place&quot;: &quot;Awash, Ethiopia&quot;, &quot;time&quot;: 1735706358208, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [40.0, 9.0, 10]}, &quot;id&quot;: &quot;a&quot; + str(i)} for i in range(3) ] body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, indent=3, ensure_ascii=False).encode(&quot;utf-8&quot;) + b&quot;\n\n&quot; with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)) as stub: code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path) print(out) print(err) assert code == 0 assert stub.call_count == 1 with open(out_path, &quot;rb&quot;) as fh: assert fh.read() == body rows = list(csv.reader(io.StringIO(out))) assert rows == [[&quot;fetched&quot;, str(len(features))]] === END AC fetch-saves-body-unchanged ===</p>
+<p>=== AC fetch-request-url ===<br>Intent: The request goes to the USGS FDSN query endpoint with the GeoJSON format, the given dates, the default minimum magnitude, and time ascending order.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import json import os import tempfile import urllib.parse from unittest import mock</p>
+<p>from cli.testing import cli_runner</p>
+<p>start = &quot;2025-01-01&quot; end = &quot;2025-01-08&quot; body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;) with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)) as stub: code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--end&quot;, end, &quot;--out&quot;, out_path) assert code == 0 url = stub.call_args[0][0] parts = urllib.parse.urlsplit(url) query = urllib.parse.parse_qs(parts.query) assert parts.scheme == &quot;https&quot; assert parts.netloc == &quot;earthquake.usgs.gov&quot; assert parts.path == &quot;/fdsnws/event/1/query&quot; assert query[&quot;format&quot;] == [&quot;geojson&quot;] assert query[&quot;starttime&quot;] == [start] assert query[&quot;endtime&quot;] == [end] assert query[&quot;minmagnitude&quot;] == [&quot;2.5&quot;] assert query[&quot;orderby&quot;] == [&quot;time-asc&quot;] === END AC fetch-request-url ===</p>
+<p>=== AC fetch-min-mag-passthrough ===<br>Intent: An explicit --min-mag value is sent as minmagnitude, and build_url builds the same query directly.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import json import os import tempfile import urllib.parse from unittest import mock</p>
+<p>from cli.fetch import build_url from cli.testing import cli_runner</p>
+<p>start = &quot;2025-02-01&quot; end = &quot;2025-02-03&quot; min_mag = &quot;4.5&quot; body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;) with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)) as stub: code, out, err = cli_runner( &quot;fetch&quot;, &quot;--min-mag&quot;, min_mag, &quot;--end&quot;, end, &quot;--start&quot;, start, &quot;--out&quot;, out_path ) assert code == 0 url = stub.call_args[0][0] query = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query) assert query[&quot;minmagnitude&quot;] == [min_mag] assert query[&quot;starttime&quot;] == [start] assert query[&quot;endtime&quot;] == [end] direct = urllib.parse.parse_qs(urllib.parse.urlsplit(build_url(start, end, min_mag)).query) assert direct == query === END AC fetch-min-mag-passthrough ===</p>
+<p>=== AC fetch-usage-errors ===<br>Intent: Missing required options, an unlisted option, or an extra positional argument exit 2, make no HTTP call, and write no file.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import os import tempfile from unittest import mock</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) cases = [ (&quot;fetch&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path), (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--out&quot;, out_path), (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;), (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path, &quot;extra&quot;), (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path, &quot;--n&quot;, &quot;3&quot;), (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--min-mag&quot;, &quot;big&quot;, &quot;--out&quot;, out_path), ] with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, b&quot;{}&quot;)) as stub: for args in cases: code, out, err = cli_runner(*args) assert code == 2, args assert out == &quot;&quot;, args assert stub.call_count == 0 assert not os.path.exists(out_path) === END AC fetch-usage-errors ===</p>
+<p>=== AC fetch-http-get-uses-urllib ===<br>Intent: http_get returns the status and body from urllib.request.urlopen, which is stubbed so no network connection is opened.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>from unittest import mock</p>
+<p>from cli.fetch import http_get</p>
+<p>payload = b&quot;payload bytes&quot; status = 200</p>
+<p>class FakeResponse: def <strong>init</strong>(self, code, data): self.status = code self._data = data</p>
+<p>def read(self): return self._data</p>
+<p>def getcode(self): return self.status</p>
+<p>def <strong>enter</strong>(self): return self</p>
+<p>def <strong>exit</strong>(self, *exc): return False</p>
+<p>with mock.patch(&quot;urllib.request.urlopen&quot;, return_value=FakeResponse(status, payload)) as opener: got_status, got_body = http_get(&quot;https://example.invalid/query&quot;) assert opener.call_count == 1 assert got_status == status assert got_body == payload === END AC fetch-http-get-uses-urllib ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Tests never open a network connection; every fetch test replaces <code>cli.fetch.http_get</code> or <code>urllib.request.urlopen</code>.</li><li>The saved file is the response body unchanged: no re-serialization, re-encoding, or newline translation.</li><li>The output file is written only after the response is validated.</li><li>Only the <code>fetch</code> command touches the network; report commands never do.</li></ul></article>
+</main>
+</body>
+</html>

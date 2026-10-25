@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_regions.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_regions.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_regions.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Regions-report story: events per region derived from the place text, with the maximum magnitude.&quot;&quot;&quot;
+
+import csv
+import io
+
+import pytest
+
+from cli import reports
+from cli.feed import extract_events
+
+HEADER = [&quot;region&quot;, &quot;events&quot;, &quot;max_mag&quot;]
+
+
+def _feature(ident, mag, place, time_ms=1735706358208, tsunami=0):
+    return {
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: place, &quot;time&quot;: time_ms, &quot;tsunami&quot;: tsunami},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]},
+        &quot;id&quot;: ident,
+    }
+
+
+def _rows(out):
+    return list(csv.reader(io.StringIO(out)))
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_regions_extract_and_order(write_feed, cli_runner):
+    pairs = [
+        (&quot;Zed&quot;, 5.0), (&quot;Zed&quot;, 5.6),
+        (&quot;alpha&quot;, 5.1),
+        (&quot;Beta&quot;, 5.2), (&quot;Beta&quot;, 5.0),
+        (&quot;Gamma&quot;, 5.3), (&quot;Gamma&quot;, 5.9), (&quot;Gamma&quot;, 5.1),
+        (&quot;Delta&quot;, 5.4),
+    ]
+    features = [_feature(&quot;e&quot; + str(i), mag, &quot;12 km N of Town &quot; + str(i) + &quot;, &quot; + region, 1735706358208 + i)
+                for i, (region, mag) in enumerate(pairs)]
+    expected = {}
+    for region, mag in pairs:
+        entry = expected.setdefault(region, [0, mag])
+        entry[0] += 1
+        entry[1] = max(entry[1], mag)
+    order = sorted(expected, key=lambda r: (-expected[r][0], r))
+    code, out, _ = cli_runner(&quot;regions&quot;, write_feed(features))
+    assert code == 0
+    rows = _rows(out)
+    assert rows[0] == HEADER
+    assert [r[0] for r in rows[1:]] == order
+    for r in rows[1:]:
+        assert int(r[1]) == expected[r[0]][0]
+        assert float(r[2]) == expected[r[0]][1]
+
+
+def test_regions_place_rules(write_feed, cli_runner):
+    last_part = &quot;Country&quot;
+    multi_place = &quot;Near Town, Province, &quot; + last_part
+    plain_place = &quot;Mid-Atlantic Ridge&quot;
+    comma_no_space = &quot;A,B&quot;
+    places = [multi_place, plain_place, comma_no_space, None]
+    features = [_feature(&quot;e&quot; + str(i), 5.0, place, 1735706358208 + i) for i, place in enumerate(places)]
+    code, out, _ = cli_runner(&quot;regions&quot;, write_feed(features))
+    assert code == 0
+    names = {r[0] for r in _rows(out)[1:]}
+    assert names == {last_part, plain_place, comma_no_space, &quot;Unknown&quot;}
+
+
+def test_regions_min_mag_and_empty(write_feed, cli_runner):
+    threshold = 5.4
+    pairs = [(&quot;Aland&quot;, 5.0), (&quot;Aland&quot;, 5.4), (&quot;Bland&quot;, 6.0), (&quot;Cland&quot;, None), (&quot;Dland&quot;, 5.3)]
+    features = [_feature(&quot;e&quot; + str(i), mag, &quot;5 km S of T, &quot; + region, 1735706358208 + i)
+                for i, (region, mag) in enumerate(pairs)]
+    path = write_feed(features)
+    kept = [(r, m) for r, m in pairs if m is not None and m &gt;= threshold]
+    code, out, _ = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, str(threshold), path)
+    code_none, out_none, _ = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, &quot;9&quot;, path)
+    assert code == 0 and code_none == 0
+    rows = _rows(out)
+    assert {r[0] for r in rows[1:]} == {r for r, _ in kept}
+    assert sum(int(r[1]) for r in rows[1:]) == len(kept)
+    assert _rows(out_none) == [HEADER]
+
+
+def test_regions_failure_contract(tmp_path, cli_runner):
+    bad = tmp_path / &quot;bad.json&quot;
+    bad.write_text(&quot;this is not json&quot;, encoding=&quot;utf-8&quot;)
+    code, out, _ = cli_runner(&quot;regions&quot;, str(bad))
+    assert code == 1
+    assert out == &quot;&quot;
+    code2, out2, _ = cli_runner(&quot;regions&quot;, &quot;--lat&quot;, &quot;1&quot;, str(bad))
+    assert code2 == 2
+    assert out2 == &quot;&quot;
+
+
+# ── Finer coverage ──────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    (&quot;place&quot;, &quot;region&quot;),
+    [
+        (&quot;56 km SSE of La Libertad, El Salvador&quot;, &quot;El Salvador&quot;),
+        (&quot;a, b, c&quot;, &quot;c&quot;),
+        (&quot;Fiji region&quot;, &quot;Fiji region&quot;),
+        (&quot;Tonga, &quot;, &quot;&quot;),
+        (None, &quot;Unknown&quot;),
+    ],
+)
+def test_region_of(place, region):
+    assert reports.region_of(place) == region
+
+
+def test_regions_same_count_breaks_tie_by_code_point_order():
+    features = [_feature(&quot;a&quot;, 5.0, &quot;x, b&quot;), _feature(&quot;b&quot;, 5.0, &quot;x, B&quot;)]
+    # &quot;B&quot; (0x42) sorts before &quot;b&quot; (0x62); both have one event so the order is by name alone.
+    rows = reports.compute_regions(extract_events(features))
+    assert [r[0] for r in rows[1:]] == [&quot;B&quot;, &quot;b&quot;]
+
+
+def test_regions_empty_input_is_header_only():
+    assert reports.compute_regions([]) == [HEADER]
+</pre></article>
+</main>
+</body>
+</html>

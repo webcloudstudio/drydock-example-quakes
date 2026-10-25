@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/commands/10-initial-build-1.stdout.log</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/commands/10-initial-build-1.stdout.log</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/commands/10-initial-build-1.stdout.log">Raw file</a></div></header>
+<article class="doc"><pre>Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+Build: Quakes
+scope: entire project
+frontier: architecture
+git: baseline Quakes 3d42af6852f0
+git: baseline Quakes 031fbe95c61a
+
+BLOCK block-1  name=&quot;Block 1 · Foundational&quot;  calls_max=7
+  story=architecture  &quot;Stand up the Python project tree, environment, dependency manifest, and pytest runner.&quot;
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.011423.936Z-50b38c55
+    acceptance=3/3
+git: block-1 | python.md, ARCHITECTURE.md | call=1 | app=50e6a1be2f83 target=0f1c5a9f5a6d
+
+  DONE  story=architecture  state=closed/implemented  execution=20261025.011423.936Z-50b38c55  elapsed=1m51s
+git: block-1 | python.md, ARCHITECTURE.md | step_completed | app=unchanged target=6776b59bef58
+
+BLOCK block-2  name=&quot;Block 2 · Foundational&quot;  calls_max=7
+  story=cli-foundation  &quot;Publish the cli package, main entry point, cli_runner test helper, and the quakes launcher.&quot;
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.011616.186Z-e5617d6c
+    acceptance=4/4
+git: block-2 | FEATURE-CliFoundation.md | call=1 | app=1d3936260ebd target=c36511df239c
+
+  DONE  story=cli-foundation  state=closed/implemented  execution=20261025.011616.186Z-e5617d6c  elapsed=1m04s
+git: block-2 | FEATURE-CliFoundation.md | step_completed | app=unchanged target=22749d4c0703
+
+BLOCK block-3  name=&quot;Block 3 · Service&quot;  calls_max=7
+  story=options  &quot;Parse and validate the command, options, and file argument, with usage errors exiting 2.&quot;
+  story=exit-codes  &quot;Map usage and operational failures to exit codes 2 and 1 with silent stdout and one stderr line.&quot;
+  story=formatting  &quot;Format times, magnitudes, depths, distances, and CSV output.&quot;
+  story=feed-validation  &quot;Read a saved GeoJSON file and validate that it is a FeatureCollection.&quot;
+  story=event-extraction  &quot;Extract event fields from features and exclude null-magnitude events.&quot;
+  story=mag-filter  &quot;Apply the --min-mag filter to events.&quot;
+  story=test-suite  &quot;Provide bin/test.sh running the pytest suite.&quot;
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.011739.796Z-6a746565
+    acceptance=33/33
+git: block-3 | FEATURE-Options.md, FEATURE-ExitCodes.md, FEATURE-Formatting.md, FEATURE-FeedValidation.md, FEATURE-EventExtraction.md, FEATURE-MagFilter.md, FEATURE-TestSuite.md | call=1 | app=4cf3712f09fc target=54fca647531a
+
+  DONE  story=options  state=closed/implemented  execution=20261025.011739.796Z-6a746565  elapsed=7m04s
+git: block-3 | FEATURE-Options.md, FEATURE-ExitCodes.md, FEATURE-Formatting.md, FEATURE-FeedValidation.md, FEATURE-EventExtraction.md, FEATURE-MagFilter.md, FEATURE-TestSuite.md | step_completed | app=unchanged target=5bd3236837c7
+
+BLOCK block-4  name=&quot;Block 4 · Service&quot;  calls_max=7
+  story=summary  &quot;The summary report.&quot;
+  story=regions  &quot;The regions report of events per region.&quot;
+  story=daily  &quot;The daily report of events per UTC date.&quot;
+  story=top  &quot;The top report listing the largest events.&quot;
+  story=fetch  &quot;The fetch command that downloads a USGS date range to a file.&quot;
+  story=fetch-failure  &quot;Fetch fails without writing a file on network, HTTP, or body errors.&quot;
+  story=near  &quot;The near report using haversine distance.&quot;
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.012504.037Z-353120db
+    acceptance=35/35
+git: block-4 | FEATURE-Summary.md, FEATURE-Regions.md, FEATURE-Daily.md, FEATURE-Top.md, FEATURE-Fetch.md, FEATURE-FetchFailure.md, FEATURE-Near.md | call=1 | app=7100b2bed6cd target=9e301f3dc880
+
+  DONE  story=summary  state=closed/implemented  execution=20261025.012504.037Z-353120db  elapsed=6m12s
+git: block-4 | FEATURE-Summary.md, FEATURE-Regions.md, FEATURE-Daily.md, FEATURE-Top.md, FEATURE-Fetch.md, FEATURE-FetchFailure.md, FEATURE-Near.md | step_completed | app=unchanged target=268fa36910e8
+
+BLOCK block-5  name=&quot;Block 5 · Feature&quot;  calls_max=7
+  story=verification  &quot;Terminal gate running the supplied grader against the finished application.&quot;
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.013120.456Z-eade514b
+    acceptance=3/3
+git: block-5 | VERIFICATION.md | call=1 | app=unchanged target=f9d86c2e7287
+
+  DONE  story=verification  state=closed/implemented  execution=20261025.013120.456Z-eade514b  elapsed=2m33s
+git: block-5 | VERIFICATION.md | step_completed | app=unchanged target=c01cc2471048
+git: build complete Quakes 2e28b44bc92f
+git: build complete Quakes 15bdf42fc296
+
+result: 17 built, 0 failed, 0 unchanged
+elapsed: 19 minutes 38 seconds
+Target - committed project workspace git store
+</pre></article>
+</main>
+</body>
+</html>

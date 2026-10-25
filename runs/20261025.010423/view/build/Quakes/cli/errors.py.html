@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/cli/errors.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/cli/errors.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/cli/errors.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Expected failures that `main` converts to exit codes instead of raising.&quot;&quot;&quot;
+
+
+class QuakesError(Exception):
+    &quot;&quot;&quot;Base for expected failures. The message is one diagnostic line; `main` prints it to stderr.&quot;&quot;&quot;
+
+    exit_code = 1
+
+
+class UsageError(QuakesError):
+    &quot;&quot;&quot;Bad command line: unknown command, missing argument, invalid value. Exit code 2.&quot;&quot;&quot;
+
+    exit_code = 2
+
+
+class OperationalError(QuakesError):
+    &quot;&quot;&quot;A valid command that could not complete: unreadable file, bad feed, network failure. Exit code 1.&quot;&quot;&quot;
+
+    exit_code = 1
+</pre></article>
+</main>
+</body>
+</html>

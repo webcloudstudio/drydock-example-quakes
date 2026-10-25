@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_foundation.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_foundation.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_foundation.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Foundation contract: project tree, dependency manifest, and pytest runner.&quot;&quot;&quot;
+
+import sys
+import tomllib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def _pyproject() -&gt; dict:
+    return tomllib.loads((ROOT / &quot;pyproject.toml&quot;).read_text(encoding=&quot;utf-8&quot;))
+
+
+def test_manifest_and_lockfile_exist_at_root():
+    assert (ROOT / &quot;pyproject.toml&quot;).is_file()
+    assert (ROOT / &quot;uv.lock&quot;).is_file()
+
+
+def test_tests_directory_exists_at_root():
+    assert (ROOT / &quot;tests&quot;).is_dir()
+
+
+def test_conftest_exposes_cli_runner_fixture():
+    import conftest
+
+    assert hasattr(conftest.cli_runner, &quot;_fixture_function_marker&quot;)
+
+
+def test_runtime_dependencies_are_empty():
+    assert _pyproject()[&quot;project&quot;].get(&quot;dependencies&quot;, []) == []
+
+
+def test_requires_python_311_or_newer():
+    assert _pyproject()[&quot;project&quot;][&quot;requires-python&quot;] == &quot;&gt;=3.11&quot;
+    assert sys.version_info &gt;= (3, 11)
+
+
+def test_pytest_is_a_dev_dependency_only():
+    data = _pyproject()
+    dev = data[&quot;dependency-groups&quot;][&quot;dev&quot;]
+    assert any(spec.startswith(&quot;pytest&quot;) for spec in dev)
+
+
+def test_pytest_is_importable():
+    import importlib.util
+
+    assert importlib.util.find_spec(&quot;pytest&quot;) is not None
+
+
+def test_test_runner_script_is_executable():
+    script = ROOT / &quot;bin&quot; / &quot;test.sh&quot;
+    assert script.is_file()
+    assert script.stat().st_mode &amp; 0o111
+</pre></article>
+</main>
+</body>
+</html>

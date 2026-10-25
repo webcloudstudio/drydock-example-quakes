@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_formatting.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_formatting.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_formatting.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Formatting story: UTC times, half-up rounded numbers, and CSV output.&quot;&quot;&quot;
+
+import contextlib
+import csv
+import io
+import sys
+from datetime import datetime, timezone
+
+import pytest
+
+from cli.formatting import format_decimal, format_mag, format_mean, format_time, render_csv, write_csv
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_fmt_time():
+    seconds = 1735706358
+    ms = seconds * 1000 + 999
+    text = format_time(ms)
+    parsed = datetime.strptime(text, &quot;%Y-%m-%dT%H:%M:%SZ&quot;).replace(tzinfo=timezone.utc)
+    assert int(parsed.timestamp()) == seconds
+    assert len(text) == 20
+    assert text[:10] == parsed.strftime(&quot;%Y-%m-%d&quot;)
+    assert format_time(seconds * 1000) == text
+
+
+def test_fmt_magnitude():
+    assert format_mag(5) == &quot;5.0&quot;
+    assert format_mag(7.1) == &quot;7.1&quot;
+    assert format_mag(5.0) == &quot;5.0&quot;
+
+
+def test_fmt_mean_half_up():
+    assert format_mean(5.3) == &quot;5.30&quot;
+    assert format_mean(5.125) == &quot;5.13&quot;
+    assert format_mean(5.135) == &quot;5.14&quot;
+    assert format_mean(5) == &quot;5.00&quot;
+
+
+def test_fmt_decimal_half_up():
+    assert format_decimal(0.25) == &quot;0.3&quot;
+    assert format_decimal(10) == &quot;10.0&quot;
+    assert format_decimal(216.25) == &quot;216.3&quot;
+    assert format_decimal(46) == &quot;46.0&quot;
+
+
+def test_fmt_csv_roundtrip():
+    place = &quot;Āwash, Ethiopia&quot;
+    rows = [[&quot;time&quot;, &quot;place&quot;], [&quot;2025-01-01T00:00:00Z&quot;, place], [&quot;a&quot;, &quot;plain&quot;]]
+    text = render_csv(rows)
+    parsed = list(csv.reader(io.StringIO(text, newline=&quot;&quot;)))
+    assert parsed == rows
+    assert text.count(&quot;\n&quot;) == len(rows)
+    assert text.endswith(&quot;\n&quot;)
+
+
+def test_fmt_write_csv():
+    rows = [[&quot;h1&quot;, &quot;h2&quot;], [&quot;x&quot;, &quot;y, z&quot;]]
+    stream = io.StringIO()
+    write_csv(rows, stream)
+    assert stream.getvalue() == render_csv(rows)
+
+    captured = io.StringIO()
+    with contextlib.redirect_stdout(captured):
+        write_csv(rows)
+    assert captured.getvalue() == render_csv(rows)
+
+
+# ── Finer coverage: boundaries, rounding, and stdout encoding ───────────────────────────
+
+
+def test_format_time_is_the_epoch_at_zero():
+    assert format_time(0) == &quot;1970-01-01T00:00:00Z&quot;
+
+
+@pytest.mark.parametrize(&quot;ms&quot;, [1000, 1999, 1000.5, 1999.9])
+def test_format_time_truncates_fractions_of_a_second(ms):
+    assert format_time(ms) == &quot;1970-01-01T00:00:01Z&quot;
+
+
+def test_format_time_reads_the_utc_date_at_the_day_boundary():
+    assert format_time(1735689599999) == &quot;2024-12-31T23:59:59Z&quot;
+    assert format_time(1735689600000) == &quot;2025-01-01T00:00:00Z&quot;
+
+
+def test_format_time_output_is_always_twenty_characters():
+    for ms in (0, 1735706358999, 4102444799000):
+        assert len(format_time(ms)) == 20
+
+
+@pytest.mark.parametrize(
+    (&quot;value&quot;, &quot;text&quot;),
+    [(0, &quot;0.0&quot;), (0.05, &quot;0.1&quot;), (0.04, &quot;0.0&quot;), (9.95, &quot;10.0&quot;), (7.1, &quot;7.1&quot;), (2, &quot;2.0&quot;)],
+)
+def test_format_mag_rounds_half_up_to_one_place(value, text):
+    assert format_mag(value) == text
+
+
+@pytest.mark.parametrize(
+    (&quot;value&quot;, &quot;text&quot;),
+    [(5.125, &quot;5.13&quot;), (5.124, &quot;5.12&quot;), (0, &quot;0.00&quot;), (-0.125, &quot;-0.13&quot;), (4.999, &quot;5.00&quot;)],
+)
+def test_format_mean_rounds_half_up_to_two_places(value, text):
+    assert format_mean(value) == text
+
+
+@pytest.mark.parametrize((&quot;value&quot;, &quot;text&quot;), [(0.05, &quot;0.1&quot;), (0.149, &quot;0.1&quot;), (99.95, &quot;100.0&quot;), (0, &quot;0.0&quot;)])
+def test_format_decimal_rounds_half_up_to_one_place(value, text):
+    assert format_decimal(value) == text
+
+
+def test_format_decimal_is_not_banker_rounding():
+    # round() would send 0.25 and 0.35 to even digits; half-up sends them up.
+    assert format_decimal(0.35) == &quot;0.4&quot;
+    assert format_decimal(0.25) == &quot;0.3&quot;
+
+
+def test_render_csv_quotes_a_field_containing_a_comma():
+    assert render_csv([[&quot;a&quot;, &quot;b, c&quot;]]) == &#x27;a,&quot;b, c&quot;\n&#x27;
+
+
+def test_render_csv_quotes_a_field_containing_a_double_quote():
+    rows = [[&quot;say \&quot;hi\&quot;&quot;, &quot;x&quot;]]
+    parsed = list(csv.reader(io.StringIO(render_csv(rows), newline=&quot;&quot;)))
+    assert parsed == rows
+
+
+def test_render_csv_of_no_rows_is_empty():
+    assert render_csv([]) == &quot;&quot;
+
+
+def test_render_csv_keeps_a_row_with_one_empty_field():
+    rows = [[&quot;events&quot;, &quot;&quot;]]
+    parsed = list(csv.reader(io.StringIO(render_csv(rows), newline=&quot;&quot;)))
+    assert parsed == rows
+
+
+def test_write_csv_to_stdout_writes_utf8_bytes_through_the_buffer(monkeypatch):
+    raw = io.BytesIO()
+    wrapper = io.TextIOWrapper(raw, encoding=&quot;utf-8&quot;, write_through=True)
+    monkeypatch.setattr(sys, &quot;stdout&quot;, wrapper)
+    rows = [[&quot;place&quot;], [&quot;Āwash, Ethiopia&quot;]]
+    write_csv(rows)
+    wrapper.flush()
+    assert raw.getvalue().decode(&quot;utf-8&quot;) == render_csv(rows)
+</pre></article>
+</main>
+</body>
+</html>

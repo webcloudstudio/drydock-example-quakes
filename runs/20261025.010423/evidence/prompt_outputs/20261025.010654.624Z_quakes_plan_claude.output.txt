@@ -1,0 +1,631 @@
+=== BEGIN ARTIFACT ARCHITECTURE.md ===
+# ARCHITECTURE: Quakes
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Module layout, boundaries, and technical decisions for the standard-library-only `quakes` command-line earthquake reporter. |
+| Depends On  | None |
+| Provides    | project tree, pytest runner |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes` is a single-process Python 3.11+ command-line tool at the application root. `fetch` downloads a USGS FDSN GeoJSON feed to a file. Five report commands (`summary`, `top`, `daily`, `regions`, `near`) read a saved file, filter it, compute rows, and print CSV to standard output.
+
+## Technology Stack
+
+Derived from `TECHNOLOGY_STACK.md`; that file is the decision of record.
+
+| Technology | Where it applies |
+|---|---|
+| Python 3.11+ (standard library only) | All application code. `urllib.request` for HTTP, `json`, `csv`, `decimal`, `datetime`, `math`, `re`. |
+| CLI | The `quakes` executable and the `cli` package. |
+| pytest | Test runner behind `bin/test.sh`; the only development dependency. |
+| USGS GeoJSON | Input format. |
+| POSIX sh | `bin/test.sh`. |
+
+## Project Layout
+
+| Path | Role |
+|---|---|
+| `quakes` | Executable launcher at the application root; calls `cli.main` and exits with its return value. |
+| `pyproject.toml`, `uv.lock` | Dependency manifest and lockfile. Runtime dependencies: none. |
+| `.venv` | Environment created by `uv venv`. |
+| `conftest.py` | Exposes the `cli_runner` pytest fixture from `cli.testing`. |
+| `cli/__init__.py` | `main(argv=None) -> int`, the command registry `COMMANDS`, exit-code mapping. |
+| `cli/errors.py` | `UsageError` (exit 2) and `OperationalError` (exit 1). |
+| `cli/options.py` | `parse_args(argv) -> Parsed`. |
+| `cli/formatting.py` | `format_time`, `format_mag`, `format_mean`, `format_decimal`, `render_csv`, `write_csv`. |
+| `cli/feed.py` | `read_feed(path)`, `extract_events(features)`, `Event`, `filter_events(events, min_mag)`. |
+| `cli/reports.py` | One pure function per report, plus `haversine_km`. |
+| `cli/fetch.py` | `build_url`, `http_get`, the fetch command. |
+| `cli/testing.py` | `cli_runner(*args) -> (exit_code, stdout, stderr)`. |
+| `tests/` | Application pytest suite. |
+| `bin/test.sh` | POSIX sh wrapper that runs the pytest suite. |
+| `sources/` | Read-only scoring assets; never modified and never read by application code. |
+
+## Boundaries and Interfaces
+
+Reading the file, filtering, computing each report, and formatting are separate functions:
+
+1. `read_feed(path) -> list[dict]` validates and returns raw features.
+2. `extract_events(features) -> list[Event]` normalizes and drops null-magnitude events.
+3. `filter_events(events, min_mag) -> list[Event]` applies `--min-mag`.
+4. A report function maps events (and its options) to a list of rows, each row a list of already-formatted strings.
+5. `write_csv(rows, stream=None)` writes rows with the `csv` module.
+
+`Parsed` (returned by `parse_args`) is a dataclass with fields `command: str`, `min_mag: float | None`, `n: int`, `lat: float | None`, `lon: float | None`, `radius: float | None`, `start: str | None`, `end: str | None`, `out: str | None`, `file: str | None`. `n` defaults to `10`. `min_mag` is `None` for report commands when omitted and `2.5` for `fetch` when omitted.
+
+Command handlers are registered in `cli.COMMANDS: dict[str, Callable[[Parsed], str]]`. A handler returns the complete standard-output text for the command. `main` writes that text to standard output only after the handler returns, so a failing command leaves standard output empty.
+
+## Exit Codes and Channels
+
+| Code | Cause |
+|---|---|
+| 0 | Success, including a report with no matching events. |
+| 1 | `OperationalError`: unreadable file, not a FeatureCollection, fetch network/HTTP/body failure. |
+| 2 | `UsageError`: any malformed invocation. |
+
+A failing command writes nothing to standard output and exactly one diagnostic line to standard error. Standard error is never compared by the grader.
+
+## Technical Decisions
+
+- Half-up rounding uses `decimal.Decimal(repr(x))` quantized with `ROUND_HALF_UP`; built-in `round()` is not used.
+- Text ordering is by byte value (plain Python string comparison on code points, with UTF-8 output).
+- Tests stub `cli.fetch.http_get`; no test opens a network connection.
+- No report row, count, or distance is hardcoded; every value comes from the file read.
+
+## Module Ownership
+
+No persistent store, configuration file, or external service other than the USGS HTTP endpoint exists. File I/O is owned by `cli.feed` (reading) and `cli.fetch` (writing the fetched file). HTTP is owned by `cli.fetch.http_get`. No `DATABASE.md` applies.
+
+## Programmatic Acceptance
+
+=== AC arch-project-files ===
+Intent: The project root carries a dependency manifest, lockfile, tests directory, and a conftest exposing the cli_runner fixture.
+Suite: scoped
+
+from pathlib import Path
+
+assert Path("pyproject.toml").is_file()
+assert Path("uv.lock").is_file()
+assert Path("tests").is_dir()
+conftest = Path("conftest.py")
+assert conftest.is_file()
+assert "cli_runner" in conftest.read_text(encoding="utf-8")
+=== END AC arch-project-files ===
+
+=== AC arch-stdlib-only ===
+Intent: The project declares no runtime dependencies and requires Python 3.11 or newer.
+
+import sys
+import tomllib
+from pathlib import Path
+
+data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+project = data["project"]
+assert project.get("dependencies", []) == []
+assert sys.version_info >= (3, 11)
+=== END AC arch-stdlib-only ===
+
+=== AC arch-pytest-available ===
+Intent: The pytest runner is importable in the project environment.
+
+import importlib.util
+
+assert importlib.util.find_spec("pytest") is not None
+=== END AC arch-pytest-available ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Do not modify, rewrite, regenerate, or substitute any file under `sources/`.
+- Do not read `sources/run.sh` or the snapshot from application code, and do not hardcode a report row, a count, or a distance.
+- Standard library only at runtime; no third-party runtime dependency.
+- Tests never open a network connection.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-CliFoundation.md ===
+# FEATURE: CLI Foundation
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Publishes the cli package, its main entry point, the cli_runner test helper, and the executable quakes launcher. |
+| Depends On  | ARCHITECTURE.md |
+| Provides    | cli.main, cli.testing.cli_runner, ./quakes |
+
+## Questions
+
+- None.
+
+## Purpose
+
+This foundation stands up the command-line entry point everything else registers into. It delivers the `cli` package, `main(argv=None) -> int`, the in-process `cli_runner` helper, and an executable file named `quakes` at the application root.
+
+## Interface
+
+- `cli.main(argv: list[str] | None = None) -> int` — when `argv` is `None` it uses `sys.argv[1:]`. Returns the process exit code and never raises for `UsageError` or `OperationalError`.
+- `cli.COMMANDS` — registry mapping command name to a handler `Callable[[Parsed], str]` returning the full standard-output text.
+- `cli.testing.cli_runner(*args) -> tuple[int, str, str]` — runs `main` in-process with redirected stdout and stderr and returns `(exit_code, stdout, stderr)`.
+- `conftest.py` exposes `cli_runner` as a pytest fixture.
+- `./quakes` — executable file (mode with the execute bit set, `#!/usr/bin/env python3`) that puts its own directory on `sys.path`, calls `cli.main()`, and exits with the returned value.
+
+Dispatch is a skeleton in this story; later stories register commands and argument parsing.
+
+## Programmatic Acceptance
+
+=== AC clifound-main-returns-int ===
+Intent: main accepts an argv list and returns an integer exit code.
+
+from cli import main
+
+code = main([])
+assert isinstance(code, int)
+=== END AC clifound-main-returns-int ===
+
+=== AC clifound-runner-shape ===
+Intent: cli_runner returns an exit code, stdout text, and stderr text, and agrees with main.
+
+from cli import main
+from cli.testing import cli_runner
+
+args = ["no-such-command-xyz"]
+code, out, err = cli_runner(*args)
+assert isinstance(code, int)
+assert isinstance(out, str)
+assert isinstance(err, str)
+assert code == main(list(args))
+=== END AC clifound-runner-shape ===
+
+=== AC clifound-registry ===
+Intent: The command registry is a dict that main consults for dispatch.
+
+import cli
+
+assert isinstance(cli.COMMANDS, dict)
+=== END AC clifound-registry ===
+
+=== AC clifound-launcher ===
+Intent: The quakes launcher at the application root is executable and exits with the same code main returns.
+
+import os
+import subprocess
+import sys
+
+from cli import main
+
+assert os.path.isfile("quakes")
+assert os.access("quakes", os.X_OK)
+argv = []
+result = subprocess.run(["./quakes", *argv], capture_output=True, text=True)
+print(result.stdout)
+print(result.stderr, file=sys.stderr)
+assert result.returncode == main(list(argv))
+=== END AC clifound-launcher ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- The launcher contains no report logic; it only delegates to `cli.main`.
+- Diagnostics go to standard error only.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Options.md ===
+# FEATURE: Options
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Parses and validates the command, its options, and the file argument, raising a usage error for any malformed invocation. |
+| Depends On  | FEATURE-CliFoundation.md |
+| Provides    | parse_args |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`cli.options.parse_args(argv) -> Parsed` turns the argument list into a validated `Parsed` record or raises `cli.errors.UsageError`. `UsageError` is defined in `cli/errors.py` (see `FEATURE-ExitCodes.md`); this story creates the module with both exception classes if it does not exist yet. The dispatcher maps `UsageError` to exit code 2.
+
+## Grammar
+
+```text
+quakes fetch --start <YYYY-MM-DD> --end <YYYY-MM-DD> [--min-mag <m>] --out <file>
+quakes summary [--min-mag <m>] <file>
+quakes top [--min-mag <m>] [--n <count>] <file>
+quakes daily [--min-mag <m>] <file>
+quakes regions [--min-mag <m>] <file>
+quakes near --lat <deg> --lon <deg> --radius <km> [--min-mag <m>] <file>
+```
+
+- The command is the first argument. Options follow in any order; the file (for report commands) is last.
+- Each command accepts only its listed options; any other option is a `UsageError`.
+- `<m>`, `<deg>`, `<km>` match `-?[0-9]+(\.[0-9]+)?` and a value may begin with `-`. Anything else is malformed.
+- `<count>` is a positive integer (digits only, greater than zero), default `10`.
+- `--lat` is within -90 to 90, `--lon` within -180 to 180, `--radius` greater than zero. `near` requires all three.
+- `fetch` requires `--start`, `--end`, `--out`; dates match `YYYY-MM-DD`. `fetch` takes no positional file. `--min-mag` defaults to `2.5` for `fetch`; for report commands it is `None` when omitted.
+- A missing command, unknown command, missing option value, missing file, extra positional argument, or repeated option is a `UsageError` (decision Q-001).
+- `parse_args` does not touch the file system.
+
+## Programmatic Acceptance
+
+=== AC options-valid-summary ===
+Intent: A valid summary invocation parses into the expected command, filter, and file.
+
+from cli.options import parse_args
+
+path = "quakes-file.geojson"
+parsed = parse_args(["summary", "--min-mag", "5.5", path])
+assert parsed.command == "summary"
+assert parsed.min_mag == 5.5
+assert parsed.file == path
+=== END AC options-valid-summary ===
+
+=== AC options-defaults ===
+Intent: top defaults n to 10, reports default min_mag to None, and fetch defaults min_mag to 2.5.
+
+from cli.options import parse_args
+
+path = "quakes-file.geojson"
+top = parse_args(["top", path])
+assert top.n == 10
+assert top.min_mag is None
+fetch = parse_args(["fetch", "--start", "2025-01-01", "--end", "2025-01-08", "--out", path])
+assert fetch.min_mag == 2.5
+=== END AC options-defaults ===
+
+=== AC options-any-order ===
+Intent: Options may appear in any order and produce the same parsed values.
+
+from cli.options import parse_args
+
+path = "quakes-file.geojson"
+a = parse_args(["top", "--n", "3", "--min-mag", "5.1", path])
+b = parse_args(["top", "--min-mag", "5.1", "--n", "3", path])
+assert a.n == b.n == 3
+assert a.min_mag == b.min_mag == 5.1
+assert a.file == b.file == path
+=== END AC options-any-order ===
+
+=== AC options-near-valid ===
+Intent: near parses its three required options, accepting the range boundaries and negative decimals.
+
+from cli.options import parse_args
+
+path = "quakes-file.geojson"
+parsed = parse_args(["near", "--lat", "90", "--lon", "-180", "--radius", "0.5", path])
+assert parsed.lat == 90.0
+assert parsed.lon == -180.0
+assert parsed.radius == 0.5
+negative = parse_args(["summary", "--min-mag", "-1", path])
+assert negative.min_mag == -1.0
+=== END AC options-near-valid ===
+
+=== AC options-fetch-valid ===
+Intent: fetch parses start, end, out, and an explicit min-mag.
+
+from cli.options import parse_args
+
+start, end, out = "2025-01-01", "2025-01-08", "feed.geojson"
+parsed = parse_args(["fetch", "--start", start, "--end", end, "--min-mag", "5", "--out", out])
+assert parsed.command == "fetch"
+assert parsed.start == start
+assert parsed.end == end
+assert parsed.out == out
+assert parsed.min_mag == 5.0
+=== END AC options-fetch-valid ===
+
+=== AC options-usage-errors ===
+Intent: Every malformed invocation raises UsageError.
+
+from cli.errors import UsageError
+from cli.options import parse_args
+
+f = "quakes-file.geojson"
+bad = [
+    [],
+    ["frobnicate", f],
+    ["near", "--lat", "27.72", "--lon", "85.32", f],
+    ["near", "--lat", "95", "--lon", "0", "--radius", "10", f],
+    ["near", "--lat", "0", "--lon", "181", "--radius", "10", f],
+    ["near", "--lat", "0", "--lon", "0", "--radius", "0", f],
+    ["top", "--n", "0", f],
+    ["top", "--n", "2.5", f],
+    ["summary", "--min-mag", "big", f],
+    ["summary", "--min-mag", "5.", f],
+    ["summary", "--min-mag", ".5", f],
+    ["summary", "--n", "3", f],
+    ["summary"],
+    ["summary", f, f],
+    ["summary", "--min-mag", f],
+    ["summary", "--min-mag", "5", "--min-mag", "6", f],
+    ["fetch", "--start", "2025-01-01", "--end", "2025-01-08"],
+    ["fetch", "--start", "2025-01-01", "--out", f],
+    ["fetch", "--start", "2025-01-01", "--end", "2025-01-08", "--out", f, f],
+    ["fetch", "--start", "yesterday", "--end", "2025-01-08", "--out", f],
+]
+for argv in bad:
+    try:
+        parse_args(list(argv))
+    except UsageError:
+        continue
+    raise AssertionError(f"no UsageError for {argv}")
+=== END AC options-usage-errors ===
+
+=== AC options-exit-two ===
+Intent: Through the executable entry point, an unknown command and a missing command both exit 2.
+
+from cli.testing import cli_runner
+
+code_unknown, out_unknown, _ = cli_runner("frobnicate", "quakes-file.geojson")
+code_none, out_none, _ = cli_runner()
+assert code_unknown == 2
+assert code_none == 2
+assert out_unknown == ""
+assert out_none == ""
+=== END AC options-exit-two ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Usage errors never print to standard output; the parser raises `UsageError` rather than using argparse's default error behavior.
+- An option the command does not list is always a usage error.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-ExitCodes.md ===
+# FEATURE: Exit Codes
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Maps usage and operational failures to exit codes 2 and 1 with empty standard output and one standard-error line. |
+| Depends On  | FEATURE-Options.md |
+| Provides    | UsageError, OperationalError, exit code mapping |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`cli/errors.py` defines `UsageError` (exit 2) and `OperationalError` (exit 1), both subclasses of a common `QuakesError(Exception)` carrying a one-line message. `cli.main` parses arguments, looks up the handler in `cli.COMMANDS`, and runs it.
+
+## Behavior
+
+- Success, including a report with no matching events, returns `0` after writing the handler's returned text to standard output.
+- `UsageError` returns `2`; `OperationalError` returns `1`.
+- On either failure `main` writes nothing to standard output and exactly one diagnostic line (ending in a single newline, no embedded newline) to standard error.
+- Handlers return their complete output text and write nothing themselves, so a failure leaves standard output empty.
+- An unexpected exception is not mapped; only the two named errors are.
+
+## Programmatic Acceptance
+
+=== AC exit-usage-code ===
+Intent: A usage error returns exit code 2 with empty stdout and a single stderr line.
+
+from cli.testing import cli_runner
+
+code, out, err = cli_runner("frobnicate", "quakes-file.geojson")
+assert code == 2
+assert out == ""
+assert len(err.splitlines()) == 1
+=== END AC exit-usage-code ===
+
+=== AC exit-operational-code ===
+Intent: An OperationalError raised by a handler returns exit code 1 with empty stdout and a single stderr line.
+
+import cli
+from cli.errors import OperationalError
+from cli.testing import cli_runner
+
+def failing(parsed):
+    raise OperationalError("cannot read the file")
+
+original = cli.COMMANDS.get("summary")
+cli.COMMANDS["summary"] = failing
+try:
+    code, out, err = cli_runner("summary", "quakes-file.geojson")
+finally:
+    if original is None:
+        del cli.COMMANDS["summary"]
+    else:
+        cli.COMMANDS["summary"] = original
+assert code == 1
+assert out == ""
+assert len(err.splitlines()) == 1
+=== END AC exit-operational-code ===
+
+=== AC exit-success-code ===
+Intent: A handler that returns text yields exit 0 and that exact text on stdout, and an empty result is still success.
+
+import cli
+from cli.testing import cli_runner
+
+text = "header\nrow\n"
+original = cli.COMMANDS.get("daily")
+cli.COMMANDS["daily"] = lambda parsed: text
+try:
+    code, out, err = cli_runner("daily", "quakes-file.geojson")
+    cli.COMMANDS["daily"] = lambda parsed: ""
+    empty_code, empty_out, _ = cli_runner("daily", "quakes-file.geojson")
+finally:
+    if original is None:
+        del cli.COMMANDS["daily"]
+    else:
+        cli.COMMANDS["daily"] = original
+assert code == 0
+assert out == text
+assert empty_code == 0
+assert empty_out == ""
+=== END AC exit-success-code ===
+
+=== AC exit-error-classes ===
+Intent: UsageError and OperationalError are distinct exception classes.
+
+from cli.errors import OperationalError, UsageError
+
+assert issubclass(UsageError, Exception)
+assert issubclass(OperationalError, Exception)
+assert not issubclass(UsageError, OperationalError)
+assert not issubclass(OperationalError, UsageError)
+=== END AC exit-error-classes ===
+
+=== AC exit-launcher-status ===
+Intent: The quakes executable surfaces exit 2 for a usage error with empty stdout.
+
+import subprocess
+import sys
+
+result = subprocess.run(["./quakes", "frobnicate", "quakes-file.geojson"], capture_output=True, text=True)
+print(result.stdout)
+print(result.stderr, file=sys.stderr)
+assert result.returncode == 2
+assert result.stdout == ""
+=== END AC exit-launcher-status ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- A failing command never writes to standard output.
+- Standard error carries exactly one diagnostic line on failure; its wording is not part of the contract.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Formatting.md ===
+# FEATURE: Formatting
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Formats UTC times, magnitudes, depths, distances, and CSV output for every report. |
+| Depends On  | ARCHITECTURE.md |
+| Provides    | format_time, format_mag, format_mean, format_decimal, write_csv |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`cli/formatting.py` holds the pure formatting functions every report uses.
+
+## Interface
+
+- `format_time(ms: int | float) -> str` — epoch milliseconds to UTC `YYYY-MM-DDTHH:MM:SSZ`, truncated (floored) to whole seconds. The date is the first 10 characters.
+- `format_mag(x) -> str` — one decimal place (`5.0`, `7.1`).
+- `format_mean(x) -> str` — two decimal places, rounded half up.
+- `format_decimal(x) -> str` — one decimal place, rounded half up (used for `depth_km` and `distance_km`).
+- `render_csv(rows) -> str` — rows (lists of strings) rendered with Python's `csv` module, `lineterminator="\n"`, so a field containing a comma is quoted.
+- `write_csv(rows, stream=None)` — writes `render_csv(rows)` to `stream`; when `stream` is `None` it writes UTF-8 to standard output (the underlying binary buffer when present, otherwise `sys.stdout.write`).
+
+Rounding uses `decimal.Decimal(repr(x))` quantized with `ROUND_HALF_UP` (decision Q-002); built-in `round()` is not used. Output is UTF-8 and non-ASCII place names are written unescaped.
+
+## Programmatic Acceptance
+
+=== AC fmt-time ===
+Intent: format_time yields a UTC timestamp truncated to whole seconds whose first 10 characters are the date.
+
+from datetime import datetime, timezone
+
+from cli.formatting import format_time
+
+seconds = 1735706358
+ms = seconds * 1000 + 999
+text = format_time(ms)
+parsed = datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+assert int(parsed.timestamp()) == seconds
+assert len(text) == 20
+assert text[:10] == parsed.strftime("%Y-%m-%d")
+assert format_time(seconds * 1000) == text
+=== END AC fmt-time ===
+
+=== AC fmt-magnitude ===
+Intent: Magnitudes are written with exactly one decimal place.
+
+from cli.formatting import format_mag
+
+assert format_mag(5) == "5.0"
+assert format_mag(7.1) == "7.1"
+assert format_mag(5.0) == "5.0"
+=== END AC fmt-magnitude ===
+
+=== AC fmt-mean-half-up ===
+Intent: mean_mag has two decimals and rounds exact halves up.
+
+from cli.formatting import format_mean
+
+assert format_mean(5.3) == "5.30"
+assert format_mean(5.125) == "5.13"
+assert format_mean(5.135) == "5.14"
+assert format_mean(5) == "5.00"
+=== END AC fmt-mean-half-up ===
+
+=== AC fmt-decimal-half-up ===
+Intent: depth and distance have one decimal and round exact halves up.
+
+from cli.formatting import format_decimal
+
+assert format_decimal(0.25) == "0.3"
+assert format_decimal(10) == "10.0"
+assert format_decimal(216.25) == "216.3"
+assert format_decimal(46) == "46.0"
+=== END AC fmt-decimal-half-up ===
+
+=== AC fmt-csv-roundtrip ===
+Intent: render_csv round-trips fields containing commas and non-ASCII characters through the csv parser with \n line endings.
+
+import csv
+import io
+
+from cli.formatting import render_csv
+
+place = "\u0100wash, Ethiopia"
+rows = [["time", "place"], ["2025-01-01T00:00:00Z", place], ["a", "plain"]]
+text = render_csv(rows)
+parsed = list(csv.reader(io.StringIO(text, newline="")))
+assert parsed == rows
+assert text.count("\n") == len(rows)
+assert text.endswith("\n")
+=== END AC fmt-csv-roundtrip ===
+
+=== AC fmt-write-csv ===
+Intent: write_csv writes the rendered CSV to the given stream and to standard output by default.
+
+import contextlib
+import io
+
+from cli.formatting import render_csv, write_csv
+
+rows = [["h1", "h2"], ["x", "y, z"]]
+stream = io.StringIO()
+write_csv(rows, stream)
+assert stream.getvalue() == render_csv(rows)
+
+captured = io.StringIO()
+with contextlib.redirect_stdout(captured):
+    write_csv(rows)
+assert captured.getvalue() == render_csv(rows)
+=== END AC fmt-write-csv ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- CSV is always produced with Python's `csv` module, never by string concatenation.
+- Rounding never uses built-in `round()`.
+=== END ARTIFACT ===

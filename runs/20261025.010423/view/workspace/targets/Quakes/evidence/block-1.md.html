@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/evidence/block-1.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/evidence/block-1.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/evidence/block-1.md">Raw file</a></div></header>
+<article class="doc"><h1>Evidence: Block 1 · Foundational (block-1)</h1>
+<ul><li>block type: block</li><li>date: 2026-10-24</li><li>resulting state: closed/verified</li><li>story points (combined assembled cost): 7386</li><li>execution id: 20261025.011423.936Z-50b38c55</li></ul>
+<h2>Stories built</h2>
+<ul><li>Stand up the Python project tree, environment, dependency manifest, and pytest runner. (architecture) [story]</li></ul>
+<h2>Reusable compacts</h2>
+<ul><li>ARCHITECTURE_compact.md</li></ul>
+<h2>Stacked context</h2>
+<ul><li>implements: python.md (SP 1166)</li><li>compass: COMPASS.md (SP 986)</li><li>implements: ARCHITECTURE.md (SP 2331)</li><li>stack: common.md (SP 2776)</li></ul>
+<h2>Build directory changes</h2>
+<ul><li>.gitignore</li><li>bin/test.sh</li><li>conftest.py</li><li>pyproject.toml</li><li>tests/test_foundation.py</li><li>uv.lock</li></ul>
+<h2>Pre-build acceptance observation</h2>
+<ul><li>RED: arch-project-files (ARCHITECTURE.md)</li></ul>
+<p>intent: The project root carries a dependency manifest, lockfile, tests directory, and a conftest exposing the cli_runner fixture. return code: 1 stderr: Traceback (most recent call last): File &quot;arch-project-files.py&quot;, line 4, in &lt;module&gt; assert Path(&quot;uv.lock&quot;).is_file() ^^^^^^^^^^^^^^^^^^^^^^^^^ AssertionError</p>
+<ul><li>GREEN (prepassed): arch-stdlib-only (ARCHITECTURE.md)</li></ul>
+<p>intent: The project declares no runtime dependencies and requires Python 3.11 or newer. return code: 0</p>
+<ul><li>GREEN (prepassed): arch-pytest-available (ARCHITECTURE.md)</li></ul>
+<p>intent: The pytest runner is importable in the project environment. return code: 0</p>
+<h2>Post-build programmatic acceptance</h2>
+<ul><li>PASS: arch-project-files (ARCHITECTURE.md)</li></ul>
+<p>intent: The project root carries a dependency manifest, lockfile, tests directory, and a conftest exposing the cli_runner fixture. target interpreter: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/build/Quakes/.venv/bin/python provisioning: not required return code: 0</p>
+<ul><li>PASS: arch-stdlib-only (ARCHITECTURE.md)</li></ul>
+<p>intent: The project declares no runtime dependencies and requires Python 3.11 or newer. target interpreter: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/build/Quakes/.venv/bin/python provisioning: not required return code: 0</p>
+<ul><li>PASS: arch-pytest-available (ARCHITECTURE.md)</li></ul>
+<p>intent: The pytest runner is importable in the project environment. target interpreter: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/build/Quakes/.venv/bin/python provisioning: not required return code: 0</p>
+<h2>Build summary</h2>
+<p>There&#x27;s already a <code>pyproject.toml</code> in the build directory. I&#x27;ll read it before touching anything.The existing <code>pyproject.toml</code> is a minimal stub with no dev dependency or pytest config. I&#x27;ll extend it rather than replace it. Next I&#x27;ll create the environment with <code>uv</code>.The environment is up. Now I&#x27;ll add pytest as the only dev dependency through <code>uv</code>, which also writes <code>uv.lock</code>.pytest 9.1.1 is locked. Before writing the foundation tests, I&#x27;ll check how pytest 9 marks fixtures so the test can read the fixture registration back rather than grep source text.pytest 9 has no public check for fixture registration, so the test will use the <code>_fixture_function_marker</code> attribute. I&#x27;ll note that in the summary. Now I&#x27;ll write the config, conftest, launcher, ignore file, and tests.The suite passes, but <code>set -u</code> makes <code>activate</code> print an <code>OSTYPE</code> warning. I&#x27;ll drop <code>-u</code> around the activate call and remove a redundant assertion and the unneeded cache option.The suite is green and the git status shows only the expected files, with <code>.venv/</code> ignored. Last, I&#x27;ll confirm the declared <code>test_command</code> and the lockfile are consistent.Foundation is in place and verified. Here is the consumer-facing summary of the architecture spec.</p>
+<p>&lt;reusable-compact filename=&quot;ARCHITECTURE.md&quot;&gt;<br>Project: quakes (Python &gt;=3.11, stdlib only at runtime; pytest dev-only). Executable <code>quakes</code> at root -&gt; <code>cli.main(argv=None)-&gt;int</code>.<br>Modules: cli/<strong>init</strong>.py (main, COMMANDS: dict[str, Callable[[Parsed], str]], exit mapping); cli/errors.py (UsageError exit 2, OperationalError exit 1); cli/options.py (parse_args(argv)-&gt;Parsed); cli/formatting.py (format_time, format_mag, format_mean, format_decimal, render_csv, write_csv); cli/feed.py (read_feed(path)-&gt;list[dict], extract_events(features)-&gt;list[Event], Event, filter_events(events,min_mag)); cli/reports.py (one pure fn per report, haversine_km); cli/fetch.py (build_url, http_get, fetch command); cli/testing.py (cli_runner(*args)-&gt;(exit_code, stdout, stderr)).<br>Parsed dataclass: command:str, min_mag:float|None, n:int (default 10), lat, lon, radius:float|None, start, end, out, file:str|None. min_mag default None for reports, 2.5 for fetch.<br>Commands: fetch, summary, top, daily, regions, near.<br>Exit codes: 0 success (incl. empty report); 1 OperationalError (unreadable file, not FeatureCollection, fetch network/HTTP/body failure); 2 UsageError. Failing command: empty stdout, one stderr line.<br>Pipeline: read_feed -&gt; extract_events (drops null magnitude) -&gt; filter_events -&gt; report fn returns rows of preformatted strings -&gt; write_csv. Handlers return full stdout text; main writes only after success.<br>Technical: half-up rounding via Decimal(repr(x)) ROUND_HALF_UP; string ordering by code point; UTF-8 output. Tests stub cli.fetch.http_get; no network in tests. No hardcoded rows/counts/distances.<br>Guardrails: never modify/read sources/ from app code. Tests never open network.<br>Project layout: pyproject.toml + uv.lock, .venv (uv venv), conftest.py (cli_runner fixture from cli.testing), tests/, bin/test.sh (runs pytest -q). &lt;/reusable-compact&gt;</p>
+<p>RESULT: SUCCESS</p>
+<p>FILES CHANGED:</p>
+<ul><li>pyproject.toml</li><li>uv.lock</li><li>.gitignore</li><li>conftest.py</li><li>bin/test.sh</li><li>tests/test_foundation.py</li></ul>
+<p>SUMMARY: Stood up the Python project foundation in the build directory.</p>
+<ul><li><code>pyproject.toml</code>: kept the existing <code>quakes</code> project block (Python &gt;=3.11, <code>dependencies = []</code>), added <code>[dependency-groups] dev = [&quot;pytest&gt;=9.1.1&quot;]</code> and <code>[tool.pytest.ini_options] testpaths = [&quot;tests&quot;]</code>. The pytest name was added through <code>uv add --dev pytest</code>, which resolved it from the registry (pytest 9.1.1).</li><li><code>uv.lock</code>: generated by uv; <code>uv lock --check</code> passes.</li><li><code>.venv/</code>: created by <code>uv venv</code> (CPython 3.12.13). It is gitignored and not committed.</li><li><code>.gitignore</code>: ignores <code>.venv/</code>, caches, and build output.</li><li><code>conftest.py</code>: exposes the <code>cli_runner</code> fixture. It imports <code>cli.testing</code> lazily inside the fixture, because that module belongs to a later block and the fixture is not used yet.</li><li><code>bin/test.sh</code>: POSIX sh launcher that activates <code>.venv</code> and runs <code>pytest -q</code>.</li><li><code>tests/test_foundation.py</code>: 8 tests covering the three declared architecture criteria (manifest, lockfile, tests dir, conftest fixture, empty runtime deps, Python 3.11+, pytest importable) and the launcher&#x27;s executable bit.</li></ul>
+<p>Checks run:</p>
+<ul><li><code>sh bin/test.sh</code> → 8 passed, exit 0.</li><li><code>.venv/bin/pytest -q</code> (the declared <code>test_command</code>) → 8 passed.</li><li><code>uv lock --check</code> → consistent.</li><li>Declared acceptance criteria <code>arch-project-files</code>, <code>arch-stdlib-only</code>, and <code>arch-pytest-available</code> are satisfied by the same checks in <code>tests/test_foundation.py</code>. I did not run the criterion scripts through the Drydock runner.</li><li>Did not run <code>sh sources/run.sh</code>; this is not a terminal story and no <code>quakes</code> executable exists yet.</li></ul>
+<p>Nothing was committed or staged, and <code>sources/</code> was not touched.</p>
+<p>&lt;blueprint-decisions&gt; [{&quot;spec&quot;:&quot;ARCHITECTURE.md&quot;,&quot;severity&quot;:&quot;Low&quot;,&quot;subject&quot;:&quot;cli_runner fixture import timing&quot;,&quot;decision&quot;:&quot;conftest.py defines the cli_runner fixture but imports cli.testing lazily inside the fixture body, because cli/ is built in a later block and an eager import would break collection of the foundation tests. Is that acceptable, or should cli/testing.py be created in this block?&quot;}] &lt;/blueprint-decisions&gt;</p>
+<p>FAILURE_SUMMARY: none<br>FAILURE_DETAIL: not applicable</p></article>
+</main>
+</body>
+</html>

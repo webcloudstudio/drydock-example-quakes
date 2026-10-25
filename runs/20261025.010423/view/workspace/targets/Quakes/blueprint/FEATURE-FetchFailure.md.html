@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-FetchFailure.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-FetchFailure.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-FetchFailure.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Fetch Failure</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>Failure behavior of <code>fetch</code>: network, HTTP, and body errors exit 1 and never write or alter a file.</td></tr><tr><td>Depends On</td><td>FEATURE-Fetch.md, FEATURE-ExitCodes.md</td></tr><tr><td>Provides</td><td>fetch failure handling</td></tr><tr><td>Consumes</td><td>http_get</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>When the download cannot produce a valid GeoJSON FeatureCollection, <code>fetch</code> reports an operational failure and leaves the filesystem exactly as it found it.</p>
+<h2>Trigger</h2>
+<p>Any of the following during <code>quakes fetch</code> (after arguments parse successfully):</p>
+<ul><li>a network error (any <code>urllib.error.URLError</code>, <code>OSError</code>, or timeout from the HTTP layer);</li><li>an HTTP status other than 200;</li><li>a 200 body that is not JSON, or is JSON but not an object with <code>&quot;type&quot;: &quot;FeatureCollection&quot;</code> and a list <code>features</code>.</li></ul>
+<h2>Behavior</h2>
+<ul><li><code>http_get</code> returns <code>(status, body)</code> for every HTTP response, including non-200 statuses (an <code>HTTPError</code> is converted to its code and body), and raises <code>OperationalError</code> for <code>URLError</code>, <code>OSError</code>, and timeouts.</li><li>The <code>fetch</code> handler also converts any <code>OSError</code> raised by a replaced <code>http_get</code> into <code>OperationalError</code>.</li><li>A non-200 status or an invalid body raises <code>OperationalError</code>.</li><li>All checks complete before <code>--out</code> is opened, so no file is created and a pre-existing file at <code>--out</code> keeps its exact bytes.</li><li>The command exits 1, writes nothing to standard output, and writes one diagnostic line to standard error.</li></ul>
+<h2>Reads</h2>
+<p>The HTTP response only.</p>
+<h2>Writes</h2>
+<p>Standard error only; never the output file on failure.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC fetch-failure-http-status ===<br>Intent: A non-200 status exits 1 with empty standard output, one stderr line, and no file written.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import json import os import tempfile from unittest import mock</p>
+<p>from cli.testing import cli_runner</p>
+<p>valid = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;) bad_status = 500 with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(bad_status, valid)): code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path) print(err) assert code == 1 assert out == &quot;&quot; assert len(err.strip().splitlines()) == 1 assert not os.path.exists(out_path) === END AC fetch-failure-http-status ===</p>
+<p>=== AC fetch-failure-bad-body ===<br>Intent: A body that is not JSON, or JSON that is not a FeatureCollection, exits 1 and writes no file.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import json import os import tempfile from unittest import mock</p>
+<p>from cli.testing import cli_runner</p>
+<p>bodies = [ b&quot;this is not json&quot;, json.dumps({&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {}, &quot;geometry&quot;: None}).encode(&quot;utf-8&quot;), json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;}).encode(&quot;utf-8&quot;), json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: &quot;nope&quot;}).encode(&quot;utf-8&quot;), json.dumps([1, 2, 3]).encode(&quot;utf-8&quot;), ] with tempfile.TemporaryDirectory() as tmp: for n, body in enumerate(bodies): out_path = os.path.join(tmp, &quot;saved&quot; + str(n) + &quot;.geojson&quot;) with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)): code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path) assert code == 1, n assert out == &quot;&quot;, n assert not os.path.exists(out_path), n === END AC fetch-failure-bad-body ===</p>
+<p>=== AC fetch-failure-network-error ===<br>Intent: A network error from a stubbed http_get, and a URLError from a patched urlopen, both exit 1 with no file written.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import os import tempfile import urllib.error from unittest import mock</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as tmp: first = os.path.join(tmp, &quot;first.geojson&quot;) with mock.patch(&quot;cli.fetch.http_get&quot;, side_effect=OSError(&quot;unreachable&quot;)): code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, first) assert code == 1 assert out == &quot;&quot; assert not os.path.exists(first)</p>
+<p>second = os.path.join(tmp, &quot;second.geojson&quot;) with mock.patch(&quot;urllib.request.urlopen&quot;, side_effect=urllib.error.URLError(&quot;no route&quot;)) as opener: code2, out2, err2 = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, second) assert opener.call_count == 1 assert code2 == 1 assert out2 == &quot;&quot; assert not os.path.exists(second) === END AC fetch-failure-network-error ===</p>
+<p>=== AC fetch-failure-http-error-status ===<br>Intent: An HTTPError raised by urlopen is treated as a non-200 status, exits 1, and writes no file.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import io import os import tempfile import urllib.error from unittest import mock</p>
+<p>from cli.testing import cli_runner</p>
+<p>error = urllib.error.HTTPError(&quot;https://example.invalid&quot;, 503, &quot;unavailable&quot;, {}, io.BytesIO(b&quot;down&quot;)) with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) with mock.patch(&quot;urllib.request.urlopen&quot;, side_effect=error): code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path) assert code == 1 assert out == &quot;&quot; assert not os.path.exists(out_path) === END AC fetch-failure-http-error-status ===</p>
+<p>=== AC fetch-failure-preserves-existing-file ===<br>Intent: A failed fetch leaves a pre-existing output file byte-for-byte untouched.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import os import tempfile from unittest import mock</p>
+<p>from cli.testing import cli_runner</p>
+<p>original = b&quot;previous contents, not JSON\n&quot; with tempfile.TemporaryDirectory() as tmp: out_path = os.path.join(tmp, &quot;saved.geojson&quot;) with open(out_path, &quot;wb&quot;) as fh: fh.write(original) with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(404, b&quot;missing&quot;)): code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path) assert code == 1 with open(out_path, &quot;rb&quot;) as fh: assert fh.read() == original with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, b&quot;not json&quot;)): code2, out2, err2 = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path) assert code2 == 1 with open(out_path, &quot;rb&quot;) as fh: assert fh.read() == original === END AC fetch-failure-preserves-existing-file ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>A failing <code>fetch</code> never creates, truncates, or modifies the output file.</li><li>A failing command writes nothing to standard output and exactly one diagnostic line to standard error; standard error text is never part of a contract.</li><li>Tests exercise failure only through stubbed HTTP; no test opens a network connection.</li></ul></article>
+</main>
+</body>
+</html>

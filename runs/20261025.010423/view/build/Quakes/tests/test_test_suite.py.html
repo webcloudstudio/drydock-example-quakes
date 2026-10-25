@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_test_suite.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_test_suite.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_test_suite.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Test-suite story: bin/test.sh runs the pytest suite and exits with pytest&#x27;s status.
+
+The suite never invokes `bin/test.sh` on itself: that would recurse without end. The runner is
+exercised on temporary application roots that hold only the tests each case needs.
+&quot;&quot;&quot;
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SCRIPT = ROOT / &quot;bin&quot; / &quot;test.sh&quot;
+THIS_FILE = Path(__file__).name
+
+
+def _env_with_pytest() -&gt; dict[str, str]:
+    return {**os.environ, &quot;PATH&quot;: os.path.dirname(sys.executable) + os.pathsep + os.environ.get(&quot;PATH&quot;, &quot;&quot;)}
+
+
+def _make_root(root: Path, test_name: str, test_body: str) -&gt; Path:
+    (root / &quot;bin&quot;).mkdir(parents=True)
+    (root / &quot;tests&quot;).mkdir()
+    shutil.copy(SCRIPT, root / &quot;bin&quot; / &quot;test.sh&quot;)
+    (root / &quot;tests&quot; / test_name).write_text(test_body, encoding=&quot;utf-8&quot;)
+    return root
+
+
+def _run_runner(root: Path, cwd: Path) -&gt; int:
+    result = subprocess.run(
+        [&quot;sh&quot;, str(root / &quot;bin&quot; / &quot;test.sh&quot;)], capture_output=True, text=True, env=_env_with_pytest(), cwd=cwd
+    )
+    return result.returncode
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_testsuite_script_exists():
+    assert SCRIPT.is_file()
+    first_line = SCRIPT.read_text(encoding=&quot;utf-8&quot;).splitlines()[0]
+    assert first_line.startswith(&quot;#!&quot;)
+    assert first_line.rstrip().endswith(&quot;sh&quot;)
+    assert &quot;bash&quot; not in first_line
+
+
+def test_testsuite_propagates_failure(tmp_path):
+    root = _make_root(tmp_path / &quot;app&quot;, &quot;test_always_fails.py&quot;, &quot;def test_always_fails():\n    assert False\n&quot;)
+    assert _run_runner(root, root) != 0
+
+
+def test_testsuite_passes_when_tests_pass(tmp_path):
+    root = _make_root(tmp_path / &quot;app&quot;, &quot;test_always_passes.py&quot;, &quot;def test_always_passes():\n    assert True\n&quot;)
+    assert _run_runner(root, root) == 0
+
+
+# ── Finer coverage: working directory, environment, and the script&#x27;s own contract ───────
+
+
+def test_testsuite_runs_from_another_directory_with_the_same_status(tmp_path):
+    app = tmp_path / &quot;app&quot;
+    app.mkdir()
+    for name in (&quot;cli&quot;, &quot;bin&quot;, &quot;tests&quot;):
+        shutil.copytree(ROOT / name, app / name, ignore=shutil.ignore_patterns(&quot;__pycache__&quot;, &quot;.pytest_cache&quot;))
+    (app / &quot;tests&quot; / THIS_FILE).unlink()
+    for name in (&quot;conftest.py&quot;, &quot;pyproject.toml&quot;, &quot;uv.lock&quot;, &quot;quakes&quot;):
+        shutil.copy(ROOT / name, app / name)
+
+    elsewhere = tmp_path / &quot;elsewhere&quot;
+    elsewhere.mkdir()
+    assert _run_runner(app, elsewhere) == 0
+
+
+def test_testsuite_fails_when_a_test_errors_at_import(tmp_path):
+    root = _make_root(tmp_path / &quot;app&quot;, &quot;test_broken_import.py&quot;, &quot;import no_such_module_quakes\n&quot;)
+    assert _run_runner(root, root) != 0
+
+
+def test_testsuite_script_parses_under_sh():
+    result = subprocess.run([&quot;sh&quot;, &quot;-n&quot;, str(SCRIPT)], capture_output=True, text=True)
+    assert result.returncode == 0
+</pre></article>
+</main>
+</body>
+</html>

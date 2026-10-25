@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/README.md</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/README.md</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../build/Quakes/README.md">Raw file</a></div></header>
+<article class="doc"><h1>drydock Quakes Uat Case</h1>
+<p>Drydock uat - Quakes is the get-data-and-report kit. The source is an original brief for a Python command-line tool that downloads the USGS earthquake feed as GeoJSON and writes five CSV reports from a saved file: summary, largest events, events per day, events per region, and events within a haversine distance of a point. The supplied grader, sources/run.sh, runs 26 checks of exit code and output against a frozen real USGS snapshot of the 44 magnitude 5+ events of 2025-01-01 to 2025-01-07 (non-ASCII place names, quoted commas, the Tibet aftershock cluster). The grader never uses the network; fetch is tested against a stub. Run with drydock uat Quakes. Source Repo: none, the brief is original to this kit; data from the USGS FDSN event service.</p>
+<h2>Intent</h2>
+<p>Build a command-line earthquake feed reporter, an executable named <code>quakes</code> at the application root, as described in <code>sources/INSTRUCTIONS.md</code>. It downloads a period of the USGS event feed as GeoJSON and writes five CSV reports from a saved file: summary, largest events, events per day, events per region, and events within a haversine distance of a point.</p>
+<p>Correctness is measured by <code>sources/run.sh</code>: 26 checks of exit code and standard output against a frozen 44-event USGS snapshot. The goal is every check passing.</p>
+<h2>What It Does</h2>
+<p>This foundation stands up the command-line entry point everything else registers into. It delivers the <code>cli</code> package, <code>main(argv=None) -&gt; int</code>, the in-process <code>cli_runner</code> helper, and an executable file named <code>quakes</code> at the application root.</p>
+<p><code>quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;</code> reads a saved USGS GeoJSON file and reports how many events occurred on each UTC date and the strongest magnitude on that date.</p>
+<p>Reports operate on <code>Event</code> records, not raw features. Extraction reads only the fields the reports need and excludes every feature whose magnitude is <code>null</code>.</p>
+<p><code>cli/errors.py</code> defines <code>UsageError</code> (exit 2) and <code>OperationalError</code> (exit 1), both subclasses of a common <code>QuakesError(Exception)</code> carrying a one-line message. <code>cli.main</code> parses arguments, looks up the handler in <code>cli.COMMANDS</code>, and runs it.</p>
+<p>Every report command starts by reading a saved feed file. <code>read_feed</code> returns the raw <code>features</code> list and rejects anything that is not a GeoJSON FeatureCollection as an operational failure (exit 1).</p>
+<p><code>quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;</code> saves a period of the USGS event feed so the report commands can read it.</p>
+<p>When the download cannot produce a valid GeoJSON FeatureCollection, <code>fetch</code> reports an operational failure and leaves the filesystem exactly as it found it.</p>
+<p><code>cli/formatting.py</code> holds the pure formatting functions every report uses.</p>
+<p><code>--min-mag &lt;m&gt;</code> applies to every report. <code>filter_events</code> is the single shared implementation, so all reports share one inclusive rule: <code>mag &gt;= m</code>.</p>
+<p><code>quakes near --lat &lt;deg&gt; --lon &lt;deg&gt; --radius &lt;km&gt; [--min-mag &lt;m&gt;] &lt;file&gt;</code> lists the events whose distance from a point is at most the radius.</p>
+<p><code>cli.options.parse_args(argv) -&gt; Parsed</code> turns the argument list into a validated <code>Parsed</code> record or raises <code>cli.errors.UsageError</code>. <code>UsageError</code> is defined in <code>cli/errors.py</code> (see <code>FEATURE-ExitCodes.md</code>); this story creates the module with both exception classes if it does not exist yet. The dispatcher maps <code>UsageError</code> to exit code 2.</p>
+<p><code>quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;</code> reports the most active regions in a saved USGS GeoJSON file.</p>
+<p><code>quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;</code> reads a saved feed, applies the filter, and writes a one-row CSV report to standard output.</p>
+<p>The Compass requires reading, filtering, computing, and formatting to be separate unit-tested functions, with HTTP stubbed and no network connection in any test. <code>bin/test.sh</code> is the single entry point that runs that suite from the application root. It is the command named by the Compass Verification Protocol for every behavioral story.</p>
+<p><code>quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;</code> writes the <code>--n</code> largest events as CSV.</p>
+<h2>Stack</h2>
+<p>Python</p>
+<h2>Setup and Running</h2>
+<p><strong>Before first run:</strong></p>
+<ul><li>Confirm the repository has the expected remote with <code>git remote -v</code>; add <code>origin</code> if the startup guard requires it.</li><li>Run <code>git status --short</code> and commit or intentionally stash local changes before deployment-oriented runs.</li></ul>
+<p><strong>Install dependencies:</strong></p>
+<pre><code>uv sync</code></pre>
+<h2>Verification</h2>
+<pre><code>bash bin/test.sh</code></pre>
+<h2>Next Steps</h2>
+<ul><li>Complete the first-run checks above.</li><li>Run <code>bash bin/test.sh</code> before making release or deployment changes.</li></ul></article>
+</main>
+</body>
+</html>

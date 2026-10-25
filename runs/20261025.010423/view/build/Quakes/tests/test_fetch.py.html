@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_fetch.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_fetch.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_fetch.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Fetch story: download a USGS date range and save the response body unchanged. HTTP is always stubbed.&quot;&quot;&quot;
+
+import csv
+import io
+import json
+import os
+import urllib.parse
+from unittest import mock
+
+from cli.fetch import build_url, http_get
+
+
+class FakeResponse:
+    def __init__(self, code, data):
+        self.status = code
+        self._data = data
+
+    def read(self):
+        return self._data
+
+    def getcode(self):
+        return self.status
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _empty_body():
+    return json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;)
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_fetch_saves_body_unchanged(tmp_path, cli_runner):
+    features = [
+        {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.1, &quot;place&quot;: &quot;Awash, Ethiopia&quot;, &quot;time&quot;: 1735706358208, &quot;tsunami&quot;: 0},
+         &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [40.0, 9.0, 10]}, &quot;id&quot;: &quot;a&quot; + str(i)}
+        for i in range(3)
+    ]
+    body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, indent=3, ensure_ascii=False).encode(&quot;utf-8&quot;) + b&quot;\n\n&quot;
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)) as stub:
+        code, out, _ = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path)
+    assert code == 0
+    assert stub.call_count == 1
+    with open(out_path, &quot;rb&quot;) as fh:
+        assert fh.read() == body
+    rows = list(csv.reader(io.StringIO(out)))
+    assert rows == [[&quot;fetched&quot;, str(len(features))]]
+
+
+def test_fetch_request_url(tmp_path, cli_runner):
+    start, end = &quot;2025-01-01&quot;, &quot;2025-01-08&quot;
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, _empty_body())) as stub:
+        code, _, _ = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--end&quot;, end, &quot;--out&quot;, out_path)
+    assert code == 0
+    url = stub.call_args[0][0]
+    parts = urllib.parse.urlsplit(url)
+    query = urllib.parse.parse_qs(parts.query)
+    assert parts.scheme == &quot;https&quot;
+    assert parts.netloc == &quot;earthquake.usgs.gov&quot;
+    assert parts.path == &quot;/fdsnws/event/1/query&quot;
+    assert query[&quot;format&quot;] == [&quot;geojson&quot;]
+    assert query[&quot;starttime&quot;] == [start]
+    assert query[&quot;endtime&quot;] == [end]
+    assert query[&quot;minmagnitude&quot;] == [&quot;2.5&quot;]
+    assert query[&quot;orderby&quot;] == [&quot;time-asc&quot;]
+
+
+def test_fetch_min_mag_passthrough(tmp_path, cli_runner):
+    start, end, min_mag = &quot;2025-02-01&quot;, &quot;2025-02-03&quot;, &quot;4.5&quot;
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, _empty_body())) as stub:
+        code, _, _ = cli_runner(&quot;fetch&quot;, &quot;--min-mag&quot;, min_mag, &quot;--end&quot;, end, &quot;--start&quot;, start, &quot;--out&quot;, out_path)
+    assert code == 0
+    url = stub.call_args[0][0]
+    query = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+    assert query[&quot;minmagnitude&quot;] == [min_mag]
+    assert query[&quot;starttime&quot;] == [start]
+    assert query[&quot;endtime&quot;] == [end]
+    direct = urllib.parse.parse_qs(urllib.parse.urlsplit(build_url(start, end, min_mag)).query)
+    assert direct == query
+
+
+def test_fetch_usage_errors(tmp_path, cli_runner):
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    cases = [
+        (&quot;fetch&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--out&quot;, out_path),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path, &quot;extra&quot;),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path, &quot;--n&quot;, &quot;3&quot;),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--min-mag&quot;, &quot;big&quot;, &quot;--out&quot;, out_path),
+    ]
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, b&quot;{}&quot;)) as stub:
+        for args in cases:
+            code, out, _ = cli_runner(*args)
+            assert code == 2, args
+            assert out == &quot;&quot;, args
+        assert stub.call_count == 0
+    assert not os.path.exists(out_path)
+
+
+def test_fetch_http_get_uses_urllib():
+    payload = b&quot;payload bytes&quot;
+    status = 200
+    with mock.patch(&quot;urllib.request.urlopen&quot;, return_value=FakeResponse(status, payload)) as opener:
+        got_status, got_body = http_get(&quot;https://example.invalid/query&quot;)
+    assert opener.call_count == 1
+    assert got_status == status
+    assert got_body == payload
+
+
+# ── Finer coverage ──────────────────────────────────────────────────────────────────────
+
+
+def test_build_url_default_min_mag_is_text_given():
+    query = urllib.parse.parse_qs(urllib.parse.urlsplit(build_url(&quot;2025-03-01&quot;, &quot;2025-03-02&quot;, &quot;2.5&quot;)).query)
+    assert query[&quot;minmagnitude&quot;] == [&quot;2.5&quot;]
+
+
+def test_fetch_reports_zero_features_for_empty_feed(tmp_path, cli_runner):
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, _empty_body())):
+        code, out, _ = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path)
+    assert code == 0
+    assert list(csv.reader(io.StringIO(out))) == [[&quot;fetched&quot;, &quot;0&quot;]]
+    assert os.path.exists(out_path)
+
+
+def test_fetch_overwrites_existing_file_on_success(tmp_path, cli_runner):
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    with open(out_path, &quot;wb&quot;) as fh:
+        fh.write(b&quot;old contents&quot;)
+    body = _empty_body()
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)):
+        code, _, _ = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path)
+    assert code == 0
+    with open(out_path, &quot;rb&quot;) as fh:
+        assert fh.read() == body
+</pre></article>
+</main>
+</body>
+</html>

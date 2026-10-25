@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_summary.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_summary.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_summary.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Summary-report story: one CSV row with count, time span, magnitude range, mean, and tsunami count.&quot;&quot;&quot;
+
+import csv
+import datetime
+import io
+
+from cli import reports
+from cli.feed import Event
+
+BASE = 1735689600000
+
+
+def _feature(ident, mag, k, tsunami=0):
+    return {
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;id&quot;: ident,
+        &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;10 km N of Town, Land&quot;, &quot;time&quot;: BASE + k * 3600000, &quot;tsunami&quot;: tsunami},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 20.0, 12.0]},
+    }
+
+
+def _rows(out):
+    return list(csv.reader(io.StringIO(out)))
+
+
+def _event(mag, time_ms=BASE, tsunami=0):
+    return Event(id=&quot;x&quot;, mag=mag, place=&quot;P&quot;, time_ms=time_ms, tsunami=tsunami, lon=0.0, lat=0.0, depth_km=1.0)
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_summary_values(write_feed, cli_runner):
+    specs = [(&quot;a&quot;, 5.0, 5, 0), (&quot;b&quot;, 6.5, 1, 1), (&quot;c&quot;, 5.5, 9, 1), (&quot;d&quot;, 5.0, 3, 0)]
+    path = write_feed([_feature(*s) for s in specs])
+    code, out, _ = cli_runner(&quot;summary&quot;, path)
+    assert code == 0
+    rows = _rows(out)
+    assert len(rows) == 2
+    header, row = rows
+    assert header == [&quot;events&quot;, &quot;first&quot;, &quot;last&quot;, &quot;min_mag&quot;, &quot;max_mag&quot;, &quot;mean_mag&quot;, &quot;tsunami&quot;]
+    mags = [s[1] for s in specs]
+    times = [BASE + s[2] * 3600000 for s in specs]
+    record = dict(zip(header, row))
+    assert int(record[&quot;events&quot;]) == len(specs)
+
+    def epoch(text):
+        return int(datetime.datetime.fromisoformat(text).timestamp() * 1000)
+
+    assert record[&quot;first&quot;].endswith(&quot;Z&quot;) and record[&quot;last&quot;].endswith(&quot;Z&quot;)
+    assert epoch(record[&quot;first&quot;]) == min(times)
+    assert epoch(record[&quot;last&quot;]) == max(times)
+    assert float(record[&quot;min_mag&quot;]) == min(mags)
+    assert float(record[&quot;max_mag&quot;]) == max(mags)
+    assert abs(float(record[&quot;mean_mag&quot;]) - sum(mags) / len(mags)) &lt;= 0.005
+    assert int(record[&quot;tsunami&quot;]) == sum(s[3] for s in specs)
+
+
+def test_summary_mean_half_up(write_feed, cli_runner):
+    mags = [5.0] * 7 + [6.0]
+    path = write_feed([_feature(f&quot;e{i}&quot;, m, i) for i, m in enumerate(mags)])
+    code, out, _ = cli_runner(&quot;summary&quot;, path)
+    assert code == 0
+    header, row = _rows(out)
+    # 41.0 / 8 is exactly 5.125, so half-up yields 5.13 (banker&#x27;s rounding would give 5.12).
+    assert dict(zip(header, row))[&quot;mean_mag&quot;] == &quot;5.13&quot;
+
+
+def test_summary_min_mag_filter(write_feed, cli_runner):
+    mags = [5.0, 5.4, 5.5, 6.0, 7.1]
+    threshold = 5.5
+    path = write_feed([_feature(f&quot;e{i}&quot;, m, i) for i, m in enumerate(mags)])
+    code, out, _ = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, str(threshold), path)
+    assert code == 0
+    header, row = _rows(out)
+    record = dict(zip(header, row))
+    kept = [m for m in mags if m &gt;= threshold]
+    assert int(record[&quot;events&quot;]) == len(kept)
+    assert float(record[&quot;min_mag&quot;]) == min(kept)
+    assert float(record[&quot;max_mag&quot;]) == max(kept)
+
+
+def test_summary_null_mag_excluded(write_feed, cli_runner):
+    mags = [5.0, None, 6.0, None]
+    path = write_feed([_feature(f&quot;e{i}&quot;, m, i) for i, m in enumerate(mags)])
+    code, out, _ = cli_runner(&quot;summary&quot;, path)
+    assert code == 0
+    header, row = _rows(out)
+    assert int(dict(zip(header, row))[&quot;events&quot;]) == len([m for m in mags if m is not None])
+
+
+def test_summary_empty(write_feed, cli_runner):
+    path = write_feed([_feature(&quot;e0&quot;, 5.0, 0)])
+    code, out, _ = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, &quot;9&quot;, path)
+    assert code == 0
+    rows = _rows(out)
+    assert len(rows) == 2
+    assert rows[1] == [&quot;0&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;0&quot;]
+
+
+def test_summary_failure_codes(tmp_path, cli_runner):
+    garbage = tmp_path / &quot;garbage.json&quot;
+    garbage.write_text(&quot;this is not json\n&quot;, encoding=&quot;utf-8&quot;)
+    missing = tmp_path / &quot;no-such-file.geojson&quot;
+
+    code, out, _ = cli_runner(&quot;summary&quot;, str(garbage))
+    assert code == 1 and out == &quot;&quot;
+    code, out, _ = cli_runner(&quot;summary&quot;, str(missing))
+    assert code == 1 and out == &quot;&quot;
+    code, out, _ = cli_runner(&quot;summary&quot;, &quot;--n&quot;, &quot;3&quot;, str(garbage))
+    assert code == 2 and out == &quot;&quot;
+    code, out, _ = cli_runner(&quot;summary&quot;)
+    assert code == 2 and out == &quot;&quot;
+    code, out, _ = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, &quot;big&quot;, str(garbage))
+    assert code == 2 and out == &quot;&quot;
+
+
+# ── Finer coverage ──────────────────────────────────────────────────────────────────────
+
+
+def test_summary_tsunami_counts_only_value_one(write_feed, cli_runner):
+    path = write_feed([_feature(&quot;a&quot;, 5.0, 0, tsunami=1), _feature(&quot;b&quot;, 5.0, 1, tsunami=2), _feature(&quot;c&quot;, 5.0, 2, tsunami=0)])
+    code, out, _ = cli_runner(&quot;summary&quot;, path)
+    assert code == 0
+    header, row = _rows(out)
+    assert dict(zip(header, row))[&quot;tsunami&quot;] == &quot;1&quot;
+
+
+def test_summary_single_event_has_equal_extremes(write_feed, cli_runner):
+    path = write_feed([_feature(&quot;a&quot;, 6.25, 4)])
+    code, out, _ = cli_runner(&quot;summary&quot;, path)
+    assert code == 0
+    header, row = _rows(out)
+    record = dict(zip(header, row))
+    assert record[&quot;events&quot;] == &quot;1&quot;
+    assert record[&quot;min_mag&quot;] == record[&quot;max_mag&quot;] == &quot;6.3&quot;
+    assert record[&quot;first&quot;] == record[&quot;last&quot;]
+
+
+def test_summary_function_empty_input_is_zero_row():
+    assert reports.compute_summary([]) == [
+        [&quot;events&quot;, &quot;first&quot;, &quot;last&quot;, &quot;min_mag&quot;, &quot;max_mag&quot;, &quot;mean_mag&quot;, &quot;tsunami&quot;],
+        [&quot;0&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;0&quot;],
+    ]
+
+
+def test_summary_function_mean_has_two_decimals():
+    rows = reports.compute_summary([_event(5.0), _event(5.1)])
+    assert dict(zip(rows[0], rows[1]))[&quot;mean_mag&quot;] == &quot;5.05&quot;
+</pre></article>
+</main>
+</body>
+</html>

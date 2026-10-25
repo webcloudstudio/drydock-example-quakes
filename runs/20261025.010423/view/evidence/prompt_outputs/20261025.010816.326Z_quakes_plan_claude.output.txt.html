@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompt_outputs/20261025.010816.326Z_quakes_plan_claude.output.txt</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompt_outputs/20261025.010816.326Z_quakes_plan_claude.output.txt</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompt_outputs/20261025.010816.326Z_quakes_plan_claude.output.txt">Raw file</a></div></header>
+<article class="doc"><pre>=== BEGIN ARTIFACT FEATURE-FeedValidation.md ===
+# FEATURE: Feed Validation
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Read a saved GeoJSON file and confirm it is a USGS FeatureCollection. |
+| Depends On  | ARCHITECTURE.md, FEATURE-ExitCodes.md |
+| Provides    | read_feed |
+| Consumes    | OperationalError |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Every report command starts by reading a saved feed file. `read_feed` returns the raw `features` list
+and rejects anything that is not a GeoJSON FeatureCollection as an operational failure (exit 1).
+
+## Interface
+
+- Module: `cli.feed`. Function: `read_feed(path) -&gt; list`.
+- `path` is a `str` or `pathlib.Path`. The file is read as UTF-8 and parsed with `json`.
+- Returns the value of the `features` array unchanged (a `list` of feature objects).
+- Raises `OperationalError` when:
+  - the file cannot be read (missing, directory, permissions, undecodable bytes),
+  - the content is not valid JSON,
+  - the JSON value is not an object,
+  - `&quot;type&quot;` is not the string `FeatureCollection`,
+  - `features` is missing or not an array.
+- An empty `features` array is valid and returns `[]`.
+- The function writes nothing to standard output. The diagnostic line is produced by `main`.
+
+## Programmatic Acceptance
+
+=== AC feed-valid-collection ===
+Intent: A FeatureCollection file returns its features list, including an empty one.
+Requires: executable=python3; scope=test
+
+import json
+import tempfile
+from pathlib import Path
+
+from cli.feed import read_feed
+
+with tempfile.TemporaryDirectory() as tmp:
+    features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;a&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0}, &quot;geometry&quot;: None},
+                {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;b&quot;, &quot;properties&quot;: {&quot;mag&quot;: 6.0}, &quot;geometry&quot;: None}]
+    full = Path(tmp) / &quot;full.geojson&quot;
+    full.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    assert read_feed(full) == features
+    assert read_feed(str(full)) == features
+
+    empty = Path(tmp) / &quot;empty.geojson&quot;
+    empty.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}), encoding=&quot;utf-8&quot;)
+    assert read_feed(empty) == []
+=== END AC feed-valid-collection ===
+
+=== AC feed-unreadable-file ===
+Intent: A missing file and a directory both raise OperationalError.
+Requires: executable=python3; scope=test
+
+import tempfile
+from pathlib import Path
+
+from cli.feed import read_feed
+
+with tempfile.TemporaryDirectory() as tmp:
+    for target in (Path(tmp) / &quot;no-such-file.geojson&quot;, Path(tmp)):
+        raised = None
+        try:
+            read_feed(target)
+        except Exception as exc:
+            raised = exc
+        assert raised is not None
+        assert type(raised).__name__ == &quot;OperationalError&quot;
+=== END AC feed-unreadable-file ===
+
+=== AC feed-not-json ===
+Intent: Content that is not JSON raises OperationalError.
+Requires: executable=python3; scope=test
+
+import tempfile
+from pathlib import Path
+
+from cli.feed import read_feed
+
+with tempfile.TemporaryDirectory() as tmp:
+    garbage = Path(tmp) / &quot;garbage.json&quot;
+    garbage.write_text(&quot;this is not json\n&quot;, encoding=&quot;utf-8&quot;)
+    raised = None
+    try:
+        read_feed(garbage)
+    except Exception as exc:
+        raised = exc
+    assert raised is not None
+    assert type(raised).__name__ == &quot;OperationalError&quot;
+=== END AC feed-not-json ===
+
+=== AC feed-wrong-shape ===
+Intent: JSON that is not a FeatureCollection object with a features array raises OperationalError.
+Requires: executable=python3; scope=test
+
+import json
+import tempfile
+from pathlib import Path
+
+from cli.feed import read_feed
+
+bad_values = [
+    {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {}, &quot;geometry&quot;: None},
+    {&quot;type&quot;: &quot;FeatureCollection&quot;},
+    {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: {&quot;a&quot;: 1}},
+    {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: None},
+    {&quot;features&quot;: []},
+    [],
+    &quot;FeatureCollection&quot;,
+    None,
+]
+with tempfile.TemporaryDirectory() as tmp:
+    for n, value in enumerate(bad_values):
+        path = Path(tmp) / f&quot;bad{n}.json&quot;
+        path.write_text(json.dumps(value), encoding=&quot;utf-8&quot;)
+        raised = None
+        try:
+            read_feed(path)
+        except Exception as exc:
+            raised = exc
+        assert raised is not None, value
+        assert type(raised).__name__ == &quot;OperationalError&quot;, value
+=== END AC feed-wrong-shape ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Application code never reads `sources/run.sh` or the frozen snapshot.
+- `read_feed` never writes to standard output; failures surface only through `OperationalError`.
+- Standard library only.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-EventExtraction.md ===
+# FEATURE: Event Extraction
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Turn GeoJSON features into event records and drop events with a null magnitude. |
+| Depends On  | FEATURE-FeedValidation.md |
+| Provides    | extract_events, Event |
+| Consumes    | read_feed |
+
+## Questions
+
+- None.
+
+## Purpose
+
+Reports operate on `Event` records, not raw features. Extraction reads only the fields the reports
+need and excludes every feature whose magnitude is `null`.
+
+## Interface
+
+- Module: `cli.feed`. Function: `extract_events(features) -&gt; list[Event]`, preserving feed order.
+- `Event` is an immutable dataclass with fields:
+  - `id` (str), `mag` (float), `place` (str or `None`),
+  - `time_ms` (int, milliseconds since the Unix epoch), `tsunami` (int),
+  - `lon` (float), `lat` (float), `depth_km` (float).
+- Source fields: `id`, `properties.mag`, `properties.place`, `properties.time`,
+  `properties.tsunami`, and `geometry.coordinates` as `[longitude, latitude, depth_km]`.
+  Every other field is ignored.
+- A feature whose `properties.mag` is `null` is dropped. A magnitude of `0` is kept.
+- A `null` place stays `None`; the regions report maps it to `Unknown`.
+- A missing `tsunami` is read as `0`.
+
+## Programmatic Acceptance
+
+=== AC extract-fields ===
+Intent: Every needed field is read from the feature into the matching Event attribute.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events
+
+feature = {
+    &quot;type&quot;: &quot;Feature&quot;,
+    &quot;id&quot;: &quot;ev1&quot;,
+    &quot;properties&quot;: {&quot;mag&quot;: 5.4, &quot;place&quot;: &quot;10 km N of Town, Land&quot;, &quot;time&quot;: 1735706358208,
+                   &quot;tsunami&quot;: 1, &quot;ignored&quot;: {&quot;deep&quot;: [1, 2, 3]}},
+    &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [169.5, -20.25, 22]},
+}
+events = extract_events([feature])
+assert len(events) == 1
+event = events[0]
+assert event.id == feature[&quot;id&quot;]
+assert event.mag == feature[&quot;properties&quot;][&quot;mag&quot;]
+assert event.place == feature[&quot;properties&quot;][&quot;place&quot;]
+assert event.time_ms == feature[&quot;properties&quot;][&quot;time&quot;]
+assert event.tsunami == feature[&quot;properties&quot;][&quot;tsunami&quot;]
+lon, lat, depth = feature[&quot;geometry&quot;][&quot;coordinates&quot;]
+assert event.lon == lon
+assert event.lat == lat
+assert event.depth_km == depth
+=== END AC extract-fields ===
+
+=== AC extract-null-mag-excluded ===
+Intent: Features with a null magnitude are absent from the result and the rest keep feed order.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events
+
+
+def feature(ident, mag):
+    return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: ident,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}
+
+
+features = [feature(&quot;a&quot;, 5.0), feature(&quot;b&quot;, None), feature(&quot;c&quot;, 0), feature(&quot;d&quot;, 6.1), feature(&quot;e&quot;, None)]
+events = extract_events(features)
+kept_ids = [f[&quot;id&quot;] for f in features if f[&quot;properties&quot;][&quot;mag&quot;] is not None]
+assert [e.id for e in events] == kept_ids
+assert len(events) == len(kept_ids)
+=== END AC extract-null-mag-excluded ===
+
+=== AC extract-null-place-and-empty ===
+Intent: A null place is preserved as None and an empty feature list yields no events.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events
+
+assert extract_events([]) == []
+
+feature = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;np&quot;,
+           &quot;properties&quot;: {&quot;mag&quot;: 5.1, &quot;place&quot;: None, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+           &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}
+events = extract_events([feature])
+assert len(events) == 1
+assert events[0].place is None
+=== END AC extract-null-place-and-empty ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Fields other than those listed are never read into an `Event`.
+- No event value is hardcoded; every value comes from the feature given.
+- Standard library only.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-MagFilter.md ===
+# FEATURE: Magnitude Filter
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Keep only events whose magnitude is at least the --min-mag value. |
+| Depends On  | FEATURE-EventExtraction.md |
+| Provides    | filter_events |
+| Consumes    | extract_events |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`--min-mag &lt;m&gt;` applies to every report. `filter_events` is the single shared implementation, so
+all reports share one inclusive rule: `mag &gt;= m`.
+
+## Interface
+
+- Module: `cli.feed`. Function: `filter_events(events, min_mag) -&gt; list[Event]`.
+- `min_mag` is a `float` or `None`. `None` keeps every event.
+- An event whose magnitude equals `min_mag` is kept.
+- Feed order is preserved. The input list is not mutated.
+
+## Programmatic Acceptance
+
+=== AC filter-threshold-inclusive ===
+Intent: Events at or above the threshold are kept, including those exactly at it, and order is preserved.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events, filter_events
+
+
+def feature(ident, mag):
+    return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: ident,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}
+
+
+mags = [5.0, 5.4, 5.5, 5.6, 7.1, 5.49]
+features = [feature(f&quot;e{i}&quot;, m) for i, m in enumerate(mags)]
+events = extract_events(features)
+threshold = 5.5
+kept = filter_events(events, threshold)
+expected_ids = [f&quot;e{i}&quot; for i, m in enumerate(mags) if m &gt;= threshold]
+assert [e.id for e in kept] == expected_ids
+assert any(e.mag == threshold for e in kept)
+=== END AC filter-threshold-inclusive ===
+
+=== AC filter-none-keeps-all ===
+Intent: A None threshold keeps every event and does not mutate the input.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events, filter_events
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: f&quot;e{i}&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.0 + i, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}} for i in range(4)]
+events = extract_events(features)
+before = list(events)
+kept = filter_events(events, None)
+assert [e.id for e in kept] == [e.id for e in before]
+assert events == before
+=== END AC filter-none-keeps-all ===
+
+=== AC filter-nothing-matches ===
+Intent: A threshold above every magnitude yields an empty list rather than an error.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events, filter_events
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;only&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.2, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}]
+events = extract_events(features)
+assert filter_events(events, 9.0) == []
+=== END AC filter-nothing-matches ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- The comparison is `mag &gt;= min_mag`, never `&gt;`.
+- Standard library only.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Summary.md ===
+# FEATURE: Summary Report
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | The summary command reports event count, time span, magnitude range, mean, and tsunami count. |
+| Depends On  | FEATURE-MagFilter.md, FEATURE-Formatting.md, FEATURE-Options.md, FEATURE-ExitCodes.md |
+| Provides    | quakes summary |
+| Consumes    | read_feed, extract_events, filter_events, write_csv, parse_args |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;` reads a saved feed, applies the filter, and writes a
+one-row CSV report to standard output.
+
+## Behavior
+
+- Header: `events,first,last,min_mag,max_mag,mean_mag,tsunami`.
+- One data row computed over the filtered events:
+  - `events`: the count.
+  - `first` / `last`: the earliest and latest event times, formatted `YYYY-MM-DDTHH:MM:SSZ`.
+  - `min_mag` / `max_mag`: one decimal place.
+  - `mean_mag`: arithmetic mean, two decimals, rounded half up.
+  - `tsunami`: the number of events whose `tsunami` equals `1`.
+- With no events the row is `0,,,,,,0`.
+- Only `--min-mag` is accepted; any other option is a usage error (exit 2).
+- Success, including the empty report, exits `0`. An unreadable or invalid file exits `1` with
+  nothing on standard output.
+
+## Programmatic Acceptance
+
+=== AC summary-values ===
+Intent: The summary row carries count, time span, magnitude range, mean and tsunami count computed from the file.
+Requires: executable=python3; scope=test
+
+import csv
+import datetime
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+BASE = 1735689600000
+
+
+def feature(ident, mag, k, tsunami):
+    return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: ident,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;10 km N of Town, Land&quot;,
+                           &quot;time&quot;: BASE + k * 3600000, &quot;tsunami&quot;: tsunami},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 20.0, 12.0]}}
+
+
+specs = [(&quot;a&quot;, 5.0, 5, 0), (&quot;b&quot;, 6.5, 1, 1), (&quot;c&quot;, 5.5, 9, 1), (&quot;d&quot;, 5.0, 3, 0)]
+features = [feature(*s) for s in specs]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, str(path))
+print(out, err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert len(rows) == 2
+header, row = rows
+assert header == [&quot;events&quot;, &quot;first&quot;, &quot;last&quot;, &quot;min_mag&quot;, &quot;max_mag&quot;, &quot;mean_mag&quot;, &quot;tsunami&quot;]
+mags = [s[1] for s in specs]
+times = [BASE + s[2] * 3600000 for s in specs]
+record = dict(zip(header, row))
+assert int(record[&quot;events&quot;]) == len(specs)
+
+
+def epoch(text):
+    return int(datetime.datetime.fromisoformat(text).timestamp() * 1000)
+
+
+assert record[&quot;first&quot;].endswith(&quot;Z&quot;) and record[&quot;last&quot;].endswith(&quot;Z&quot;)
+assert epoch(record[&quot;first&quot;]) == min(times)
+assert epoch(record[&quot;last&quot;]) == max(times)
+assert float(record[&quot;min_mag&quot;]) == min(mags)
+assert float(record[&quot;max_mag&quot;]) == max(mags)
+assert abs(float(record[&quot;mean_mag&quot;]) - sum(mags) / len(mags)) &lt;= 0.005
+assert int(record[&quot;tsunami&quot;]) == sum(s[3] for s in specs)
+=== END AC summary-values ===
+
+=== AC summary-mean-half-up ===
+Intent: A mean falling exactly on a half cent is rounded up, not to even.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+mags = [5.0] * 7 + [6.0]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: f&quot;e{i}&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: m, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}} for i, m in enumerate(mags)]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, str(path))
+print(out, err)
+assert code == 0
+header, row = list(csv.reader(io.StringIO(out)))
+mean_text = dict(zip(header, row))[&quot;mean_mag&quot;]
+# 41.0 / 8 is exactly 5.125, so half-up yields 5.13 (banker&#x27;s rounding would give 5.12).
+assert mean_text == &quot;5.13&quot;
+=== END AC summary-mean-half-up ===
+
+=== AC summary-min-mag-filter ===
+Intent: --min-mag restricts the summary to events at or above the threshold.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+mags = [5.0, 5.4, 5.5, 6.0, 7.1]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: f&quot;e{i}&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: m, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}} for i, m in enumerate(mags)]
+threshold = 5.5
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, str(threshold), str(path))
+print(out, err)
+assert code == 0
+header, row = list(csv.reader(io.StringIO(out)))
+record = dict(zip(header, row))
+kept = [m for m in mags if m &gt;= threshold]
+assert int(record[&quot;events&quot;]) == len(kept)
+assert float(record[&quot;min_mag&quot;]) == min(kept)
+assert float(record[&quot;max_mag&quot;]) == max(kept)
+=== END AC summary-min-mag-filter ===
+
+=== AC summary-null-mag-excluded ===
+Intent: Features with a null magnitude are not counted.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+mags = [5.0, None, 6.0, None]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: f&quot;e{i}&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: m, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}} for i, m in enumerate(mags)]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, str(path))
+print(out, err)
+assert code == 0
+header, row = list(csv.reader(io.StringIO(out)))
+assert int(dict(zip(header, row))[&quot;events&quot;]) == len([m for m in mags if m is not None])
+=== END AC summary-null-mag-excluded ===
+
+=== AC summary-empty ===
+Intent: When nothing matches, the report is a single row with a zero count and empty fields.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;e0&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}}]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, &quot;9&quot;, str(path))
+print(out, err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert len(rows) == 2
+assert rows[1] == [&quot;0&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;0&quot;]
+=== END AC summary-empty ===
+
+=== AC summary-failure-codes ===
+Intent: An invalid file exits 1, an unlisted option or missing file exits 2, and stdout stays empty in both.
+Requires: executable=python3; scope=test
+
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    garbage = Path(tmp) / &quot;garbage.json&quot;
+    garbage.write_text(&quot;this is not json\n&quot;, encoding=&quot;utf-8&quot;)
+    missing = Path(tmp) / &quot;no-such-file.geojson&quot;
+
+    code, out, err = cli_runner(&quot;summary&quot;, str(garbage))
+    assert code == 1 and out == &quot;&quot;
+    code, out, err = cli_runner(&quot;summary&quot;, str(missing))
+    assert code == 1 and out == &quot;&quot;
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;--n&quot;, &quot;3&quot;, str(garbage))
+    assert code == 2 and out == &quot;&quot;
+    code, out, err = cli_runner(&quot;summary&quot;)
+    assert code == 2 and out == &quot;&quot;
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, &quot;big&quot;, str(garbage))
+    assert code == 2 and out == &quot;&quot;
+=== END AC summary-failure-codes ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- No report row, count, or value is hardcoded; all values are computed from the file read.
+- Application code never reads `sources/run.sh` or the frozen snapshot.
+- Output is built completely before being written, so a failing command leaves standard output empty.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT FEATURE-Top.md ===
+# FEATURE: Top Report
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | The top command lists the largest events by magnitude. |
+| Depends On  | FEATURE-MagFilter.md, FEATURE-Formatting.md, FEATURE-Options.md, FEATURE-ExitCodes.md |
+| Provides    | quakes top |
+| Consumes    | read_feed, extract_events, filter_events, write_csv, parse_args |
+
+## Questions
+
+- None.
+
+## Purpose
+
+`quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;` writes the `--n` largest events as CSV.
+
+## Behavior
+
+- Header: `time,mag,depth_km,place,id`.
+- Events are filtered by `--min-mag` first, then sorted by magnitude descending, then time ascending
+  (ties beyond that keep feed order), then the first `--n` are written.
+- `--n` is a positive integer and defaults to `10`. `--n 0` or a non-integer is a usage error (exit 2).
+- `time` is `YYYY-MM-DDTHH:MM:SSZ`; `mag` and `depth_km` have one decimal place.
+- A place containing a comma is quoted by the `csv` module.
+- Only `--min-mag` and `--n` are accepted. No matching events yields the header alone with exit `0`.
+
+## Programmatic Acceptance
+
+=== AC top-order-and-default-n ===
+Intent: Rows are sorted by magnitude descending then time ascending, and the default count is ten.
+Requires: executable=python3; scope=test
+
+import csv
+import datetime
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+BASE = 1735689600000
+# (id, mag, minutes offset); two pairs tie on magnitude with different times.
+specs = [(&quot;a&quot;, 5.0, 50), (&quot;b&quot;, 6.0, 40), (&quot;c&quot;, 6.0, 10), (&quot;d&quot;, 5.5, 30), (&quot;e&quot;, 5.1, 20),
+         (&quot;f&quot;, 7.0, 60), (&quot;g&quot;, 5.2, 70), (&quot;h&quot;, 5.3, 80), (&quot;i&quot;, 5.4, 90), (&quot;j&quot;, 5.6, 15),
+         (&quot;k&quot;, 5.7, 25), (&quot;l&quot;, 5.8, 35)]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: s[0],
+             &quot;properties&quot;: {&quot;mag&quot;: s[1], &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: BASE + s[2] * 60000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 12.0]}} for s in specs]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, str(path))
+print(out, err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+header, body = rows[0], rows[1:]
+assert header == [&quot;time&quot;, &quot;mag&quot;, &quot;depth_km&quot;, &quot;place&quot;, &quot;id&quot;]
+ranked = sorted(specs, key=lambda s: (-s[1], s[2]))
+default_n = 10
+assert len(specs) &gt; default_n
+assert [r[4] for r in body] == [s[0] for s in ranked[:default_n]]
+first = dict(zip(header, body[0]))
+assert float(first[&quot;mag&quot;]) == ranked[0][1]
+assert float(first[&quot;depth_km&quot;]) == 12.0
+parsed = datetime.datetime.fromisoformat(first[&quot;time&quot;])
+assert int(parsed.timestamp() * 1000) == BASE + ranked[0][2] * 60000
+=== END AC top-order-and-default-n ===
+
+=== AC top-n-option ===
+Intent: --n limits the number of rows written.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+specs = [(&quot;a&quot;, 5.0), (&quot;b&quot;, 6.0), (&quot;c&quot;, 7.1), (&quot;d&quot;, 5.5), (&quot;e&quot;, 6.2)]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: s[0],
+             &quot;properties&quot;: {&quot;mag&quot;: s[1], &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 5.0]}} for i, s in enumerate(specs)]
+count = 3
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, &quot;--n&quot;, str(count), str(path))
+print(out, err)
+assert code == 0
+body = list(csv.reader(io.StringIO(out)))[1:]
+assert [r[4] for r in body] == [s[0] for s in sorted(specs, key=lambda s: -s[1])[:count]]
+=== END AC top-n-option ===
+
+=== AC top-min-mag-before-cut ===
+Intent: --min-mag filters before --n cuts the list.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+specs = [(&quot;a&quot;, 5.0), (&quot;b&quot;, 5.1), (&quot;c&quot;, 5.2), (&quot;d&quot;, 6.0), (&quot;e&quot;, 7.0)]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: s[0],
+             &quot;properties&quot;: {&quot;mag&quot;: s[1], &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 5.0]}} for i, s in enumerate(specs)]
+threshold = 5.1
+count = 4
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, &quot;--min-mag&quot;, str(threshold), &quot;--n&quot;, str(count), str(path))
+print(out, err)
+assert code == 0
+body = list(csv.reader(io.StringIO(out)))[1:]
+kept = sorted([s for s in specs if s[1] &gt;= threshold], key=lambda s: -s[1])
+assert [r[4] for r in body] == [s[0] for s in kept[:count]]
+assert all(float(r[1]) &gt;= threshold for r in body)
+=== END AC top-min-mag-before-cut ===
+
+=== AC top-place-with-comma ===
+Intent: A place containing a comma round-trips through CSV quoting.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+place = &quot;56 km SSE of Some Town, Some Country&quot;
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;c1&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 6.2, &quot;place&quot;: place, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 46.0]}}]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, str(path))
+print(out, err)
+assert code == 0
+body = list(csv.reader(io.StringIO(out)))[1:]
+assert len(body) == 1
+assert body[0][3] == place
+assert body[0][4] == &quot;c1&quot;
+=== END AC top-place-with-comma ===
+
+=== AC top-empty-result ===
+Intent: When no event matches, only the header is written and the exit status is 0.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;e0&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}}]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, &quot;--min-mag&quot;, &quot;9&quot;, str(path))
+print(out, err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows == [[&quot;time&quot;, &quot;mag&quot;, &quot;depth_km&quot;, &quot;place&quot;, &quot;id&quot;]]
+=== END AC top-empty-result ===
+
+=== AC top-usage-errors ===
+Intent: A non-positive or malformed --n, an unlisted option, and a missing file all exit 2 with empty stdout.
+Requires: executable=python3; scope=test
+
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;e0&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}}]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    for args in ((&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, str(path)),
+                 (&quot;top&quot;, &quot;--n&quot;, &quot;-2&quot;, str(path)),
+                 (&quot;top&quot;, &quot;--n&quot;, &quot;many&quot;, str(path)),
+                 (&quot;top&quot;, &quot;--lat&quot;, &quot;1&quot;, str(path)),
+                 (&quot;top&quot;,)):
+        code, out, err = cli_runner(*args)
+        assert code == 2, args
+        assert out == &quot;&quot;, args
+=== END AC top-usage-errors ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- No report row is hardcoded; every row is computed from the file read.
+- Application code never reads `sources/run.sh` or the frozen snapshot.
+- Output is built completely before being written, so a failing command leaves standard output empty.
+=== END ARTIFACT ===</pre></article>
+</main>
+</body>
+</html>

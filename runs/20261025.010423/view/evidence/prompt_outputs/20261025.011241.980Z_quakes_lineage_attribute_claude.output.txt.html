@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompt_outputs/20261025.011241.980Z_quakes_lineage_attribute_claude.output.txt</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompt_outputs/20261025.011241.980Z_quakes_lineage_attribute_claude.output.txt</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompt_outputs/20261025.011241.980Z_quakes_lineage_attribute_claude.output.txt">Raw file</a></div></header>
+<article class="doc"><pre>&lt;requirement name=&quot;summary-report&quot; stories=&quot;summary&quot;&gt;
+check A1 0 summary &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+44,2025-01-01T04:39:18Z,2025-01-07T17:52:21Z,5.0,7.1,5.30,0
+EOF
+&lt;/requirement&gt;
+&lt;requirement name=&quot;top-report&quot; stories=&quot;top&quot;&gt;
+check A2 0 top &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+time,mag,depth_km,place,id
+&lt;/requirement&gt;
+&lt;requirement name=&quot;daily-report&quot; stories=&quot;daily&quot;&gt;
+check A3 0 daily &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+date,events,max_mag
+&lt;/requirement&gt;
+&lt;requirement name=&quot;regions-report&quot; stories=&quot;regions&quot;&gt;
+check A4 0 regions &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+region,events,max_mag
+&lt;/requirement&gt;
+&lt;requirement name=&quot;top-n-option&quot; stories=&quot;top,options&quot;&gt;
+check B1 0 top --n 3 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+&lt;/requirement&gt;
+&lt;requirement name=&quot;min-mag-filter&quot; stories=&quot;mag-filter,options&quot;&gt;
+check B2 0 summary --min-mag 5.5 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+&lt;/requirement&gt;
+&lt;requirement name=&quot;near-search&quot; stories=&quot;near&quot;&gt;
+check C1 0 near --lat 27.72 --lon 85.32 --radius 800 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+distance_km,time,mag,place,id
+&lt;/requirement&gt;
+&lt;requirement name=&quot;empty-results&quot; stories=&quot;summary,daily&quot;&gt;
+check D1 0 summary --min-mag 9 &quot;$QUAKES&quot; &lt;&lt;&#x27;EOF&#x27;
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+0,,,,,,0
+EOF
+&lt;/requirement&gt;
+&lt;requirement name=&quot;operational-failures&quot; stories=&quot;exit-codes,feed-validation&quot;&gt;
+check E1 1 summary &quot;$WORK/no-such-file.geojson&quot; &lt; /dev/null
+&lt;/requirement&gt;
+&lt;requirement name=&quot;usage-errors&quot; stories=&quot;exit-codes,options&quot;&gt;
+check U1 2 &lt; /dev/null
+&lt;/requirement&gt;
+&lt;requirement name=&quot;grader-passes&quot; stories=&quot;verification&quot;&gt;
+Exit 0 only when every check passes.
+&lt;/requirement&gt;
+&lt;unattached story=&quot;architecture&quot;/&gt;
+&lt;unattached story=&quot;cli-foundation&quot;/&gt;
+&lt;unattached story=&quot;formatting&quot;/&gt;
+&lt;unattached story=&quot;event-extraction&quot;/&gt;
+&lt;unattached story=&quot;test-suite&quot;/&gt;
+&lt;unattached story=&quot;fetch&quot;/&gt;
+&lt;unattached story=&quot;fetch-failure&quot;/&gt;</pre></article>
+</main>
+</body>
+</html>

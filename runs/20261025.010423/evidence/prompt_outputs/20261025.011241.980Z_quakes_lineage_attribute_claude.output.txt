@@ -1,0 +1,50 @@
+<requirement name="summary-report" stories="summary">
+check A1 0 summary "$QUAKES" <<'EOF'
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+44,2025-01-01T04:39:18Z,2025-01-07T17:52:21Z,5.0,7.1,5.30,0
+EOF
+</requirement>
+<requirement name="top-report" stories="top">
+check A2 0 top "$QUAKES" <<'EOF'
+time,mag,depth_km,place,id
+</requirement>
+<requirement name="daily-report" stories="daily">
+check A3 0 daily "$QUAKES" <<'EOF'
+date,events,max_mag
+</requirement>
+<requirement name="regions-report" stories="regions">
+check A4 0 regions "$QUAKES" <<'EOF'
+region,events,max_mag
+</requirement>
+<requirement name="top-n-option" stories="top,options">
+check B1 0 top --n 3 "$QUAKES" <<'EOF'
+</requirement>
+<requirement name="min-mag-filter" stories="mag-filter,options">
+check B2 0 summary --min-mag 5.5 "$QUAKES" <<'EOF'
+</requirement>
+<requirement name="near-search" stories="near">
+check C1 0 near --lat 27.72 --lon 85.32 --radius 800 "$QUAKES" <<'EOF'
+distance_km,time,mag,place,id
+</requirement>
+<requirement name="empty-results" stories="summary,daily">
+check D1 0 summary --min-mag 9 "$QUAKES" <<'EOF'
+events,first,last,min_mag,max_mag,mean_mag,tsunami
+0,,,,,,0
+EOF
+</requirement>
+<requirement name="operational-failures" stories="exit-codes,feed-validation">
+check E1 1 summary "$WORK/no-such-file.geojson" < /dev/null
+</requirement>
+<requirement name="usage-errors" stories="exit-codes,options">
+check U1 2 < /dev/null
+</requirement>
+<requirement name="grader-passes" stories="verification">
+Exit 0 only when every check passes.
+</requirement>
+<unattached story="architecture"/>
+<unattached story="cli-foundation"/>
+<unattached story="formatting"/>
+<unattached story="event-extraction"/>
+<unattached story="test-suite"/>
+<unattached story="fetch"/>
+<unattached story="fetch-failure"/>

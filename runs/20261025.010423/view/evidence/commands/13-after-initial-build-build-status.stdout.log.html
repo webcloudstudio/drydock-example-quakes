@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/commands/13-after-initial-build-build-status.stdout.log</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/commands/13-after-initial-build-build-status.stdout.log</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/commands/13-after-initial-build-build-status.stdout.log">Raw file</a></div></header>
+<article class="doc"><pre>Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+Next: (no actionable steps — all done or blocked)
+
+Blueprint: Quakes
+Target: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes
+Rows: &lt;state&gt; &lt;type&gt;  &lt;Name&gt;  [&lt;id&gt;]   — pass [&lt;id&gt;] to --step
+Block: Build Block 1 · Foundational  [block-1]   — [built] story Stand up the Python project tree, environment, dependency manifest, and pytest runner.  [architecture] — complete
+Block: Build Block 2 · Foundational  [block-2]   — [built] story Publish the cli package, main entry point, cli_runner test helper, and the quakes launcher.  [cli-foundation] — complete
+
+Block: Build Block 3 · Service  [block-3]   — 7/7 stories complete
+  [built]   story  Parse and validate the command, options, and file argument, with usage errors exiting 2.  [options]
+  [built]   story  Map usage and operational failures to exit codes 2 and 1 with silent stdout and one stderr line.  [exit-codes]
+  [built]   story  Format times, magnitudes, depths, distances, and CSV output.  [formatting]
+  [built]   story  Read a saved GeoJSON file and validate that it is a FeatureCollection.  [feed-validation]
+  [built]   story  Extract event fields from features and exclude null-magnitude events.  [event-extraction]
+  [built]   story  Apply the --min-mag filter to events.  [mag-filter]
+  [built]   story  Provide bin/test.sh running the pytest suite.  [test-suite]
+
+Block: Build Block 4 · Service  [block-4]   — 7/7 stories complete
+  [built]   story  The summary report.  [summary]
+  [built]   story  The regions report of events per region.  [regions]
+  [built]   story  The daily report of events per UTC date.  [daily]
+  [built]   story  The top report listing the largest events.  [top]
+  [built]   story  The fetch command that downloads a USGS date range to a file.  [fetch]
+  [built]   story  Fetch fails without writing a file on network, HTTP, or body errors.  [fetch-failure]
+  [built]   story  The near report using haversine distance.  [near]
+Block: Build Block 5 · Feature  [block-5]   — [built] story Terminal gate running the supplied grader against the finished application.  [verification] — complete
+
+Steps: 17 total — 0 done, 17 built (await verify), 0 in review, 0 pending, 0 blocked by questions, 0 failed (0% complete)
+Buildable now: (none)
+</pre></article>
+</main>
+</body>
+</html>

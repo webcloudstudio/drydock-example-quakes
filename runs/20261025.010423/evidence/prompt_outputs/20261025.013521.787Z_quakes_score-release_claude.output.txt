@@ -1,0 +1,94 @@
+I'll start by reading the tree and the grader, since the facts only pin st-001.The grader is clear. The file listing was swamped by `.venv`, so I'll list the application files without it and read the entry points.The code is substantive. Next I'll run the suite that st-002 names and probe the behaviors the code claims, in parallel.The suite is green: 256 passed, exit 0. Now I'll ground the three behavioral claims that no pinned command covers (haversine near-search, fetch write semantics, and the no-network test claim) in probes that import the real functions.The probes all pass. Each criterion now has a verdict grounded in what I ran or read, so here is the JSON.
+
+```json
+{
+  "criteria": [
+    {
+      "id": "st-001",
+      "verdict": "MET",
+      "rationale": "`sh sources/run.sh` exits 0 against the current tree: 26 of 26 checks pass.",
+      "evidence": [
+        "run.sh governed gate: outcome PASS, return_code 0, stdout 'Quakes: 26 passed, 0 failed (of 26)'",
+        "sources/run.sh:204 exits 0 only when FAILED is 0",
+        "run.sh:40 compares exit code and stdout with cmp for every check, so the stdout comparison is real"
+      ]
+    },
+    {
+      "id": "st-002",
+      "verdict": "MET",
+      "rationale": "`sh bin/test.sh` ran the whole pytest suite and exited 0 with 256 passed.",
+      "evidence": [
+        "bin/test.sh: run in this tree, output '256 passed in 25.37s', exit 0",
+        "bin/test.sh:1-2 is /bin/sh with `set -eu`, `$(...)`, and `.` for the venv; no bash-only constructs"
+      ]
+    },
+    {
+      "id": "st-003",
+      "verdict": "MET",
+      "rationale": "The summary, top, daily, and regions reports match the known answers in run.sh byte for byte, with exit 0 for each.",
+      "evidence": [
+        "run.sh A1-A4 (summary, top, daily, regions over the full snapshot): PASS, compared with cmp",
+        "run.sh B1-B5 (top --n, summary/regions/daily/top with --min-mag): PASS",
+        "cli/reports.py:48-102 builds each report's CSV from compute_* with fixed headers; formatting goes through render_csv with \\n line endings"
+      ]
+    },
+    {
+      "id": "st-004",
+      "verdict": "MET",
+      "rationale": "near uses the haversine formula on a 6371.0 km sphere, lists every event within the radius, and sorts nearest first; a probe confirmed this against a textbook implementation and brute force.",
+      "evidence": [
+        "cli/reports.py:EARTH_RADIUS_KM = 6371.0; haversine_km implements the haversine formula in radians",
+        "probe near_probe.py: haversine(0,0,0,1) = 111.19492664455873 = 6371*pi/180; pole-to-equator = 10007.5434 = pi*6371/2",
+        "probe near_probe.py: max deviation from textbook over 2000 random pairs = 2.5e-11 km",
+        "probe near_probe.py: compute_near on 300 random events returned the same 11 ids as brute force, distances ascending",
+        "run.sh C1-C4 (near over the snapshot, including the zero-hit case): PASS"
+      ]
+    },
+    {
+      "id": "st-005",
+      "verdict": "MET",
+      "rationale": "Every report reads its events through load_events, which applies filter_events with the --min-mag value, so the filter reaches summary, top, daily, regions, and near.",
+      "evidence": [
+        "cli/reports.py:load_events applies filter_events(extract_events(read_feed(path)), min_mag)",
+        "cli/reports.py: summary_command, top_command, daily_command, regions_command, and near_command all call load_events(parsed.file, parsed.min_mag)",
+        "run.sh B2 (summary --min-mag 5.5), B3 (regions --min-mag 5.4), B4 (daily --min-mag 6), B5 (top --min-mag 5.1): PASS"
+      ]
+    },
+    {
+      "id": "st-006",
+      "verdict": "MET",
+      "rationale": "fetch writes the USGS GeoJSON response byte-for-byte to the output file, and writes no file on an HTTP or network failure.",
+      "evidence": [
+        "cli/fetch.py:FEED_URL is https://earthquake.usgs.gov/fdsnws/event/1/query with format=geojson; probe built the URL from --start/--end",
+        "probe fetch_probe.py: with urlopen stubbed, the written file was byte-identical to the response body (including trailing whitespace and CRLF)",
+        "probe fetch_probe.py: HTTP 503 raised OperationalError and left no file; URLError raised OperationalError and left no file",
+        "cli/fetch.py:fetch_command validates the body before write_bytes, so a bad body never touches the output path"
+      ]
+    },
+    {
+      "id": "st-007",
+      "verdict": "MET",
+      "rationale": "Unreadable or non-FeatureCollection files exit 1 and malformed arguments exit 2, with nothing on standard output in every case.",
+      "evidence": [
+        "run.sh E1 (missing file), E2 (non-JSON), E3 (Feature, not FeatureCollection): exit 1 expected and matched, stdout compared empty against /dev/null: PASS",
+        "run.sh U1-U8 (no command, unknown command, missing --radius, --n 0, bad --min-mag, out-of-range --lat, stray option, missing file argument): exit 2 expected and matched, stdout empty: PASS",
+        "cli/__init__.py:main writes the handler's text only after it returns, and QuakesError paths print only to stderr"
+      ]
+    },
+    {
+      "id": "st-008",
+      "verdict": "MET",
+      "rationale": "The whole automated suite ran with socket connect and create_connection replaced by a tripwire, and no connection was attempted; every fetch test stubs cli.fetch.http_get or urllib.request.urlopen.",
+      "evidence": [
+        "probe nonet_probe.py: pytest over tests/ exit 0, 256 passed, connection attempts: []",
+        "tests/test_fetch.py:46,59,78,100: fetch tests patch cli.fetch.http_get",
+        "tests/test_fetch.py:109-113 and tests/test_fetch_failure.py:58,69: the one http_get test patches urllib.request.urlopen with a FakeResponse"
+      ]
+    }
+  ],
+  "improvements": [
+    "Make st-007's stderr rule observable: run.sh never compares standard error, so the 'exactly one line' wording in the test suite is unchecked by the grader; add a stderr line-count check to run.sh.",
+    "Give st-008 a machine check, such as running the suite under a socket tripwire as the probe did, so the no-network claim does not depend on a judgement of the test code."
+  ]
+}
+```

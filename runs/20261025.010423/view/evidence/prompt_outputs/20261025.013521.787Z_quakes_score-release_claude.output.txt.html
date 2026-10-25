@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompt_outputs/20261025.013521.787Z_quakes_score-release_claude.output.txt</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompt_outputs/20261025.013521.787Z_quakes_score-release_claude.output.txt</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompt_outputs/20261025.013521.787Z_quakes_score-release_claude.output.txt">Raw file</a></div></header>
+<article class="doc"><pre>I&#x27;ll start by reading the tree and the grader, since the facts only pin st-001.The grader is clear. The file listing was swamped by `.venv`, so I&#x27;ll list the application files without it and read the entry points.The code is substantive. Next I&#x27;ll run the suite that st-002 names and probe the behaviors the code claims, in parallel.The suite is green: 256 passed, exit 0. Now I&#x27;ll ground the three behavioral claims that no pinned command covers (haversine near-search, fetch write semantics, and the no-network test claim) in probes that import the real functions.The probes all pass. Each criterion now has a verdict grounded in what I ran or read, so here is the JSON.
+
+```json
+{
+  &quot;criteria&quot;: [
+    {
+      &quot;id&quot;: &quot;st-001&quot;,
+      &quot;verdict&quot;: &quot;MET&quot;,
+      &quot;rationale&quot;: &quot;`sh sources/run.sh` exits 0 against the current tree: 26 of 26 checks pass.&quot;,
+      &quot;evidence&quot;: [
+        &quot;run.sh governed gate: outcome PASS, return_code 0, stdout &#x27;Quakes: 26 passed, 0 failed (of 26)&#x27;&quot;,
+        &quot;sources/run.sh:204 exits 0 only when FAILED is 0&quot;,
+        &quot;run.sh:40 compares exit code and stdout with cmp for every check, so the stdout comparison is real&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;st-002&quot;,
+      &quot;verdict&quot;: &quot;MET&quot;,
+      &quot;rationale&quot;: &quot;`sh bin/test.sh` ran the whole pytest suite and exited 0 with 256 passed.&quot;,
+      &quot;evidence&quot;: [
+        &quot;bin/test.sh: run in this tree, output &#x27;256 passed in 25.37s&#x27;, exit 0&quot;,
+        &quot;bin/test.sh:1-2 is /bin/sh with `set -eu`, `$(...)`, and `.` for the venv; no bash-only constructs&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;st-003&quot;,
+      &quot;verdict&quot;: &quot;MET&quot;,
+      &quot;rationale&quot;: &quot;The summary, top, daily, and regions reports match the known answers in run.sh byte for byte, with exit 0 for each.&quot;,
+      &quot;evidence&quot;: [
+        &quot;run.sh A1-A4 (summary, top, daily, regions over the full snapshot): PASS, compared with cmp&quot;,
+        &quot;run.sh B1-B5 (top --n, summary/regions/daily/top with --min-mag): PASS&quot;,
+        &quot;cli/reports.py:48-102 builds each report&#x27;s CSV from compute_* with fixed headers; formatting goes through render_csv with \\n line endings&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;st-004&quot;,
+      &quot;verdict&quot;: &quot;MET&quot;,
+      &quot;rationale&quot;: &quot;near uses the haversine formula on a 6371.0 km sphere, lists every event within the radius, and sorts nearest first; a probe confirmed this against a textbook implementation and brute force.&quot;,
+      &quot;evidence&quot;: [
+        &quot;cli/reports.py:EARTH_RADIUS_KM = 6371.0; haversine_km implements the haversine formula in radians&quot;,
+        &quot;probe near_probe.py: haversine(0,0,0,1) = 111.19492664455873 = 6371*pi/180; pole-to-equator = 10007.5434 = pi*6371/2&quot;,
+        &quot;probe near_probe.py: max deviation from textbook over 2000 random pairs = 2.5e-11 km&quot;,
+        &quot;probe near_probe.py: compute_near on 300 random events returned the same 11 ids as brute force, distances ascending&quot;,
+        &quot;run.sh C1-C4 (near over the snapshot, including the zero-hit case): PASS&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;st-005&quot;,
+      &quot;verdict&quot;: &quot;MET&quot;,
+      &quot;rationale&quot;: &quot;Every report reads its events through load_events, which applies filter_events with the --min-mag value, so the filter reaches summary, top, daily, regions, and near.&quot;,
+      &quot;evidence&quot;: [
+        &quot;cli/reports.py:load_events applies filter_events(extract_events(read_feed(path)), min_mag)&quot;,
+        &quot;cli/reports.py: summary_command, top_command, daily_command, regions_command, and near_command all call load_events(parsed.file, parsed.min_mag)&quot;,
+        &quot;run.sh B2 (summary --min-mag 5.5), B3 (regions --min-mag 5.4), B4 (daily --min-mag 6), B5 (top --min-mag 5.1): PASS&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;st-006&quot;,
+      &quot;verdict&quot;: &quot;MET&quot;,
+      &quot;rationale&quot;: &quot;fetch writes the USGS GeoJSON response byte-for-byte to the output file, and writes no file on an HTTP or network failure.&quot;,
+      &quot;evidence&quot;: [
+        &quot;cli/fetch.py:FEED_URL is https://earthquake.usgs.gov/fdsnws/event/1/query with format=geojson; probe built the URL from --start/--end&quot;,
+        &quot;probe fetch_probe.py: with urlopen stubbed, the written file was byte-identical to the response body (including trailing whitespace and CRLF)&quot;,
+        &quot;probe fetch_probe.py: HTTP 503 raised OperationalError and left no file; URLError raised OperationalError and left no file&quot;,
+        &quot;cli/fetch.py:fetch_command validates the body before write_bytes, so a bad body never touches the output path&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;st-007&quot;,
+      &quot;verdict&quot;: &quot;MET&quot;,
+      &quot;rationale&quot;: &quot;Unreadable or non-FeatureCollection files exit 1 and malformed arguments exit 2, with nothing on standard output in every case.&quot;,
+      &quot;evidence&quot;: [
+        &quot;run.sh E1 (missing file), E2 (non-JSON), E3 (Feature, not FeatureCollection): exit 1 expected and matched, stdout compared empty against /dev/null: PASS&quot;,
+        &quot;run.sh U1-U8 (no command, unknown command, missing --radius, --n 0, bad --min-mag, out-of-range --lat, stray option, missing file argument): exit 2 expected and matched, stdout empty: PASS&quot;,
+        &quot;cli/__init__.py:main writes the handler&#x27;s text only after it returns, and QuakesError paths print only to stderr&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;st-008&quot;,
+      &quot;verdict&quot;: &quot;MET&quot;,
+      &quot;rationale&quot;: &quot;The whole automated suite ran with socket connect and create_connection replaced by a tripwire, and no connection was attempted; every fetch test stubs cli.fetch.http_get or urllib.request.urlopen.&quot;,
+      &quot;evidence&quot;: [
+        &quot;probe nonet_probe.py: pytest over tests/ exit 0, 256 passed, connection attempts: []&quot;,
+        &quot;tests/test_fetch.py:46,59,78,100: fetch tests patch cli.fetch.http_get&quot;,
+        &quot;tests/test_fetch.py:109-113 and tests/test_fetch_failure.py:58,69: the one http_get test patches urllib.request.urlopen with a FakeResponse&quot;
+      ]
+    }
+  ],
+  &quot;improvements&quot;: [
+    &quot;Make st-007&#x27;s stderr rule observable: run.sh never compares standard error, so the &#x27;exactly one line&#x27; wording in the test suite is unchecked by the grader; add a stderr line-count check to run.sh.&quot;,
+    &quot;Give st-008 a machine check, such as running the suite under a socket tripwire as the probe did, so the no-network claim does not depend on a judgement of the test code.&quot;
+  ]
+}
+```</pre></article>
+</main>
+</body>
+</html>

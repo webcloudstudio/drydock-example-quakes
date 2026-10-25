@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/cli/fetch.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/cli/fetch.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/cli/fetch.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;The `fetch` command: download a USGS date range and save the response body unchanged.
+
+`http_get` is the only function in the product that opens a connection. The handler validates the body
+with the rules `read_feed` applies to a saved file, and writes the output file only after validation.
+Any failure raises `OperationalError` before the output file is touched.
+&quot;&quot;&quot;
+
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+from cli.errors import OperationalError
+from cli.feed import features_from_text
+from cli.formatting import render_csv
+from cli.options import Parsed
+
+FEED_URL = &quot;https://earthquake.usgs.gov/fdsnws/event/1/query&quot;
+TIMEOUT_SECONDS = 30.0
+
+
+def build_url(start: str, end: str, min_mag: str) -&gt; str:
+    &quot;&quot;&quot;The USGS FDSN query URL for a date range, GeoJSON format, time-ascending order.&quot;&quot;&quot;
+    query = urllib.parse.urlencode(
+        {
+            &quot;format&quot;: &quot;geojson&quot;,
+            &quot;starttime&quot;: start,
+            &quot;endtime&quot;: end,
+            &quot;minmagnitude&quot;: min_mag,
+            &quot;orderby&quot;: &quot;time-asc&quot;,
+        }
+    )
+    return f&quot;{FEED_URL}?{query}&quot;
+
+
+def http_get(url: str) -&gt; tuple[int, bytes]:
+    &quot;&quot;&quot;Return (HTTP status, body bytes) for every response, including non-200 ones.
+
+    Raises `OperationalError` for a network failure or timeout, which surface as `OSError` subclasses.
+    &quot;&quot;&quot;
+    try:
+        with urllib.request.urlopen(url, timeout=TIMEOUT_SECONDS) as response:
+            return response.getcode(), response.read()
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read()
+    except OSError as exc:
+        raise OperationalError(f&quot;network request failed: {getattr(exc, &#x27;reason&#x27;, None) or exc}&quot;) from exc
+
+
+def fetch_command(parsed: Parsed) -&gt; str:
+    &quot;&quot;&quot;Download the range, validate it, save the body unchanged to `--out`, and report the feature count.&quot;&quot;&quot;
+    url = build_url(parsed.start, parsed.end, str(parsed.min_mag))
+    try:
+        status, body = http_get(url)
+    except OSError as exc:
+        raise OperationalError(f&quot;network request failed: {exc}&quot;) from exc
+    if status != 200:
+        raise OperationalError(f&quot;USGS responded with HTTP status {status}&quot;)
+    try:
+        text = body.decode(&quot;utf-8&quot;)
+    except UnicodeDecodeError as exc:
+        raise OperationalError(&quot;response body is not UTF-8 text&quot;) from exc
+    features = features_from_text(text, &quot;response body&quot;)
+    try:
+        Path(parsed.out).write_bytes(body)
+    except OSError as exc:
+        raise OperationalError(f&quot;cannot write {parsed.out}: {exc.strerror or exc}&quot;) from exc
+    return render_csv([[&quot;fetched&quot;, str(len(features))]])
+</pre></article>
+</main>
+</body>
+</html>

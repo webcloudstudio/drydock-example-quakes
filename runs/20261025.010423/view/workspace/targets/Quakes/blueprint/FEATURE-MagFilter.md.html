@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-MagFilter.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-MagFilter.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-MagFilter.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Magnitude Filter</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>Keep only events whose magnitude is at least the --min-mag value.</td></tr><tr><td>Depends On</td><td>FEATURE-EventExtraction.md</td></tr><tr><td>Provides</td><td>filter_events</td></tr><tr><td>Consumes</td><td>extract_events</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>--min-mag &lt;m&gt;</code> applies to every report. <code>filter_events</code> is the single shared implementation, so all reports share one inclusive rule: <code>mag &gt;= m</code>.</p>
+<h2>Interface</h2>
+<ul><li>Module: <code>cli.feed</code>. Function: <code>filter_events(events, min_mag) -&gt; list[Event]</code>.</li><li><code>min_mag</code> is a <code>float</code> or <code>None</code>. <code>None</code> keeps every event.</li><li>An event whose magnitude equals <code>min_mag</code> is kept.</li><li>Feed order is preserved. The input list is not mutated.</li></ul>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC filter-threshold-inclusive ===<br>Intent: Events at or above the threshold are kept, including those exactly at it, and order is preserved.<br>Requires: executable=python3; scope=test</p>
+<p>from cli.feed import extract_events, filter_events</p>
+<p>def feature(ident, mag): return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: ident, &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}</p>
+<p>mags = [5.0, 5.4, 5.5, 5.6, 7.1, 5.49] features = [feature(f&quot;e{i}&quot;, m) for i, m in enumerate(mags)] events = extract_events(features) threshold = 5.5 kept = filter_events(events, threshold) expected_ids = [f&quot;e{i}&quot; for i, m in enumerate(mags) if m &gt;= threshold] assert [e.id for e in kept] == expected_ids assert any(e.mag == threshold for e in kept) === END AC filter-threshold-inclusive ===</p>
+<p>=== AC filter-none-keeps-all ===<br>Intent: A None threshold keeps every event and does not mutate the input.<br>Requires: executable=python3; scope=test</p>
+<p>from cli.feed import extract_events, filter_events</p>
+<p>features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: f&quot;e{i}&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0 + i, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}} for i in range(4)] events = extract_events(features) before = list(events) kept = filter_events(events, None) assert [e.id for e in kept] == [e.id for e in before] assert events == before === END AC filter-none-keeps-all ===</p>
+<p>=== AC filter-nothing-matches ===<br>Intent: A threshold above every magnitude yields an empty list rather than an error.<br>Requires: executable=python3; scope=test</p>
+<p>from cli.feed import extract_events, filter_events</p>
+<p>features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;only&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.2, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}] events = extract_events(features) assert filter_events(events, 9.0) == [] === END AC filter-nothing-matches ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>The comparison is <code>mag &gt;= min_mag</code>, never <code>&gt;</code>.</li><li>Standard library only.</li></ul></article>
+</main>
+</body>
+</html>

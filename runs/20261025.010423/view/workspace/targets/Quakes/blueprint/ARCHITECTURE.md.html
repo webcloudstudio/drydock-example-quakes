@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/ARCHITECTURE.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/ARCHITECTURE.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/ARCHITECTURE.md">Raw file</a></div></header>
+<article class="doc"><h1>ARCHITECTURE: Quakes</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>Module layout, boundaries, and technical decisions for the standard-library-only <code>quakes</code> command-line earthquake reporter.</td></tr><tr><td>Depends On</td><td>None</td></tr><tr><td>Provides</td><td>project tree, pytest runner</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes</code> is a single-process Python 3.11+ command-line tool at the application root. <code>fetch</code> downloads a USGS FDSN GeoJSON feed to a file. Five report commands (<code>summary</code>, <code>top</code>, <code>daily</code>, <code>regions</code>, <code>near</code>) read a saved file, filter it, compute rows, and print CSV to standard output.</p>
+<h2>Technology Stack</h2>
+<p>Derived from <code>TECHNOLOGY_STACK.md</code>; that file is the decision of record.</p>
+<div class="scroll"><table><thead><tr><th>Technology</th><th>Where it applies</th></tr></thead><tbody><tr><td>Python 3.11+ (standard library only)</td><td>All application code. <code>urllib.request</code> for HTTP, <code>json</code>, <code>csv</code>, <code>decimal</code>, <code>datetime</code>, <code>math</code>, <code>re</code>.</td></tr><tr><td>CLI</td><td>The <code>quakes</code> executable and the <code>cli</code> package.</td></tr><tr><td>pytest</td><td>Test runner behind <code>bin/test.sh</code>; the only development dependency.</td></tr><tr><td>USGS GeoJSON</td><td>Input format.</td></tr><tr><td>POSIX sh</td><td><code>bin/test.sh</code>.</td></tr></tbody></table></div>
+<h2>Project Layout</h2>
+<div class="scroll"><table><thead><tr><th>Path</th><th>Role</th></tr></thead><tbody><tr><td><code>quakes</code></td><td>Executable launcher at the application root; calls <code>cli.main</code> and exits with its return value.</td></tr><tr><td><code>pyproject.toml</code>, <code>uv.lock</code></td><td>Dependency manifest and lockfile. Runtime dependencies: none.</td></tr><tr><td><code>.venv</code></td><td>Environment created by <code>uv venv</code>.</td></tr><tr><td><code>conftest.py</code></td><td>Exposes the <code>cli_runner</code> pytest fixture from <code>cli.testing</code>.</td></tr><tr><td><code>cli/__init__.py</code></td><td><code>main(argv=None) -&gt; int</code>, the command registry <code>COMMANDS</code>, exit-code mapping.</td></tr><tr><td><code>cli/errors.py</code></td><td><code>UsageError</code> (exit 2) and <code>OperationalError</code> (exit 1).</td></tr><tr><td><code>cli/options.py</code></td><td><code>parse_args(argv) -&gt; Parsed</code>.</td></tr><tr><td><code>cli/formatting.py</code></td><td><code>format_time</code>, <code>format_mag</code>, <code>format_mean</code>, <code>format_decimal</code>, <code>render_csv</code>, <code>write_csv</code>.</td></tr><tr><td><code>cli/feed.py</code></td><td><code>read_feed(path)</code>, <code>extract_events(features)</code>, <code>Event</code>, <code>filter_events(events, min_mag)</code>.</td></tr><tr><td><code>cli/reports.py</code></td><td>One pure function per report, plus <code>haversine_km</code>.</td></tr><tr><td><code>cli/fetch.py</code></td><td><code>build_url</code>, <code>http_get</code>, the fetch command.</td></tr><tr><td><code>cli/testing.py</code></td><td><code>cli_runner(*args) -&gt; (exit_code, stdout, stderr)</code>.</td></tr><tr><td><code>tests/</code></td><td>Application pytest suite.</td></tr><tr><td><code>bin/test.sh</code></td><td>POSIX sh wrapper that runs the pytest suite.</td></tr><tr><td><code>sources/</code></td><td>Read-only scoring assets; never modified and never read by application code.</td></tr></tbody></table></div>
+<h2>Boundaries and Interfaces</h2>
+<p>Reading the file, filtering, computing each report, and formatting are separate functions:</p>
+<ol><li><code>read_feed(path) -&gt; list[dict]</code> validates and returns raw features.</li><li><code>extract_events(features) -&gt; list[Event]</code> normalizes and drops null-magnitude events.</li><li><code>filter_events(events, min_mag) -&gt; list[Event]</code> applies <code>--min-mag</code>.</li><li>A report function maps events (and its options) to a list of rows, each row a list of already-formatted strings.</li><li><code>write_csv(rows, stream=None)</code> writes rows with the <code>csv</code> module.</li></ol>
+<p><code>Parsed</code> (returned by <code>parse_args</code>) is a dataclass with fields <code>command: str</code>, <code>min_mag: float | None</code>, <code>n: int</code>, <code>lat: float | None</code>, <code>lon: float | None</code>, <code>radius: float | None</code>, <code>start: str | None</code>, <code>end: str | None</code>, <code>out: str | None</code>, <code>file: str | None</code>. <code>n</code> defaults to <code>10</code>. <code>min_mag</code> is <code>None</code> for report commands when omitted and <code>2.5</code> for <code>fetch</code> when omitted.</p>
+<p>Command handlers are registered in <code>cli.COMMANDS: dict[str, Callable[[Parsed], str]]</code>. A handler returns the complete standard-output text for the command. <code>main</code> writes that text to standard output only after the handler returns, so a failing command leaves standard output empty.</p>
+<h2>Exit Codes and Channels</h2>
+<div class="scroll"><table><thead><tr><th>Code</th><th>Cause</th></tr></thead><tbody><tr><td>0</td><td>Success, including a report with no matching events.</td></tr><tr><td>1</td><td><code>OperationalError</code>: unreadable file, not a FeatureCollection, fetch network/HTTP/body failure.</td></tr><tr><td>2</td><td><code>UsageError</code>: any malformed invocation.</td></tr></tbody></table></div>
+<p>A failing command writes nothing to standard output and exactly one diagnostic line to standard error. Standard error is never compared by the grader.</p>
+<h2>Technical Decisions</h2>
+<ul><li>Half-up rounding uses <code>decimal.Decimal(repr(x))</code> quantized with <code>ROUND_HALF_UP</code>; built-in <code>round()</code> is not used.</li><li>Text ordering is by byte value (plain Python string comparison on code points, with UTF-8 output).</li><li>Tests stub <code>cli.fetch.http_get</code>; no test opens a network connection.</li><li>No report row, count, or distance is hardcoded; every value comes from the file read.</li></ul>
+<h2>Module Ownership</h2>
+<p>No persistent store, configuration file, or external service other than the USGS HTTP endpoint exists. File I/O is owned by <code>cli.feed</code> (reading) and <code>cli.fetch</code> (writing the fetched file). HTTP is owned by <code>cli.fetch.http_get</code>. No <code>DATABASE.md</code> applies.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC arch-project-files ===<br>Intent: The project root carries a dependency manifest, lockfile, tests directory, and a conftest exposing the cli_runner fixture.<br>Suite: scoped</p>
+<p>from pathlib import Path</p>
+<p>assert Path(&quot;pyproject.toml&quot;).is_file() assert Path(&quot;uv.lock&quot;).is_file() assert Path(&quot;tests&quot;).is_dir() conftest = Path(&quot;conftest.py&quot;) assert conftest.is_file() assert &quot;cli_runner&quot; in conftest.read_text(encoding=&quot;utf-8&quot;) === END AC arch-project-files ===</p>
+<p>=== AC arch-stdlib-only ===<br>Intent: The project declares no runtime dependencies and requires Python 3.11 or newer.</p>
+<p>import sys import tomllib from pathlib import Path</p>
+<p>data = tomllib.loads(Path(&quot;pyproject.toml&quot;).read_text(encoding=&quot;utf-8&quot;)) project = data[&quot;project&quot;] assert project.get(&quot;dependencies&quot;, []) == [] assert sys.version_info &gt;= (3, 11) === END AC arch-stdlib-only ===</p>
+<p>=== AC arch-pytest-available ===<br>Intent: The pytest runner is importable in the project environment.</p>
+<p>import importlib.util</p>
+<p>assert importlib.util.find_spec(&quot;pytest&quot;) is not None === END AC arch-pytest-available ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Do not modify, rewrite, regenerate, or substitute any file under <code>sources/</code>.</li><li>Do not read <code>sources/run.sh</code> or the snapshot from application code, and do not hardcode a report row, a count, or a distance.</li><li>Standard library only at runtime; no third-party runtime dependency.</li><li>Tests never open a network connection.</li></ul></article>
+</main>
+</body>
+</html>

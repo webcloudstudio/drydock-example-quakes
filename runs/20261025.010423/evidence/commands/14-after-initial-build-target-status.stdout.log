@@ -1,0 +1,22 @@
+Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+Drydock status
+
+  Target          /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes
+  Name            drydock Quakes Uat Case
+  Description     Drydock uat - Quakes is the get-data-and-report kit. The source is an original brief for a Python
+                  command-line tool that downloads the USGS earthquake feed as GeoJSON and writes five CSV reports from…
+  Phase           Loop
+  State           17 closed/implemented
+  Metadata        built · complete
+  Sources         3 imported · 17 authored blueprint files
+  Analysis        Ready · 16 stories · 0 questions · 0 blockers
+  Blueprint       ✓  0 errors · 0 warnings
+  Plan            17 closed/implemented
+  Frontier        (none)
+  Workflow        5 steps
+                  Initialize         complete at 2026-10-25T01:04:33.447+00:00
+                  Import             complete at 2026-10-25T01:05:01.982+00:00
+                  Analyze            complete at 2026-10-25T01:05:49.351+00:00
+                  Plan               complete at 2026-10-25T01:13:13.171+00:00
+                  Build              complete at 2026-10-25T01:33:24.253+00:00
+  Next step       drydock refit Quakes BOTH <Scope> <Change>

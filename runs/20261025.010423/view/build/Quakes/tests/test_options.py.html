@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_options.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_options.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_options.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Options story: parse_args turns argv into a Parsed record or raises UsageError (exit 2).&quot;&quot;&quot;
+
+import pytest
+
+from cli.errors import UsageError
+from cli.options import parse_args
+from cli.testing import cli_runner
+
+PATH = &quot;quakes-file.geojson&quot;
+FETCH = [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, &quot;feed.geojson&quot;]
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_options_valid_summary():
+    parsed = parse_args([&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5.5&quot;, PATH])
+    assert parsed.command == &quot;summary&quot;
+    assert parsed.min_mag == 5.5
+    assert parsed.file == PATH
+
+
+def test_options_defaults():
+    top = parse_args([&quot;top&quot;, PATH])
+    assert top.n == 10
+    assert top.min_mag is None
+    fetch = parse_args([&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, PATH])
+    assert fetch.min_mag == 2.5
+
+
+def test_options_any_order():
+    a = parse_args([&quot;top&quot;, &quot;--n&quot;, &quot;3&quot;, &quot;--min-mag&quot;, &quot;5.1&quot;, PATH])
+    b = parse_args([&quot;top&quot;, &quot;--min-mag&quot;, &quot;5.1&quot;, &quot;--n&quot;, &quot;3&quot;, PATH])
+    assert a.n == b.n == 3
+    assert a.min_mag == b.min_mag == 5.1
+    assert a.file == b.file == PATH
+
+
+def test_options_near_valid():
+    parsed = parse_args([&quot;near&quot;, &quot;--lat&quot;, &quot;90&quot;, &quot;--lon&quot;, &quot;-180&quot;, &quot;--radius&quot;, &quot;0.5&quot;, PATH])
+    assert parsed.lat == 90.0
+    assert parsed.lon == -180.0
+    assert parsed.radius == 0.5
+    negative = parse_args([&quot;summary&quot;, &quot;--min-mag&quot;, &quot;-1&quot;, PATH])
+    assert negative.min_mag == -1.0
+
+
+def test_options_fetch_valid():
+    parsed = parse_args(
+        [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--min-mag&quot;, &quot;5&quot;, &quot;--out&quot;, &quot;feed.geojson&quot;]
+    )
+    assert parsed.command == &quot;fetch&quot;
+    assert parsed.start == &quot;2025-01-01&quot;
+    assert parsed.end == &quot;2025-01-08&quot;
+    assert parsed.out == &quot;feed.geojson&quot;
+    assert parsed.min_mag == 5.0
+
+
+def test_options_usage_errors():
+    f = PATH
+    bad = [
+        [],
+        [&quot;frobnicate&quot;, f],
+        [&quot;near&quot;, &quot;--lat&quot;, &quot;27.72&quot;, &quot;--lon&quot;, &quot;85.32&quot;, f],
+        [&quot;near&quot;, &quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;, f],
+        [&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;181&quot;, &quot;--radius&quot;, &quot;10&quot;, f],
+        [&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;0&quot;, f],
+        [&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, f],
+        [&quot;top&quot;, &quot;--n&quot;, &quot;2.5&quot;, f],
+        [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;big&quot;, f],
+        [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5.&quot;, f],
+        [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;.5&quot;, f],
+        [&quot;summary&quot;, &quot;--n&quot;, &quot;3&quot;, f],
+        [&quot;summary&quot;],
+        [&quot;summary&quot;, f, f],
+        [&quot;summary&quot;, &quot;--min-mag&quot;, f],
+        [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5&quot;, &quot;--min-mag&quot;, &quot;6&quot;, f],
+        [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;],
+        [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--out&quot;, f],
+        [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, f, f],
+        [&quot;fetch&quot;, &quot;--start&quot;, &quot;yesterday&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, f],
+    ]
+    for argv in bad:
+        with pytest.raises(UsageError):
+            parse_args(list(argv))
+
+
+def test_options_exit_two():
+    code_unknown, out_unknown, _ = cli_runner(&quot;frobnicate&quot;, PATH)
+    code_none, out_none, _ = cli_runner()
+    assert code_unknown == 2
+    assert code_none == 2
+    assert out_unknown == &quot;&quot;
+    assert out_none == &quot;&quot;
+
+
+# ── Finer coverage: every command, option, boundary, and error path ─────────────────────
+
+
+@pytest.mark.parametrize(&quot;command&quot;, [&quot;summary&quot;, &quot;top&quot;, &quot;daily&quot;, &quot;regions&quot;])
+def test_report_commands_parse_their_file_argument(command):
+    parsed = parse_args([command, PATH])
+    assert parsed.command == command
+    assert parsed.file == PATH
+    assert parsed.min_mag is None
+
+
+def test_parsing_does_not_require_the_file_to_exist(tmp_path):
+    missing = tmp_path / &quot;no-such-file.geojson&quot;
+    assert parse_args([&quot;summary&quot;, str(missing)]).file == str(missing)
+
+
+def test_near_parses_all_required_options_with_min_mag():
+    parsed = parse_args([&quot;near&quot;, &quot;--lat&quot;, &quot;27.72&quot;, &quot;--lon&quot;, &quot;85.32&quot;, &quot;--radius&quot;, &quot;800&quot;, &quot;--min-mag&quot;, &quot;5.3&quot;, PATH])
+    assert (parsed.lat, parsed.lon, parsed.radius, parsed.min_mag) == (27.72, 85.32, 800.0, 5.3)
+    assert parsed.file == PATH
+
+
+@pytest.mark.parametrize(&quot;lat&quot;, [&quot;-90&quot;, &quot;90&quot;, &quot;0&quot;, &quot;-45.5&quot;])
+def test_near_latitude_accepts_the_full_range(lat):
+    assert parse_args([&quot;near&quot;, &quot;--lat&quot;, lat, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;1&quot;, PATH]).lat == float(lat)
+
+
+@pytest.mark.parametrize(&quot;lat&quot;, [&quot;-90.1&quot;, &quot;90.5&quot;, &quot;100&quot;])
+def test_near_latitude_rejects_values_outside_the_range(lat):
+    with pytest.raises(UsageError):
+        parse_args([&quot;near&quot;, &quot;--lat&quot;, lat, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;1&quot;, PATH])
+
+
+@pytest.mark.parametrize(&quot;lon&quot;, [&quot;-180&quot;, &quot;180&quot;, &quot;0&quot;])
+def test_near_longitude_accepts_the_full_range(lon):
+    assert parse_args([&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, lon, &quot;--radius&quot;, &quot;1&quot;, PATH]).lon == float(lon)
+
+
+@pytest.mark.parametrize(&quot;lon&quot;, [&quot;-180.01&quot;, &quot;180.5&quot;])
+def test_near_longitude_rejects_values_outside_the_range(lon):
+    with pytest.raises(UsageError):
+        parse_args([&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, lon, &quot;--radius&quot;, &quot;1&quot;, PATH])
+
+
+def test_near_radius_accepts_a_small_positive_value():
+    assert parse_args([&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;0.001&quot;, PATH]).radius == 0.001
+
+
+@pytest.mark.parametrize(&quot;radius&quot;, [&quot;-5&quot;, &quot;0&quot;, &quot;0.0&quot;])
+def test_near_radius_rejects_zero_and_negative(radius):
+    with pytest.raises(UsageError):
+        parse_args([&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, radius, PATH])
+
+
+@pytest.mark.parametrize(&quot;missing&quot;, [&quot;--lat&quot;, &quot;--lon&quot;, &quot;--radius&quot;])
+def test_near_requires_each_coordinate_and_radius(missing):
+    values = {&quot;--lat&quot;: &quot;0&quot;, &quot;--lon&quot;: &quot;0&quot;, &quot;--radius&quot;: &quot;1&quot;}
+    argv = [&quot;near&quot;]
+    for option, value in values.items():
+        if option != missing:
+            argv += [option, value]
+    with pytest.raises(UsageError):
+        parse_args([*argv, PATH])
+
+
+@pytest.mark.parametrize(&quot;value&quot;, [&quot;1e5&quot;, &quot;+5&quot;, &quot;--5&quot;, &quot;5 &quot;, &quot;&quot;, &quot;NaN&quot;, &quot;inf&quot;])
+def test_numeric_options_reject_malformed_numbers(value):
+    with pytest.raises(UsageError):
+        parse_args([&quot;summary&quot;, &quot;--min-mag&quot;, value, PATH])
+
+
+@pytest.mark.parametrize(&quot;value&quot;, [&quot;-0.5&quot;, &quot;-12&quot;, &quot;0&quot;, &quot;10.25&quot;])
+def test_numeric_options_accept_signed_and_decimal_values(value):
+    assert parse_args([&quot;summary&quot;, &quot;--min-mag&quot;, value, PATH]).min_mag == float(value)
+
+
+def test_top_count_defaults_to_ten_and_accepts_one():
+    assert parse_args([&quot;top&quot;, PATH]).n == 10
+    assert parse_args([&quot;top&quot;, &quot;--n&quot;, &quot;1&quot;, PATH]).n == 1
+
+
+@pytest.mark.parametrize(&quot;value&quot;, [&quot;-3&quot;, &quot;0&quot;, &quot;1.0&quot;, &quot;ten&quot;, &quot;&quot;])
+def test_top_count_rejects_non_positive_and_non_integer(value):
+    with pytest.raises(UsageError):
+        parse_args([&quot;top&quot;, &quot;--n&quot;, value, PATH])
+
+
+def test_fetch_min_mag_is_two_point_five_by_default_and_overridable():
+    assert parse_args(FETCH).min_mag == 2.5
+    assert parse_args([*FETCH, &quot;--min-mag&quot;, &quot;4&quot;]).min_mag == 4.0
+
+
+def test_fetch_takes_no_positional_file():
+    with pytest.raises(UsageError):
+        parse_args([*FETCH, PATH])
+
+
+@pytest.mark.parametrize(&quot;date&quot;, [&quot;2025-1-01&quot;, &quot;2025/01/01&quot;, &quot;25-01-01&quot;, &quot;2025-02-30&quot;, &quot;2025-13-01&quot;])
+def test_fetch_dates_must_be_real_calendar_dates_in_iso_form(date):
+    with pytest.raises(UsageError):
+        parse_args([&quot;fetch&quot;, &quot;--start&quot;, date, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, &quot;feed.geojson&quot;])
+
+
+def test_fetch_rejects_an_empty_output_path():
+    with pytest.raises(UsageError):
+        parse_args([&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, &quot;&quot;])
+
+
+@pytest.mark.parametrize(&quot;option&quot;, [&quot;--start&quot;, &quot;--end&quot;, &quot;--out&quot;])
+def test_fetch_option_without_a_value_is_a_usage_error(option):
+    truncated = FETCH[: FETCH.index(option) + 1]
+    with pytest.raises(UsageError):
+        parse_args(truncated)
+
+
+def test_trailing_min_mag_without_a_value_is_a_usage_error():
+    with pytest.raises(UsageError):
+        parse_args([&quot;summary&quot;, PATH, &quot;--min-mag&quot;])
+
+
+def test_option_value_may_not_be_another_option_of_the_same_command():
+    with pytest.raises(UsageError):
+        parse_args([&quot;summary&quot;, &quot;--min-mag&quot;, &quot;--min-mag&quot;, PATH])
+
+
+def test_an_option_a_command_does_not_list_is_a_usage_error():
+    with pytest.raises(UsageError):
+        parse_args([&quot;daily&quot;, &quot;--n&quot;, &quot;3&quot;, PATH])
+
+
+def test_unknown_option_is_a_usage_error():
+    with pytest.raises(UsageError):
+        parse_args([&quot;summary&quot;, &quot;--verbose&quot;, PATH])
+
+
+def test_missing_file_is_a_usage_error():
+    with pytest.raises(UsageError):
+        parse_args([&quot;regions&quot;, &quot;--min-mag&quot;, &quot;5&quot;])
+
+
+def test_usage_errors_carry_exit_code_two():
+    assert UsageError.exit_code == 2
+    with pytest.raises(UsageError) as info:
+        parse_args([])
+    assert info.value.exit_code == 2
+
+
+def test_cli_runner_writes_nothing_to_stdout_for_a_parse_failure():
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;--n&quot;, &quot;3&quot;, PATH)
+    assert code == 2
+    assert out == &quot;&quot;
+    assert len(err.splitlines()) == 1
+</pre></article>
+</main>
+</body>
+</html>

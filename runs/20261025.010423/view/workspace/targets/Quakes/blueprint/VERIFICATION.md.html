@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/VERIFICATION.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/VERIFICATION.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/VERIFICATION.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Verification</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>Terminal release gate that runs the supplied grader and the application&#x27;s own test suite against the finished application.</td></tr><tr><td>Depends On</td><td>FEATURE-Summary.md, FEATURE-Top.md, FEATURE-Daily.md, FEATURE-Regions.md, FEATURE-Near.md, FEATURE-FetchFailure.md, FEATURE-TestSuite.md</td></tr><tr><td>Provides</td><td>release verification</td></tr><tr><td>Consumes</td><td>quakes summary, quakes top, quakes daily, quakes regions, quakes near, quakes fetch, bin/test.sh</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>This is the assembly story. Every behavior is built by its member stories; this story proves the seams between them by running the supplied grader <code>sources/run.sh</code> (26 checks of exit code and standard output against the frozen 44-event snapshot) and the application&#x27;s own pytest suite through <code>bin/test.sh</code>.</p>
+<h2>Behavior</h2>
+<ul><li><code>sh sources/run.sh</code> run from the application root exits zero, meaning every one of its checks passes.</li><li><code>sh bin/test.sh</code> run from the application root exits zero.</li><li>Nothing under <code>sources/</code> is modified, rewritten, regenerated, or substituted.</li><li>This story adds no application behavior; a failure here is repaired in the member story that owns the behavior.</li></ul>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC verification-grader ===<br>Intent: The supplied grader sources/run.sh exits zero against the finished application.<br>Suite: full<br>Requires: executable=sh; scope=test</p>
+<p>import subprocess</p>
+<p>result = subprocess.run([&quot;sh&quot;, &quot;sources/run.sh&quot;], capture_output=True, text=True) print(result.stdout) print(result.stderr) assert result.returncode == 0 === END AC verification-grader ===</p>
+<p>=== AC verification-test-suite ===<br>Intent: The application&#x27;s own pytest suite, run through bin/test.sh, exits zero.<br>Requires: executable=sh; scope=test<br>Requires: python-package=pytest; scope=test</p>
+<p>import subprocess</p>
+<p>result = subprocess.run([&quot;sh&quot;, &quot;bin/test.sh&quot;], capture_output=True, text=True) print(result.stdout) print(result.stderr) assert result.returncode == 0 === END AC verification-test-suite ===</p>
+<p>=== AC verification-quakes-executable ===<br>Intent: The quakes executable exists at the application root and is executable, as the grader requires.</p>
+<p>import os</p>
+<p>assert os.path.isfile(&quot;quakes&quot;) assert os.access(&quot;quakes&quot;, os.X_OK) === END AC verification-quakes-executable ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Do not modify, rewrite, regenerate, or substitute any file under <code>sources/</code>.</li><li>Application code never reads <code>sources/run.sh</code> or the snapshot and never embeds a report row, count, or distance.</li><li>Only this terminal story runs the full grader; no other story runs it unscoped.</li></ul></article>
+</main>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-CliFoundation.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-CliFoundation.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-CliFoundation.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: CLI Foundation</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>Publishes the cli package, its main entry point, the cli_runner test helper, and the executable quakes launcher.</td></tr><tr><td>Depends On</td><td>ARCHITECTURE.md</td></tr><tr><td>Provides</td><td>cli.main, cli.testing.cli_runner, ./quakes</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>This foundation stands up the command-line entry point everything else registers into. It delivers the <code>cli</code> package, <code>main(argv=None) -&gt; int</code>, the in-process <code>cli_runner</code> helper, and an executable file named <code>quakes</code> at the application root.</p>
+<h2>Interface</h2>
+<ul><li><code>cli.main(argv: list[str] | None = None) -&gt; int</code> — when <code>argv</code> is <code>None</code> it uses <code>sys.argv[1:]</code>. Returns the process exit code and never raises for <code>UsageError</code> or <code>OperationalError</code>.</li><li><code>cli.COMMANDS</code> — registry mapping command name to a handler <code>Callable[[Parsed], str]</code> returning the full standard-output text.</li><li><code>cli.testing.cli_runner(*args) -&gt; tuple[int, str, str]</code> — runs <code>main</code> in-process with redirected stdout and stderr and returns <code>(exit_code, stdout, stderr)</code>.</li><li><code>conftest.py</code> exposes <code>cli_runner</code> as a pytest fixture.</li><li><code>./quakes</code> — executable file (mode with the execute bit set, <code>#!/usr/bin/env python3</code>) that puts its own directory on <code>sys.path</code>, calls <code>cli.main()</code>, and exits with the returned value.</li></ul>
+<p>Dispatch is a skeleton in this story; later stories register commands and argument parsing.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC clifound-main-returns-int ===<br>Intent: main accepts an argv list and returns an integer exit code.</p>
+<p>from cli import main</p>
+<p>code = main([]) assert isinstance(code, int) === END AC clifound-main-returns-int ===</p>
+<p>=== AC clifound-runner-shape ===<br>Intent: cli_runner returns an exit code, stdout text, and stderr text, and agrees with main.</p>
+<p>from cli import main from cli.testing import cli_runner</p>
+<p>args = [&quot;no-such-command-xyz&quot;] code, out, err = cli_runner(*args) assert isinstance(code, int) assert isinstance(out, str) assert isinstance(err, str) assert code == main(list(args)) === END AC clifound-runner-shape ===</p>
+<p>=== AC clifound-registry ===<br>Intent: The command registry is a dict that main consults for dispatch.</p>
+<p>import cli</p>
+<p>assert isinstance(cli.COMMANDS, dict) === END AC clifound-registry ===</p>
+<p>=== AC clifound-launcher ===<br>Intent: The quakes launcher at the application root is executable and exits with the same code main returns.</p>
+<p>import os import subprocess import sys</p>
+<p>from cli import main</p>
+<p>assert os.path.isfile(&quot;quakes&quot;) assert os.access(&quot;quakes&quot;, os.X_OK) argv = [] result = subprocess.run([&quot;./quakes&quot;, *argv], capture_output=True, text=True) print(result.stdout) print(result.stderr, file=sys.stderr) assert result.returncode == main(list(argv)) === END AC clifound-launcher ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>The launcher contains no report logic; it only delegates to <code>cli.main</code>.</li><li>Diagnostics go to standard error only.</li></ul></article>
+</main>
+</body>
+</html>

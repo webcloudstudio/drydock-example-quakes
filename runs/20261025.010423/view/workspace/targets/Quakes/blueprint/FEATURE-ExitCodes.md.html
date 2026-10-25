@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-ExitCodes.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-ExitCodes.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-ExitCodes.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Exit Codes</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>Maps usage and operational failures to exit codes 2 and 1 with empty standard output and one standard-error line.</td></tr><tr><td>Depends On</td><td>FEATURE-Options.md</td></tr><tr><td>Provides</td><td>UsageError, OperationalError, exit code mapping</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>cli/errors.py</code> defines <code>UsageError</code> (exit 2) and <code>OperationalError</code> (exit 1), both subclasses of a common <code>QuakesError(Exception)</code> carrying a one-line message. <code>cli.main</code> parses arguments, looks up the handler in <code>cli.COMMANDS</code>, and runs it.</p>
+<h2>Behavior</h2>
+<ul><li>Success, including a report with no matching events, returns <code>0</code> after writing the handler&#x27;s returned text to standard output.</li><li><code>UsageError</code> returns <code>2</code>; <code>OperationalError</code> returns <code>1</code>.</li><li>On either failure <code>main</code> writes nothing to standard output and exactly one diagnostic line (ending in a single newline, no embedded newline) to standard error.</li><li>Handlers return their complete output text and write nothing themselves, so a failure leaves standard output empty.</li><li>An unexpected exception is not mapped; only the two named errors are.</li></ul>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC exit-usage-code ===<br>Intent: A usage error returns exit code 2 with empty stdout and a single stderr line.</p>
+<p>from cli.testing import cli_runner</p>
+<p>code, out, err = cli_runner(&quot;frobnicate&quot;, &quot;quakes-file.geojson&quot;) assert code == 2 assert out == &quot;&quot; assert len(err.splitlines()) == 1 === END AC exit-usage-code ===</p>
+<p>=== AC exit-operational-code ===<br>Intent: An OperationalError raised by a handler returns exit code 1 with empty stdout and a single stderr line.</p>
+<p>import cli from cli.errors import OperationalError from cli.testing import cli_runner</p>
+<p>def failing(parsed): raise OperationalError(&quot;cannot read the file&quot;)</p>
+<p>original = cli.COMMANDS.get(&quot;summary&quot;) cli.COMMANDS[&quot;summary&quot;] = failing try: code, out, err = cli_runner(&quot;summary&quot;, &quot;quakes-file.geojson&quot;) finally: if original is None: del cli.COMMANDS[&quot;summary&quot;] else: cli.COMMANDS[&quot;summary&quot;] = original assert code == 1 assert out == &quot;&quot; assert len(err.splitlines()) == 1 === END AC exit-operational-code ===</p>
+<p>=== AC exit-success-code ===<br>Intent: A handler that returns text yields exit 0 and that exact text on stdout, and an empty result is still success.</p>
+<p>import cli from cli.testing import cli_runner</p>
+<p>text = &quot;header\nrow\n&quot; original = cli.COMMANDS.get(&quot;daily&quot;) cli.COMMANDS[&quot;daily&quot;] = lambda parsed: text try: code, out, err = cli_runner(&quot;daily&quot;, &quot;quakes-file.geojson&quot;) cli.COMMANDS[&quot;daily&quot;] = lambda parsed: &quot;&quot; empty_code, empty_out, _ = cli_runner(&quot;daily&quot;, &quot;quakes-file.geojson&quot;) finally: if original is None: del cli.COMMANDS[&quot;daily&quot;] else: cli.COMMANDS[&quot;daily&quot;] = original assert code == 0 assert out == text assert empty_code == 0 assert empty_out == &quot;&quot; === END AC exit-success-code ===</p>
+<p>=== AC exit-error-classes ===<br>Intent: UsageError and OperationalError are distinct exception classes.</p>
+<p>from cli.errors import OperationalError, UsageError</p>
+<p>assert issubclass(UsageError, Exception) assert issubclass(OperationalError, Exception) assert not issubclass(UsageError, OperationalError) assert not issubclass(OperationalError, UsageError) === END AC exit-error-classes ===</p>
+<p>=== AC exit-launcher-status ===<br>Intent: The quakes executable surfaces exit 2 for a usage error with empty stdout.</p>
+<p>import subprocess import sys</p>
+<p>result = subprocess.run([&quot;./quakes&quot;, &quot;frobnicate&quot;, &quot;quakes-file.geojson&quot;], capture_output=True, text=True) print(result.stdout) print(result.stderr, file=sys.stderr) assert result.returncode == 2 assert result.stdout == &quot;&quot; === END AC exit-launcher-status ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>A failing command never writes to standard output.</li><li>Standard error carries exactly one diagnostic line on failure; its wording is not part of the contract.</li></ul></article>
+</main>
+</body>
+</html>

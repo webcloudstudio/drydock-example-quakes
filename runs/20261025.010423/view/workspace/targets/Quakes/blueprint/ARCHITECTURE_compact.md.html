@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/ARCHITECTURE_compact.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/ARCHITECTURE_compact.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/ARCHITECTURE_compact.md">Raw file</a></div></header>
+<article class="doc"><p>&lt;!-- Compacted from ARCHITECTURE.md sha256=a4f0e3d35e74a3a608621cd364fd70b71c5a216cf0ef99264d9f012b2fdd0b87 on 2026-10-24 by drydock build agent --&gt;</p>
+<p>Project: quakes (Python &gt;=3.11, stdlib only at runtime; pytest dev-only). Executable <code>quakes</code> at root -&gt; <code>cli.main(argv=None)-&gt;int</code>.<br>Modules: cli/<strong>init</strong>.py (main, COMMANDS: dict[str, Callable[[Parsed], str]], exit mapping); cli/errors.py (UsageError exit 2, OperationalError exit 1); cli/options.py (parse_args(argv)-&gt;Parsed); cli/formatting.py (format_time, format_mag, format_mean, format_decimal, render_csv, write_csv); cli/feed.py (read_feed(path)-&gt;list[dict], extract_events(features)-&gt;list[Event], Event, filter_events(events,min_mag)); cli/reports.py (one pure fn per report, haversine_km); cli/fetch.py (build_url, http_get, fetch command); cli/testing.py (cli_runner(*args)-&gt;(exit_code, stdout, stderr)).<br>Parsed dataclass: command:str, min_mag:float|None, n:int (default 10), lat, lon, radius:float|None, start, end, out, file:str|None. min_mag default None for reports, 2.5 for fetch.<br>Commands: fetch, summary, top, daily, regions, near.<br>Exit codes: 0 success (incl. empty report); 1 OperationalError (unreadable file, not FeatureCollection, fetch network/HTTP/body failure); 2 UsageError. Failing command: empty stdout, one stderr line.<br>Pipeline: read_feed -&gt; extract_events (drops null magnitude) -&gt; filter_events -&gt; report fn returns rows of preformatted strings -&gt; write_csv. Handlers return full stdout text; main writes only after success.<br>Technical: half-up rounding via Decimal(repr(x)) ROUND_HALF_UP; string ordering by code point; UTF-8 output. Tests stub cli.fetch.http_get; no network in tests. No hardcoded rows/counts/distances.<br>Guardrails: never modify/read sources/ from app code. Tests never open network.<br>Project layout: pyproject.toml + uv.lock, .venv (uv venv), conftest.py (cli_runner fixture from cli.testing), tests/, bin/test.sh (runs pytest -q).</p></article>
+</main>
+</body>
+</html>

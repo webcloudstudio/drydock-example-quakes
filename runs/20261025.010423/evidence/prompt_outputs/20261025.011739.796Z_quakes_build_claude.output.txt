@@ -1,0 +1,45 @@
+I'll start by inspecting the build directory and the staged sources.The build directory already has prior-block output (`cli/`, `tests/`, `quakes`, `bin/`). I'll read what exists before changing anything.The prior blocks left a working skeleton, but `cli/__init__.py` doesn't parse arguments or write handler output yet, and `bin/test.sh` fails when `.venv` is missing (the spec says to fall back to the ambient interpreter). Next I'll check the environment and the baseline test run.Baseline is 23 passing. I'll now write the modules, starting with the error classes (adding the `QuakesError` base the exit-codes spec names).Next, the option parser. I'm hand-rolling it rather than using argparse, because argparse prints usage to stdout in some paths and its handling of numeric values like `-180` and `5.` doesn't match the grammar exactly.Next, the formatting module: UTC time, half-up decimal rounding through `Decimal(repr(x))`, and CSV via the `csv` module.Now the feed reader and event extraction, in `cli/feed.py`.One bug to fix before moving on: `UnicodeDecodeError` has no `strerror` attribute, so that message path would raise `AttributeError` instead of `OperationalError`.Next, `main` needs to parse, dispatch to the registered handler, and write handler text only on success. I'll move the UTF-8 stdout writer into `formatting.py` so `write_csv` and `main` share it.Now `bin/test.sh`: use `.venv` when present, otherwise the ambient interpreter, run `pytest -q` unfiltered, and drop the pass-through of arguments so nobody can add `-k` through it.The foundation tests register a handler named `demo`. Under the new grammar, `demo` is not a Quakes command, so I'll point those two tests at `daily` with a file argument. The assertions stay the same.Now the tests. I'm translating each declared acceptance assertion into a named pytest function and adding finer tests beside them. The options tests come first.The `test_fetch_options_must_have_a_value` test I just wrote is convoluted and doesn't test what its name says. I'll replace it with a simple truncation test, and drop the unused fixture from the file-system test.Next, the exit-code tests. They use `monkeypatch` for the handler registry instead of the manual save-and-restore in the spec, which is equivalent and cleaner.Two of those names don't match what they test. I'll fix them.Next, the formatting tests, including the write-to-buffer path for stdout.Next, the feed reader tests: the three declared assertions plus the specific failure branches.That last test asserts on message wording, which the test rules here forbid. I'll remove it.Now the event-extraction tests.Next, the magnitude-filter tests.Last, the test-suite runner tests. The spec's `runs-green` and `runs-from-other-directory` assertions would invoke `bin/test.sh` from inside the suite, which recurses without end. I'll cover the other-directory behavior on a temporary copy of the app that omits this file, and run the two recursive assertions once from the shell instead.Now I'll run the full suite and check the result.Most of these failures are my helper: `_make_root` doesn't create the parent directory. The other-directory case returned 1, so I need its output to see why.The copied app is missing the root `quakes` launcher and `uv.lock`, which the foundation tests check for. I'll copy those too.The suite passes: 191 tests, exit 0. Next I'll run the two spec assertions that recurse inside pytest, executed once from the shell. One runs `bin/test.sh` from an outside directory, and the other is the literal `runs-green` check.Both pass. Next I'll exercise the real launcher end to end, checking exit codes, empty stdout, and the single stderr line.The block is done. I'll close with the required result block and the decisions I made.
+
+Summary of the work: I implemented the options parser, exit-code mapping, formatting, feed reading, event extraction, the magnitude filter, and the test runner. The suite has 191 tests and passes. I didn't commit anything.
+
+**Checks run**
+- `sh bin/test.sh` from the app root: 191 passed, exit 0.
+- `sh bin/test.sh` from `/tmp`: exit 0 (the spec's other-directory assertion, run literally).
+- The spec's `testsuite-runs-green` check, run literally: exit 0.
+- `./quakes` usage paths: exit 2, empty stdout, one stderr line.
+- Every declared acceptance assertion has a same-named pytest function that reads back values and compares them.
+- I did not run `sources/run.sh`. It is the terminal check and needs the report commands, which belong to later blocks.
+
+**Things you should know**
+- `summary`, `top`, `daily`, `regions`, and `near` parse correctly, but no handler is registered yet, so they currently exit 2 with `command not available`. Later blocks register the handlers.
+- Two spec assertions (`testsuite-runs-green` and `testsuite-runs-from-other-directory`) invoke `bin/test.sh` from inside the suite, which would recurse forever. I left them out of pytest, ran them from the shell, and covered the other-directory behavior in pytest on a temporary copy of the app.
+- Two foundation tests registered a handler named `demo`, which the new grammar rejects. I changed them to use `daily` with a file argument. The assertions are unchanged.
+- `bin/test.sh` no longer passes extra arguments through to pytest, so nobody can add `-k` to it.
+
+<blueprint-decisions>
+[{"spec":"FEATURE-Options.md","severity":"Low","subject":"Parser implementation and module","decision":"ARCHITECTURE names cli/options.py and the stack doc suggests argparse in parser.py. I hand-wrote the parser in cli/options.py so the number grammar, repeated options, and extra positionals follow the spec exactly and nothing prints. Is that acceptable?"},{"spec":"FEATURE-Options.md","severity":"Low","subject":"Date validation","decision":"Dates must match YYYY-MM-DD and also be real calendar dates (2025-02-30 is a usage error). The spec only states the pattern. Is that acceptable?"},{"spec":"FEATURE-EventExtraction.md","severity":"Low","subject":"Malformed feature handling","decision":"A feature missing id, properties, time, or coordinates raises OperationalError (exit 1) instead of a traceback. A null tsunami is read as 0, like a missing one. Is that acceptable?"},{"spec":"FEATURE-ExitCodes.md","severity":"Low","subject":"Valid command with no registered handler","decision":"Until report handlers are registered in later blocks, a valid command such as summary exits 2 with 'command not available'. I chose a usage error over a silent success. The later blocks will replace this when they register handlers. Is that acceptable?"}]
+</blueprint-decisions>
+
+RESULT: SUCCESS
+
+FILES CHANGED:
+- bin/test.sh
+- cli/__init__.py
+- cli/errors.py
+- cli/feed.py
+- cli/formatting.py
+- cli/options.py
+- tests/test_cli_foundation.py
+- tests/test_event_extraction.py
+- tests/test_exit_codes.py
+- tests/test_feed.py
+- tests/test_formatting.py
+- tests/test_mag_filter.py
+- tests/test_options.py
+- tests/test_test_suite.py
+
+SUMMARY:
+Implemented Block 3 (Service): argument parsing with usage errors exiting 2; `main` dispatching to registered handlers, writing their output only on success, and mapping errors to exit codes 1 and 2 with one stderr line; UTC time, half-up rounding, and CSV formatting; GeoJSON feed reading and FeatureCollection validation; event extraction and the `--min-mag` filter; and `bin/test.sh` running `pytest -q` unfiltered. Verification: `sh bin/test.sh` gives 191 passed, exit 0. The other-directory and `runs-green` checks each exit 0 when run directly. `sources/` is untouched. No commit was made.
+
+BLOCKERS:
+- None.

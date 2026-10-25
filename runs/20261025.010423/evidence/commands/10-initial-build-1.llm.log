@@ -1,0 +1,29 @@
+--- llm 1/5 · build · claude claude-haiku-5-5 · 20261025.011423.936Z-50b38c55 ---
+  Claude session: start id=5ad1c709-5285-4c66-b823-e43a7f96f569
+  Completed CLAUDE/claude-haiku-5-5 (build)  rc=0
+    elapsed=1m 36.3s   provider=1m 34.7s   turns=9   cached=200,789 (100% hit)   uncached=18   write 22,604   out=8,995   cost=$0.0110   tps=93.4
+  tokens: cached=200,789 (100% hit) · uncached=18 · write 22,604 · out=8,995 · cost=$0.0110
+
+--- llm 2/5 · build · claude claude-haiku-5-5 · 20261025.011616.186Z-e5617d6c ---
+  Claude session: start id=bb7d8206-20e6-4491-a48e-d775ae468c9e
+  Completed CLAUDE/claude-haiku-5-5 (build)  rc=0
+    elapsed=49.6s   provider=48.3s   turns=13   cached=197,586 (100% hit)   uncached=16   write 26,135   out=9,597   cost=$0.0120   tps=193.4
+  tokens: cached=197,586 (100% hit) · uncached=16 · write 26,135 · out=9,597 · cost=$0.0120
+
+--- llm 3/5 · build · claude claude-haiku-5-5 · 20261025.011739.796Z-6a746565 ---
+  Claude session: start id=d7172c8e-840f-4cd0-9aa0-a0e3de7b7013
+  Completed CLAUDE/claude-haiku-5-5 (build)  rc=0
+    elapsed=5m 47.4s   provider=5m 45.7s   turns=34   cached=2,556,089 (100% hit)   uncached=68   write 94,334   out=53,843   cost=$0.0811   tps=155.0
+  tokens: cached=2,556,089 (100% hit) · uncached=68 · write 94,334 · out=53,843 · cost=$0.0811
+
+--- llm 4/5 · build · claude claude-haiku-5-5 · 20261025.012504.037Z-353120db ---
+  Claude session: start id=1bffa937-a35b-4dc8-9198-9ad88f4a474d
+  Completed CLAUDE/claude-haiku-5-5 (build)  rc=0
+    elapsed=3m 53.9s   provider=3m 52.8s   turns=28   cached=2,072,342 (100% hit)   uncached=52   write 99,680   out=44,466   cost=$0.0965   tps=190.1
+  tokens: cached=2,072,342 (100% hit) · uncached=52 · write 99,680 · out=44,466 · cost=$0.0965
+
+--- llm 5/5 · build · claude claude-haiku-5-5 · 20261025.013120.456Z-eade514b ---
+  Claude session: start id=504d1f62-a7dd-47ec-84cd-dbb78d9005fe
+  Completed CLAUDE/claude-haiku-5-5 (build)  rc=0
+    elapsed=30.6s   provider=29.4s   turns=4   cached=42,828 (100% hit)   uncached=6   write 14,491   out=1,421   cost=$0.0040   tps=46.4
+  tokens: cached=42,828 (100% hit) · uncached=6 · write 14,491 · out=1,421 · cost=$0.0040

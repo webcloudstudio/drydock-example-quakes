@@ -1,0 +1,79 @@
+Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+Build: Quakes
+scope: entire project
+frontier: architecture
+git: baseline Quakes 3d42af6852f0
+git: baseline Quakes 031fbe95c61a
+
+BLOCK block-1  name="Block 1 · Foundational"  calls_max=7
+  story=architecture  "Stand up the Python project tree, environment, dependency manifest, and pytest runner."
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.011423.936Z-50b38c55
+    acceptance=3/3
+git: block-1 | python.md, ARCHITECTURE.md | call=1 | app=50e6a1be2f83 target=0f1c5a9f5a6d
+
+  DONE  story=architecture  state=closed/implemented  execution=20261025.011423.936Z-50b38c55  elapsed=1m51s
+git: block-1 | python.md, ARCHITECTURE.md | step_completed | app=unchanged target=6776b59bef58
+
+BLOCK block-2  name="Block 2 · Foundational"  calls_max=7
+  story=cli-foundation  "Publish the cli package, main entry point, cli_runner test helper, and the quakes launcher."
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.011616.186Z-e5617d6c
+    acceptance=4/4
+git: block-2 | FEATURE-CliFoundation.md | call=1 | app=1d3936260ebd target=c36511df239c
+
+  DONE  story=cli-foundation  state=closed/implemented  execution=20261025.011616.186Z-e5617d6c  elapsed=1m04s
+git: block-2 | FEATURE-CliFoundation.md | step_completed | app=unchanged target=22749d4c0703
+
+BLOCK block-3  name="Block 3 · Service"  calls_max=7
+  story=options  "Parse and validate the command, options, and file argument, with usage errors exiting 2."
+  story=exit-codes  "Map usage and operational failures to exit codes 2 and 1 with silent stdout and one stderr line."
+  story=formatting  "Format times, magnitudes, depths, distances, and CSV output."
+  story=feed-validation  "Read a saved GeoJSON file and validate that it is a FeatureCollection."
+  story=event-extraction  "Extract event fields from features and exclude null-magnitude events."
+  story=mag-filter  "Apply the --min-mag filter to events."
+  story=test-suite  "Provide bin/test.sh running the pytest suite."
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.011739.796Z-6a746565
+    acceptance=33/33
+git: block-3 | FEATURE-Options.md, FEATURE-ExitCodes.md, FEATURE-Formatting.md, FEATURE-FeedValidation.md, FEATURE-EventExtraction.md, FEATURE-MagFilter.md, FEATURE-TestSuite.md | call=1 | app=4cf3712f09fc target=54fca647531a
+
+  DONE  story=options  state=closed/implemented  execution=20261025.011739.796Z-6a746565  elapsed=7m04s
+git: block-3 | FEATURE-Options.md, FEATURE-ExitCodes.md, FEATURE-Formatting.md, FEATURE-FeedValidation.md, FEATURE-EventExtraction.md, FEATURE-MagFilter.md, FEATURE-TestSuite.md | step_completed | app=unchanged target=5bd3236837c7
+
+BLOCK block-4  name="Block 4 · Service"  calls_max=7
+  story=summary  "The summary report."
+  story=regions  "The regions report of events per region."
+  story=daily  "The daily report of events per UTC date."
+  story=top  "The top report listing the largest events."
+  story=fetch  "The fetch command that downloads a USGS date range to a file."
+  story=fetch-failure  "Fetch fails without writing a file on network, HTTP, or body errors."
+  story=near  "The near report using haversine distance."
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.012504.037Z-353120db
+    acceptance=35/35
+git: block-4 | FEATURE-Summary.md, FEATURE-Regions.md, FEATURE-Daily.md, FEATURE-Top.md, FEATURE-Fetch.md, FEATURE-FetchFailure.md, FEATURE-Near.md | call=1 | app=7100b2bed6cd target=9e301f3dc880
+
+  DONE  story=summary  state=closed/implemented  execution=20261025.012504.037Z-353120db  elapsed=6m12s
+git: block-4 | FEATURE-Summary.md, FEATURE-Regions.md, FEATURE-Daily.md, FEATURE-Top.md, FEATURE-Fetch.md, FEATURE-FetchFailure.md, FEATURE-Near.md | step_completed | app=unchanged target=268fa36910e8
+
+BLOCK block-5  name="Block 5 · Feature"  calls_max=7
+  story=verification  "Terminal gate running the supplied grader against the finished application."
+
+  [call 1/7]  kind=initial  llm=claude/claude-haiku-5-5
+    result=ok  rc=0  execution=20261025.013120.456Z-eade514b
+    acceptance=3/3
+git: block-5 | VERIFICATION.md | call=1 | app=unchanged target=f9d86c2e7287
+
+  DONE  story=verification  state=closed/implemented  execution=20261025.013120.456Z-eade514b  elapsed=2m33s
+git: block-5 | VERIFICATION.md | step_completed | app=unchanged target=c01cc2471048
+git: build complete Quakes 2e28b44bc92f
+git: build complete Quakes 15bdf42fc296
+
+result: 17 built, 0 failed, 0 unchanged
+elapsed: 19 minutes 38 seconds
+Target - committed project workspace git store

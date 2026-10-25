@@ -1,0 +1,16 @@
+# Environment
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+
+# Tooling
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db

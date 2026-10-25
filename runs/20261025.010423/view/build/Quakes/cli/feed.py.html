@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/cli/feed.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/cli/feed.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/cli/feed.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Read a saved USGS GeoJSON feed, extract event records, and apply the magnitude filter.
+
+Each function here is pure apart from `read_feed`, which reads one file. Failures surface only as
+`OperationalError`; nothing is written to standard output.
+&quot;&quot;&quot;
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from cli.errors import OperationalError
+
+
+@dataclass(frozen=True)
+class Event:
+    &quot;&quot;&quot;One earthquake, reduced to the fields the reports need.&quot;&quot;&quot;
+
+    id: str
+    mag: float
+    place: str | None
+    time_ms: int
+    tsunami: int
+    lon: float
+    lat: float
+    depth_km: float
+
+
+def read_feed(path: str | Path) -&gt; list[Any]:
+    &quot;&quot;&quot;Return the `features` array of a GeoJSON FeatureCollection file, unchanged.
+
+    Raises `OperationalError` when the file cannot be read, is not JSON, or is not a FeatureCollection
+    object whose `features` value is an array.
+    &quot;&quot;&quot;
+    try:
+        text = Path(path).read_text(encoding=&quot;utf-8&quot;)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise OperationalError(f&quot;cannot read {path}: {getattr(exc, &#x27;strerror&#x27;, None) or exc}&quot;) from exc
+    return features_from_text(text, str(path))
+
+
+def features_from_text(text: str, source: str) -&gt; list[Any]:
+    &quot;&quot;&quot;Return the `features` array of GeoJSON FeatureCollection `text`; `source` names the input in errors.
+
+    Raises `OperationalError` when the text is not JSON, or is not a FeatureCollection object whose
+    `features` value is an array. `read_feed` and the `fetch` command both validate through here.
+    &quot;&quot;&quot;
+    try:
+        document = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise OperationalError(f&quot;{source} is not valid JSON&quot;) from exc
+    if not isinstance(document, dict) or document.get(&quot;type&quot;) != &quot;FeatureCollection&quot;:
+        raise OperationalError(f&quot;{source} is not a GeoJSON FeatureCollection&quot;)
+    features = document.get(&quot;features&quot;)
+    if not isinstance(features, list):
+        raise OperationalError(f&quot;{source} has no features array&quot;)
+    return features
+
+
+def extract_events(features: list[Any]) -&gt; list[Event]:
+    &quot;&quot;&quot;Turn feed features into `Event` records in feed order, dropping events whose magnitude is null.&quot;&quot;&quot;
+    return [event for event in (_event(feature) for feature in features) if event is not None]
+
+
+def filter_events(events: list[Event], min_mag: float | None) -&gt; list[Event]:
+    &quot;&quot;&quot;Keep events with `mag &gt;= min_mag`, in order. `None` keeps every event.&quot;&quot;&quot;
+    if min_mag is None:
+        return list(events)
+    return [event for event in events if event.mag &gt;= min_mag]
+
+
+def _event(feature: Any) -&gt; Event | None:
+    try:
+        props = feature[&quot;properties&quot;]
+        mag = props[&quot;mag&quot;]
+        if mag is None:
+            return None
+        lon, lat, depth = feature[&quot;geometry&quot;][&quot;coordinates&quot;][:3]
+        return Event(
+            id=feature[&quot;id&quot;],
+            mag=float(mag),
+            place=props.get(&quot;place&quot;),
+            time_ms=int(props[&quot;time&quot;]),
+            tsunami=int(props.get(&quot;tsunami&quot;) or 0),
+            lon=float(lon),
+            lat=float(lat),
+            depth_km=float(depth),
+        )
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        raise OperationalError(f&quot;malformed feature: {exc!r}&quot;) from exc
+</pre></article>
+</main>
+</body>
+</html>

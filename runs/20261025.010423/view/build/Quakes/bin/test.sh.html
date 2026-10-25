@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/bin/test.sh</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/bin/test.sh</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/bin/test.sh">Raw file</a></div></header>
+<article class="doc"><pre>#!/bin/sh
+# Quakes test suite runner: runs the whole pytest suite unfiltered and exits with pytest&#x27;s status.
+set -eu
+SCRIPT_DIR=&quot;$(cd &quot;$(dirname &quot;$0&quot;)&quot; &amp;&amp; pwd)&quot;
+PROJECT_DIR=&quot;$(cd &quot;$SCRIPT_DIR/..&quot; &amp;&amp; pwd)&quot;
+cd &quot;$PROJECT_DIR&quot;
+if [ -f .venv/bin/activate ]; then
+    set +u
+    . .venv/bin/activate
+    set -u
+fi
+exec pytest -q
+</pre></article>
+</main>
+</body>
+</html>

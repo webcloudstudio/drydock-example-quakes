@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_fetch_failure.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_fetch_failure.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_fetch_failure.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Fetch-failure story: network, HTTP, and body errors exit 1 and never create or alter the output file.&quot;&quot;&quot;
+
+import io
+import json
+import os
+import urllib.error
+from unittest import mock
+
+import pytest
+
+from cli.errors import OperationalError
+from cli.fetch import fetch_command
+from cli.options import parse_args
+
+VALID = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;)
+DATES = [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;]
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_fetch_failure_http_status(tmp_path, cli_runner):
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(500, VALID)):
+        code, out, err = cli_runner(*DATES, &quot;--out&quot;, out_path)
+    assert code == 1
+    assert out == &quot;&quot;
+    assert len(err.strip().splitlines()) == 1
+    assert not os.path.exists(out_path)
+
+
+def test_fetch_failure_bad_body(tmp_path, cli_runner):
+    bodies = [
+        b&quot;this is not json&quot;,
+        json.dumps({&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {}, &quot;geometry&quot;: None}).encode(&quot;utf-8&quot;),
+        json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;}).encode(&quot;utf-8&quot;),
+        json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: &quot;nope&quot;}).encode(&quot;utf-8&quot;),
+        json.dumps([1, 2, 3]).encode(&quot;utf-8&quot;),
+    ]
+    for n, body in enumerate(bodies):
+        out_path = os.path.join(tmp_path, &quot;saved&quot; + str(n) + &quot;.geojson&quot;)
+        with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)):
+            code, out, _ = cli_runner(*DATES, &quot;--out&quot;, out_path)
+        assert code == 1, n
+        assert out == &quot;&quot;, n
+        assert not os.path.exists(out_path), n
+
+
+def test_fetch_failure_network_error(tmp_path, cli_runner):
+    first = os.path.join(tmp_path, &quot;first.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, side_effect=OSError(&quot;unreachable&quot;)):
+        code, out, _ = cli_runner(*DATES, &quot;--out&quot;, first)
+    assert code == 1
+    assert out == &quot;&quot;
+    assert not os.path.exists(first)
+
+    second = os.path.join(tmp_path, &quot;second.geojson&quot;)
+    with mock.patch(&quot;urllib.request.urlopen&quot;, side_effect=urllib.error.URLError(&quot;no route&quot;)) as opener:
+        code2, out2, _ = cli_runner(*DATES, &quot;--out&quot;, second)
+    assert opener.call_count == 1
+    assert code2 == 1
+    assert out2 == &quot;&quot;
+    assert not os.path.exists(second)
+
+
+def test_fetch_failure_http_error_status(tmp_path, cli_runner):
+    error = urllib.error.HTTPError(&quot;https://example.invalid&quot;, 503, &quot;unavailable&quot;, {}, io.BytesIO(b&quot;down&quot;))
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;urllib.request.urlopen&quot;, side_effect=error):
+        code, out, _ = cli_runner(*DATES, &quot;--out&quot;, out_path)
+    assert code == 1
+    assert out == &quot;&quot;
+    assert not os.path.exists(out_path)
+
+
+def test_fetch_failure_preserves_existing_file(tmp_path, cli_runner):
+    original = b&quot;previous contents, not JSON\n&quot;
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    with open(out_path, &quot;wb&quot;) as fh:
+        fh.write(original)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(404, b&quot;missing&quot;)):
+        code, _, _ = cli_runner(*DATES, &quot;--out&quot;, out_path)
+    assert code == 1
+    with open(out_path, &quot;rb&quot;) as fh:
+        assert fh.read() == original
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, b&quot;not json&quot;)):
+        code2, _, _ = cli_runner(*DATES, &quot;--out&quot;, out_path)
+    assert code2 == 1
+    with open(out_path, &quot;rb&quot;) as fh:
+        assert fh.read() == original
+
+
+# ── Finer coverage ──────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(&quot;error&quot;, [OSError(&quot;reset by peer&quot;), TimeoutError(&quot;timed out&quot;)])
+def test_fetch_converts_os_errors_from_http_get(tmp_path, error):
+    out_path = tmp_path / &quot;saved.geojson&quot;
+    parsed = parse_args([*DATES, &quot;--out&quot;, str(out_path)])
+    with mock.patch(&quot;cli.fetch.http_get&quot;, side_effect=error):
+        with pytest.raises(OperationalError):
+            fetch_command(parsed)
+    assert not out_path.exists()
+
+
+def test_fetch_rejects_non_utf8_body(tmp_path, cli_runner):
+    out_path = os.path.join(tmp_path, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, b&quot;\xff\xfe\x00bad&quot;)):
+        code, out, _ = cli_runner(*DATES, &quot;--out&quot;, out_path)
+    assert code == 1
+    assert out == &quot;&quot;
+    assert not os.path.exists(out_path)
+
+
+def test_fetch_unwritable_output_exits_one(tmp_path, cli_runner):
+    out_path = os.path.join(tmp_path, &quot;missing-dir&quot;, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, VALID)):
+        code, out, _ = cli_runner(*DATES, &quot;--out&quot;, out_path)
+    assert code == 1
+    assert out == &quot;&quot;
+</pre></article>
+</main>
+</body>
+</html>

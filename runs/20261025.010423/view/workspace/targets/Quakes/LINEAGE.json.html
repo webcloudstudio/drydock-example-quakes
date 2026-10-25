@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/LINEAGE.json</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/LINEAGE.json</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../workspace/targets/Quakes/LINEAGE.json">Raw file</a></div></header>
+<article class="doc"><pre>{
+  &quot;version&quot;: 1,
+  &quot;import&quot;: {
+    &quot;root&quot;: &quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/sources&quot;,
+    &quot;format&quot;: &quot;markdown&quot;
+  },
+  &quot;sources&quot;: {
+    &quot;INSTRUCTIONS.md&quot;: {
+      &quot;state&quot;: &quot;current&quot;,
+      &quot;versions&quot;: [
+        {
+          &quot;commit&quot;: &quot;e9a87eb&quot;,
+          &quot;date&quot;: &quot;2026-10-24&quot;,
+          &quot;hash&quot;: &quot;8846c1aa162bdada31a845ba311cde0191ceca1e42be6169331250491c68d89d&quot;,
+          &quot;release&quot;: &quot;&quot;,
+          &quot;state&quot;: &quot;consumed&quot;,
+          &quot;via&quot;: &quot;plan&quot;,
+          &quot;ticket&quot;: null,
+          &quot;requirements&quot;: [
+            {
+              &quot;name&quot;: &quot;stack-and-executable&quot;,
+              &quot;text&quot;: &quot;Implement in Python 3.11 or newer using only the standard library (`urllib.request` for HTTP).\nTests run under pytest. The product is an executable named `quakes` at the application root.&quot;,
+              &quot;stories&quot;: [
+                &quot;architecture&quot;,
+                &quot;cli-foundation&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;command-line-syntax&quot;,
+              &quot;text&quot;: &quot;The command comes first, options follow it in any order, and the file is last. An option that the\ncommand does not list is a usage error.&quot;,
+              &quot;stories&quot;: [
+                &quot;options&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;fetch-command&quot;,
+              &quot;text&quot;: &quot;`fetch` requests\n`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&amp;starttime=&lt;start&gt;&amp;endtime=&lt;end&gt;&amp;minmagnitude=&lt;m&gt;&amp;orderby=time-asc`\n(`--min-mag` defaults to `2.5`) and writes the response body unchanged to `&lt;file&gt;`. It writes\n`fetched,&lt;count&gt;` to standard output, where `&lt;count&gt;` is the number of features.&quot;,
+              &quot;stories&quot;: [
+                &quot;fetch&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;fetch-failure&quot;,
+              &quot;text&quot;: &quot;A network error,\nan HTTP status other than 200, or a body that is not a GeoJSON FeatureCollection is an operational\nfailure, and no file is written.&quot;,
+              &quot;stories&quot;: [
+                &quot;fetch-failure&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;read-feature-collection&quot;,
+              &quot;text&quot;: &quot;The file is a GeoJSON `FeatureCollection` as the USGS feed returns it. A file that cannot be\nread, is not JSON, or is not an object with `\&quot;type\&quot;: \&quot;FeatureCollection\&quot;` and a `features`\narray is an operational failure.&quot;,
+              &quot;stories&quot;: [
+                &quot;feed-validation&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;extract-event-fields&quot;,
+              &quot;text&quot;: &quot;Each feature is one event. The tool reads `id`, `properties.mag`, `properties.place`,\n`properties.time` (milliseconds since the Unix epoch), `properties.tsunami` (`1` or `0`), and\n`geometry.coordinates` (`[longitude, latitude, depth_km]`). Every other field is ignored.&quot;,
+              &quot;stories&quot;: [
+                &quot;event-extraction&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;min-mag-filter&quot;,
+              &quot;text&quot;: &quot;`--min-mag &lt;m&gt;` keeps only events with `mag &gt;= m`. It applies to every report.&quot;,
+              &quot;stories&quot;: [
+                &quot;mag-filter&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;output-formatting&quot;,
+              &quot;text&quot;: &quot;- Magnitudes are written with one decimal place: `5.0`, `7.1`.\n- `mean_mag` is written with two decimal places, rounded half up.\n- `depth_km` and `distance_km` are written with one decimal place, rounded half up.\n- Text is compared by byte value.\n- Output is CSV on standard output with `\\n` line endings, written with Python&#x27;s `csv` module, so\n  a place containing a comma is quoted. Place names contain non-ASCII characters and are written\n  as UTF-8.&quot;,
+              &quot;stories&quot;: [
+                &quot;formatting&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;summary-report&quot;,
+              &quot;text&quot;: &quot;| `summary` | `events,first,last,min_mag,max_mag,mean_mag,tsunami` | One row. `first` and `last` are the earliest and latest event times. `tsunami` counts events with `tsunami` equal to `1`. With no events: `0,,,,,,0`. |&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;top-report&quot;,
+              &quot;text&quot;: &quot;| `top` | `time,mag,depth_km,place,id` | The `--n` largest events, by `mag` descending, then time ascending. |&quot;,
+              &quot;stories&quot;: [
+                &quot;top&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;daily-report&quot;,
+              &quot;text&quot;: &quot;| `daily` | `date,events,max_mag` | One row per date that has events, ascending, then `TOTAL,&lt;events&gt;,&lt;max_mag&gt;`. With no events, the max is empty: `TOTAL,0,`. |&quot;,
+              &quot;stories&quot;: [
+                &quot;daily&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;regions-report&quot;,
+              &quot;text&quot;: &quot;| `regions` | `region,events,max_mag` | One row per region, by events descending, then region ascending. |&quot;,
+              &quot;stories&quot;: [
+                &quot;regions&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;near-report&quot;,
+              &quot;text&quot;: &quot;| `near` | `distance_km,time,mag,place,id` | Events whose distance from (`--lat`, `--lon`) is at most `--radius` km, by distance ascending, then time ascending. |&quot;,
+              &quot;stories&quot;: [
+                &quot;near&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;exit-codes&quot;,
+              &quot;text&quot;: &quot;A failing command writes nothing to standard output and one diagnostic line to standard error.&quot;,
+              &quot;stories&quot;: [
+                &quot;exit-codes&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;test-suite&quot;,
+              &quot;text&quot;: &quot;The completed application provides a POSIX-compatible `bin/test.sh` that runs its own pytest suite\nfrom the application root and exits zero only when every test passes.&quot;,
+              &quot;stories&quot;: [
+                &quot;test-suite&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;scoring-harness&quot;,
+              &quot;text&quot;: &quot;`drydock uat` runs `sh sources/run.sh` from the\ncompleted application root and takes its exit code and output as the score.&quot;,
+              &quot;stories&quot;: [
+                &quot;verification&quot;
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    &quot;quakes_2025-01-01_07.geojson&quot;: {
+      &quot;state&quot;: &quot;current&quot;,
+      &quot;versions&quot;: [
+        {
+          &quot;commit&quot;: &quot;e9a87eb&quot;,
+          &quot;date&quot;: &quot;2026-10-24&quot;,
+          &quot;hash&quot;: &quot;e448bc977913aedd85b7636fcc13feeb76b4daf019c5e5a27c712b2d7b9a346c&quot;,
+          &quot;release&quot;: &quot;&quot;,
+          &quot;state&quot;: &quot;consumed&quot;,
+          &quot;via&quot;: &quot;plan&quot;,
+          &quot;ticket&quot;: null,
+          &quot;requirements&quot;: []
+        }
+      ]
+    },
+    &quot;run.sh&quot;: {
+      &quot;state&quot;: &quot;current&quot;,
+      &quot;versions&quot;: [
+        {
+          &quot;commit&quot;: &quot;e9a87eb&quot;,
+          &quot;date&quot;: &quot;2026-10-24&quot;,
+          &quot;hash&quot;: &quot;086f2fb1ebb76c54b97ed71e06aa5474734314fa98d8ec1e90e3ed900f59de3a&quot;,
+          &quot;release&quot;: &quot;&quot;,
+          &quot;state&quot;: &quot;consumed&quot;,
+          &quot;via&quot;: &quot;plan&quot;,
+          &quot;ticket&quot;: null,
+          &quot;requirements&quot;: [
+            {
+              &quot;name&quot;: &quot;summary-report&quot;,
+              &quot;text&quot;: &quot;check A1 0 summary \&quot;$QUAKES\&quot; &lt;&lt;&#x27;EOF&#x27;\nevents,first,last,min_mag,max_mag,mean_mag,tsunami\n44,2025-01-01T04:39:18Z,2025-01-07T17:52:21Z,5.0,7.1,5.30,0\nEOF&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;top-report&quot;,
+              &quot;text&quot;: &quot;check A2 0 top \&quot;$QUAKES\&quot; &lt;&lt;&#x27;EOF&#x27;\ntime,mag,depth_km,place,id&quot;,
+              &quot;stories&quot;: [
+                &quot;top&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;daily-report&quot;,
+              &quot;text&quot;: &quot;check A3 0 daily \&quot;$QUAKES\&quot; &lt;&lt;&#x27;EOF&#x27;\ndate,events,max_mag&quot;,
+              &quot;stories&quot;: [
+                &quot;daily&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;regions-report&quot;,
+              &quot;text&quot;: &quot;check A4 0 regions \&quot;$QUAKES\&quot; &lt;&lt;&#x27;EOF&#x27;\nregion,events,max_mag&quot;,
+              &quot;stories&quot;: [
+                &quot;regions&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;top-n-option&quot;,
+              &quot;text&quot;: &quot;check B1 0 top --n 3 \&quot;$QUAKES\&quot; &lt;&lt;&#x27;EOF&#x27;&quot;,
+              &quot;stories&quot;: [
+                &quot;top&quot;,
+                &quot;options&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;min-mag-filter&quot;,
+              &quot;text&quot;: &quot;check B2 0 summary --min-mag 5.5 \&quot;$QUAKES\&quot; &lt;&lt;&#x27;EOF&#x27;&quot;,
+              &quot;stories&quot;: [
+                &quot;mag-filter&quot;,
+                &quot;options&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;near-search&quot;,
+              &quot;text&quot;: &quot;check C1 0 near --lat 27.72 --lon 85.32 --radius 800 \&quot;$QUAKES\&quot; &lt;&lt;&#x27;EOF&#x27;\ndistance_km,time,mag,place,id&quot;,
+              &quot;stories&quot;: [
+                &quot;near&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;empty-results&quot;,
+              &quot;text&quot;: &quot;check D1 0 summary --min-mag 9 \&quot;$QUAKES\&quot; &lt;&lt;&#x27;EOF&#x27;\nevents,first,last,min_mag,max_mag,mean_mag,tsunami\n0,,,,,,0\nEOF&quot;,
+              &quot;stories&quot;: [
+                &quot;summary&quot;,
+                &quot;daily&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;operational-failures&quot;,
+              &quot;text&quot;: &quot;check E1 1 summary \&quot;$WORK/no-such-file.geojson\&quot; &lt; /dev/null&quot;,
+              &quot;stories&quot;: [
+                &quot;exit-codes&quot;,
+                &quot;feed-validation&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;usage-errors&quot;,
+              &quot;text&quot;: &quot;check U1 2 &lt; /dev/null&quot;,
+              &quot;stories&quot;: [
+                &quot;exit-codes&quot;,
+                &quot;options&quot;
+              ]
+            },
+            {
+              &quot;name&quot;: &quot;grader-passes&quot;,
+              &quot;text&quot;: &quot;Exit 0 only when every check passes.&quot;,
+              &quot;stories&quot;: [
+                &quot;verification&quot;
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+</pre></article>
+</main>
+</body>
+</html>

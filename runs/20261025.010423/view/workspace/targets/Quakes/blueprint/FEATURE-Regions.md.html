@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Regions.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Regions.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Regions.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Regions</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>The <code>regions</code> report: event count and maximum magnitude per region derived from the place text.</td></tr><tr><td>Depends On</td><td>FEATURE-MagFilter.md, FEATURE-Formatting.md, FEATURE-Options.md, FEATURE-ExitCodes.md</td></tr><tr><td>Provides</td><td>quakes regions</td></tr><tr><td>Consumes</td><td>read_feed, extract_events, filter_events, write_csv, format_mag, parse_args</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;</code> reports the most active regions in a saved USGS GeoJSON file.</p>
+<h2>Trigger</h2>
+<p>Command line: <code>./quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;</code>. Only <code>--min-mag</code> is accepted.</p>
+<h2>Sequence</h2>
+<ol><li><code>read_feed</code>, <code>extract_events</code>, and <code>filter_events</code> produce the kept events.</li><li><code>region_of(place)</code> is a pure function: the text after the last <code>&quot;, &quot;</code> (comma, space) in <code>place</code>; the whole <code>place</code> when it has none; <code>&quot;Unknown&quot;</code> when <code>place</code> is <code>None</code>.</li><li><code>compute_regions(events)</code> counts events and tracks the maximum magnitude per region.</li><li>Rows are ordered by events descending, then region ascending by byte value (plain code point order, so uppercase sorts before lowercase).</li><li><code>write_csv</code> writes the complete report.</li></ol>
+<h2>Output</h2>
+<p>Header: <code>region,events,max_mag</code>. One row per region; <code>max_mag</code> has one decimal. With no events, the output is only the header, exit 0. A region containing a comma cannot occur (the last <code>&quot;, &quot;</code> is split on), but quoting is always delegated to the <code>csv</code> module. Non-ASCII region names are written as UTF-8.</p>
+<h2>Reads</h2>
+<p>The saved GeoJSON file named on the command line.</p>
+<h2>Writes</h2>
+<p>Standard output only.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC regions-extract-and-order ===<br>Intent: Region is the text after the last comma-space, counts and maxima are per region, ordered by events descending then region by byte value.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<h1>(region, mag) pairs supplied as input; the place text is built from the region.</h1>
+<p>pairs = [ (&quot;Zed&quot;, 5.0), (&quot;Zed&quot;, 5.6), (&quot;alpha&quot;, 5.1), (&quot;Beta&quot;, 5.2), (&quot;Beta&quot;, 5.0), (&quot;Gamma&quot;, 5.3), (&quot;Gamma&quot;, 5.9), (&quot;Gamma&quot;, 5.1), (&quot;Delta&quot;, 5.4), ] features = [] for i, (region, mag) in enumerate(pairs): features.append({ &quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;12 km N of Town &quot; + str(i) + &quot;, &quot; + region, &quot;time&quot;: 1735706358208 + i, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}, &quot;id&quot;: &quot;e&quot; + str(i), }) doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features} expected = {} for region, mag in pairs: entry = expected.setdefault(region, [0, mag]) entry[0] += 1 entry[1] = max(entry[1], mag) order = sorted(expected, key=lambda r: (-expected[r][0], r)) with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump(doc, fh) code, out, err = cli_runner(&quot;regions&quot;, path) print(out) print(err) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert rows[0] == [&quot;region&quot;, &quot;events&quot;, &quot;max_mag&quot;] assert [r[0] for r in rows[1:]] == order for r in rows[1:]: assert int(r[1]) == expected[r[0]][0] assert float(r[2]) == expected[r[0]][1] === END AC regions-extract-and-order ===</p>
+<p>=== AC regions-place-rules ===<br>Intent: A place with several commas splits on the last comma-space, a place without one is its own region, and a null place is Unknown.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>last_part = &quot;Country&quot; multi_place = &quot;Near Town, Province, &quot; + last_part plain_place = &quot;Mid-Atlantic Ridge&quot; comma_no_space = &quot;A,B&quot; places = [multi_place, plain_place, comma_no_space, None] features = [] for i, place in enumerate(places): features.append({ &quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: place, &quot;time&quot;: 1735706358208 + i, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}, &quot;id&quot;: &quot;e&quot; + str(i), }) doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features} with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump(doc, fh) code, out, err = cli_runner(&quot;regions&quot;, path) print(out) assert code == 0 rows = list(csv.reader(io.StringIO(out))) names = {r[0] for r in rows[1:]} assert names == {last_part, plain_place, comma_no_space, &quot;Unknown&quot;} === END AC regions-place-rules ===</p>
+<p>=== AC regions-min-mag-and-empty ===<br>Intent: --min-mag restricts the regions counted, null magnitudes are excluded, and an empty result is only the header with exit 0.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>threshold = 5.4 pairs = [(&quot;Aland&quot;, 5.0), (&quot;Aland&quot;, 5.4), (&quot;Bland&quot;, 6.0), (&quot;Cland&quot;, None), (&quot;Dland&quot;, 5.3)] features = [] for i, (region, mag) in enumerate(pairs): features.append({ &quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;5 km S of T, &quot; + region, &quot;time&quot;: 1735706358208 + i, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}, &quot;id&quot;: &quot;e&quot; + str(i), }) doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features} kept = [(r, m) for r, m in pairs if m is not None and m &gt;= threshold] with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump(doc, fh) code, out, err = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, str(threshold), path) code_none, out_none, err_none = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, &quot;9&quot;, path) print(out) assert code == 0 and code_none == 0 rows = list(csv.reader(io.StringIO(out))) assert {r[0] for r in rows[1:]} == {r for r, _ in kept} assert sum(int(r[1]) for r in rows[1:]) == len(kept) assert list(csv.reader(io.StringIO(out_none))) == [[&quot;region&quot;, &quot;events&quot;, &quot;max_mag&quot;]] === END AC regions-min-mag-and-empty ===</p>
+<p>=== AC regions-failure-contract ===<br>Intent: A file that is not a FeatureCollection exits 1 and an unlisted option exits 2, each with empty standard output.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as tmp: bad = os.path.join(tmp, &quot;bad.json&quot;) with open(bad, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: fh.write(&quot;this is not json&quot;) code, out, err = cli_runner(&quot;regions&quot;, bad) assert code == 1 assert out == &quot;&quot; code2, out2, err2 = cli_runner(&quot;regions&quot;, &quot;--lat&quot;, &quot;1&quot;, bad) assert code2 == 2 assert out2 == &quot;&quot; === END AC regions-failure-contract ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Region splitting uses the last <code>&quot;, &quot;</code> only; <code>&quot;,&quot;</code> without a following space does not split.</li><li>Ties in event count are broken by region name in byte order, not locale or case-insensitive order.</li><li>No region row is hardcoded; all values come from the file read.</li></ul></article>
+</main>
+</body>
+</html>

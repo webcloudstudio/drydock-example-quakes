@@ -1,0 +1,45 @@
+I'll start by inspecting the build directory to see what already exists from earlier blocks.The earlier blocks left a `cli/` package, tests, and a `quakes` launcher. I'll read those next, since this block builds on them.The handler registry `COMMANDS` is empty, so this block needs to register the six report/fetch handlers. Before writing anything, I'll check the baseline test state and the existing test-suite test.Baseline is green (191 passed). The plan, based on ARCHITECTURE and the feature specs:
+
+- `cli/reports.py`: pure `compute_*` row builders, `region_of`, `haversine_km`, and one handler per report.
+- `cli/fetch.py`: `build_url`, `http_get`, and the `fetch` handler. Body validation reuses the `read_feed` rules, so I'll pull that logic into a `features_from_text` helper in `feed.py`.
+- `cli/__init__.py`: register the six handlers in `COMMANDS`.
+
+Starting with the `feed.py` refactor:Next, the report module with the pure row builders, `haversine_km`, and the per-command handlers.Now the fetch module. `http_get` is the only network call, and the handler writes the file only after validation passes.Registering the six handlers in `COMMANDS`, keeping the same dict object so the existing monkeypatch-based tests still apply.Next, the tests. I'll add a shared `write_feed` fixture to `conftest.py` so the per-report test files don't each repeat the file-writing code.Importing helpers out of `conftest.py` is fragile, so I'll keep only the fixture there and give each test module its own small feature builder.Now the summary tests: the declared `summary-*` acceptance assertions, plus finer checks on the empty report and the `tsunami` count.One assertion I just wrote is sloppy: the `or` makes it accept either of two values. 6.25 rounds half-up to 6.3, so I'll pin that exactly.Next, the regions tests: the declared `regions-*` assertions, plus direct checks of `region_of`.The regions test has a mid-function import, which doesn't match the file's style. I'll move it to the top.Daily tests next, covering the UTC grouping boundary and the TOTAL row, including the empty case.Top tests: the declared `top-*` assertions, plus a check that `--n` is applied after filtering and that sort ties break on time.Now the fetch tests, covering the declared `fetch-*` assertions and the `http_get` contract with `urlopen` stubbed.I left a pointless `cli.testing` import in that file. The `cli_runner` fixture already supplies the helper, so I'll remove it.Next, the fetch-failure tests. These cover the five declared assertions, which check that no file is created or altered on network, HTTP, or body errors.Last, the near tests: the declared `near-*` assertions, plus a check of `haversine_km` against known distances.One comment in the antipodal test claims a rounding cause that doesn't apply to this exact input (h is exactly 1). I'll correct it before running anything.Everything is written. Now I'll run the full project suite via its declared runner, which is the gate for every story here.The suite passes: 256 tests, up from 191 at baseline. Next I'll run the real `quakes` binary against the staged snapshot for a few reports, to confirm the output on real data. I'm not invoking `sources/run.sh` here, since no criterion in this block calls it.The real snapshot output matches the known answers I can see in the staged run.sh (A1 summary, A2 top, A3 daily totals, C1 near rows). Last, I'll confirm which files changed, without touching git history.The block 4 stories are built and the project suite is green: 256 passed (191 before this block, 65 added). `bin/test.sh` exits 0.
+
+**What was built**
+
+- **`cli/reports.py`**: the `summary`, `regions`, `daily`, `top`, and `near` reports. Each is a pure `compute_*` row builder plus a handler. Also `region_of` and `haversine_km` (6371.0 km sphere).
+- **`cli/fetch.py`**: `build_url`, `http_get` (the only network call, via `urllib.request.urlopen`), and the `fetch` handler. The handler validates the body and writes the file only after validation passes.
+- **`cli/feed.py`**: I pulled the FeatureCollection validation out of `read_feed` into `features_from_text`, so `fetch` applies the same rules to the response body. Error messages for files are unchanged.
+- **`cli/__init__.py`**: registers the six handlers in `COMMANDS`. Monkeypatched tests still apply because it is the same dict object.
+- **Tests**: `conftest.py` gains a `write_feed` fixture. Seven new test modules, one per story group, hold every declared acceptance assertion as a pytest function, plus finer coverage (region splitting, UTC date boundaries, haversine values, URL shape, failure cases).
+
+**Checks run**
+
+- `sh bin/test.sh`: 256 passed, exit 0.
+- `./quakes` on the staged snapshot: the summary, daily totals, first rows of `top`, and first rows of `near` match the values in `sources/run.sh`. I did not run `sources/run.sh` itself, because no criterion in this block invokes it.
+
+**Decision for you (Low, FEATURE-Fetch.md):** the spec says `minmagnitude` should carry the text given on the command line. `Parsed` stores a float, so I send `str(float)`. That means `--min-mag 5` goes out as `minmagnitude=5.0`. USGS accepts this, and the declared ACs (`4.5`, default `2.5`) are unaffected. If you want the exact text, `Parsed` needs a raw-text field added in `options.py`.
+
+RESULT: SUCCESS
+
+FILES CHANGED:
+- cli/__init__.py
+- cli/feed.py
+- cli/fetch.py
+- cli/reports.py
+- conftest.py
+- tests/test_summary.py
+- tests/test_regions.py
+- tests/test_daily.py
+- tests/test_top.py
+- tests/test_fetch.py
+- tests/test_fetch_failure.py
+- tests/test_near.py
+
+SUMMARY:
+Implemented the summary, regions, daily, top, near, and fetch commands with fetch failure handling, following FEATURE-Summary/Regions/Daily/Top/Fetch/FetchFailure/Near. Declared acceptance assertions are reproduced as pytest functions. `bin/test.sh`: 256 passed (65 new). No git history was touched.
+
+<blueprint-decisions>
+[{"spec":"FEATURE-Fetch.md","severity":"Low","subject":"minmagnitude text","decision":"The spec says minmagnitude carries the text given on the command line. Parsed stores a float, so the fetch handler sends str(float). `--min-mag 5` therefore goes out as `5.0`. The declared ACs (4.5 and the 2.5 default) pass. Acceptable, or should Parsed keep the raw text?"}]
+</blueprint-decisions>

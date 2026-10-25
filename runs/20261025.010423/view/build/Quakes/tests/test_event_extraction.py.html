@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_event_extraction.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_event_extraction.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_event_extraction.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Event-extraction story: features become Event records; null-magnitude features are dropped.&quot;&quot;&quot;
+
+import dataclasses
+
+import pytest
+
+from cli.errors import OperationalError
+from cli.feed import Event, extract_events
+
+
+def _feature(ident, mag, place=&quot;P&quot;, time=1735706358000, tsunami=0):
+    return {
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;id&quot;: ident,
+        &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: place, &quot;time&quot;: time, &quot;tsunami&quot;: tsunami},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]},
+    }
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_extract_fields():
+    feature = {
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;id&quot;: &quot;ev1&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: 5.4, &quot;place&quot;: &quot;10 km N of Town, Land&quot;, &quot;time&quot;: 1735706358208,
+                       &quot;tsunami&quot;: 1, &quot;ignored&quot;: {&quot;deep&quot;: [1, 2, 3]}},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [169.5, -20.25, 22]},
+    }
+    events = extract_events([feature])
+    assert len(events) == 1
+    event = events[0]
+    assert event.id == feature[&quot;id&quot;]
+    assert event.mag == feature[&quot;properties&quot;][&quot;mag&quot;]
+    assert event.place == feature[&quot;properties&quot;][&quot;place&quot;]
+    assert event.time_ms == feature[&quot;properties&quot;][&quot;time&quot;]
+    assert event.tsunami == feature[&quot;properties&quot;][&quot;tsunami&quot;]
+    lon, lat, depth = feature[&quot;geometry&quot;][&quot;coordinates&quot;]
+    assert event.lon == lon
+    assert event.lat == lat
+    assert event.depth_km == depth
+
+
+def test_extract_null_mag_excluded():
+    features = [_feature(&quot;a&quot;, 5.0), _feature(&quot;b&quot;, None), _feature(&quot;c&quot;, 0), _feature(&quot;d&quot;, 6.1), _feature(&quot;e&quot;, None)]
+    events = extract_events(features)
+    kept_ids = [f[&quot;id&quot;] for f in features if f[&quot;properties&quot;][&quot;mag&quot;] is not None]
+    assert [e.id for e in events] == kept_ids
+    assert len(events) == len(kept_ids)
+
+
+def test_extract_null_place_and_empty():
+    assert extract_events([]) == []
+    events = extract_events([_feature(&quot;np&quot;, 5.1, place=None)])
+    assert len(events) == 1
+    assert events[0].place is None
+
+
+# ── Finer coverage: absent optional fields, field selection, and malformed input ────────
+
+
+def test_missing_tsunami_is_read_as_zero():
+    feature = _feature(&quot;x&quot;, 5.0)
+    del feature[&quot;properties&quot;][&quot;tsunami&quot;]
+    assert extract_events([feature])[0].tsunami == 0
+
+
+def test_null_tsunami_is_read_as_zero():
+    assert extract_events([_feature(&quot;x&quot;, 5.0, tsunami=None)])[0].tsunami == 0
+
+
+def test_magnitude_zero_is_kept():
+    events = extract_events([_feature(&quot;zero&quot;, 0)])
+    assert [e.id for e in events] == [&quot;zero&quot;]
+    assert events[0].mag == 0.0
+
+
+def test_depth_is_the_third_coordinate_and_extra_coordinates_are_ignored():
+    feature = _feature(&quot;d&quot;, 5.0)
+    feature[&quot;geometry&quot;][&quot;coordinates&quot;] = [10.5, -7.25, 33.0, 999.0]
+    event = extract_events([feature])[0]
+    assert (event.lon, event.lat, event.depth_km) == (10.5, -7.25, 33.0)
+
+
+def test_event_fields_are_typed_as_declared():
+    event = extract_events([_feature(&quot;t&quot;, 5, tsunami=1, time=1735706358000)])[0]
+    assert isinstance(event.mag, float)
+    assert isinstance(event.time_ms, int)
+    assert isinstance(event.tsunami, int)
+    assert isinstance(event.lon, float)
+    assert isinstance(event.depth_km, float)
+
+
+def test_event_is_immutable():
+    event = extract_events([_feature(&quot;i&quot;, 5.0)])[0]
+    assert isinstance(event, Event)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        event.mag = 9.0
+
+
+def test_feed_order_is_preserved_for_many_features():
+    features = [_feature(f&quot;e{i}&quot;, 5.0 + i / 10) for i in range(25)]
+    assert [e.id for e in extract_events(features)] == [f&quot;e{i}&quot; for i in range(25)]
+
+
+def test_all_null_magnitudes_yield_no_events():
+    assert extract_events([_feature(&quot;a&quot;, None), _feature(&quot;b&quot;, None)]) == []
+
+
+def test_extraction_does_not_mutate_the_features():
+    features = [_feature(&quot;m&quot;, 5.0)]
+    snapshot = [dict(f, properties=dict(f[&quot;properties&quot;])) for f in features]
+    extract_events(features)
+    assert features == snapshot
+
+
+@pytest.mark.parametrize(
+    &quot;broken&quot;,
+    [
+        &quot;not-a-feature&quot;,
+        {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;x&quot;},
+        {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;x&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;time&quot;: 1}, &quot;geometry&quot;: None},
+        {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;time&quot;: 1}, &quot;geometry&quot;: {&quot;coordinates&quot;: [1, 2, 3]}},
+        {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;x&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;time&quot;: None},
+         &quot;geometry&quot;: {&quot;coordinates&quot;: [1, 2, 3]}},
+        {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;x&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;time&quot;: 1},
+         &quot;geometry&quot;: {&quot;coordinates&quot;: [1, 2]}},
+    ],
+)
+def test_malformed_feature_is_an_operational_failure(broken):
+    with pytest.raises(OperationalError):
+        extract_events([broken])
+</pre></article>
+</main>
+</body>
+</html>

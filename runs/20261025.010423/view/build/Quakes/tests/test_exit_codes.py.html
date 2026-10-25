@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_exit_codes.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_exit_codes.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_exit_codes.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Exit-code story: UsageError exits 2, OperationalError exits 1, success exits 0, all via `main`.&quot;&quot;&quot;
+
+import subprocess
+from pathlib import Path
+
+import cli
+from cli import main
+from cli.errors import OperationalError, UsageError
+from cli.testing import cli_runner
+
+ROOT = Path(__file__).resolve().parent.parent
+PATH = &quot;quakes-file.geojson&quot;
+
+
+def _failing(parsed):
+    raise OperationalError(&quot;cannot read the file&quot;)
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_exit_usage_code():
+    code, out, err = cli_runner(&quot;frobnicate&quot;, PATH)
+    assert code == 2
+    assert out == &quot;&quot;
+    assert len(err.splitlines()) == 1
+
+
+def test_exit_operational_code(monkeypatch):
+    monkeypatch.setitem(cli.COMMANDS, &quot;summary&quot;, _failing)
+    code, out, err = cli_runner(&quot;summary&quot;, PATH)
+    assert code == 1
+    assert out == &quot;&quot;
+    assert len(err.splitlines()) == 1
+
+
+def test_exit_success_code(monkeypatch):
+    text = &quot;header\nrow\n&quot;
+    monkeypatch.setitem(cli.COMMANDS, &quot;daily&quot;, lambda parsed: text)
+    code, out, _ = cli_runner(&quot;daily&quot;, PATH)
+    assert code == 0
+    assert out == text
+
+    monkeypatch.setitem(cli.COMMANDS, &quot;daily&quot;, lambda parsed: &quot;&quot;)
+    empty_code, empty_out, _ = cli_runner(&quot;daily&quot;, PATH)
+    assert empty_code == 0
+    assert empty_out == &quot;&quot;
+
+
+def test_exit_error_classes():
+    assert issubclass(UsageError, Exception)
+    assert issubclass(OperationalError, Exception)
+    assert not issubclass(UsageError, OperationalError)
+    assert not issubclass(OperationalError, UsageError)
+
+
+def test_exit_launcher_status():
+    result = subprocess.run([str(ROOT / &quot;quakes&quot;), &quot;frobnicate&quot;, PATH], capture_output=True, text=True, cwd=ROOT)
+    assert result.returncode == 2
+    assert result.stdout == &quot;&quot;
+
+
+# ── Finer coverage: failure silence, one diagnostic line, and unmapped exceptions ───────
+
+
+def test_usage_exit_code_is_two_and_operational_is_one():
+    assert UsageError.exit_code == 2
+    assert OperationalError.exit_code == 1
+
+
+def test_operational_failure_prints_exactly_one_stderr_line_without_stdout(monkeypatch, capsys):
+    monkeypatch.setitem(cli.COMMANDS, &quot;summary&quot;, _failing)
+    code = main([&quot;summary&quot;, PATH])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.out == &quot;&quot;
+    assert captured.err == &quot;error: cannot read the file\n&quot;
+
+
+def test_multiline_message_is_squeezed_onto_one_stderr_line(monkeypatch, capsys):
+    def multi(parsed):
+        raise OperationalError(&quot;first line\nsecond line&quot;)
+
+    monkeypatch.setitem(cli.COMMANDS, &quot;summary&quot;, multi)
+    code = main([&quot;summary&quot;, PATH])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.out == &quot;&quot;
+    assert len(captured.err.splitlines()) == 1
+
+
+def test_usage_failure_writes_nothing_to_stdout(capsys):
+    assert main([&quot;summary&quot;, &quot;--n&quot;, &quot;3&quot;, PATH]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == &quot;&quot;
+    assert len(captured.err.splitlines()) == 1
+
+
+def test_handler_output_is_written_only_on_success(monkeypatch, capsys):
+    monkeypatch.setitem(cli.COMMANDS, &quot;summary&quot;, lambda parsed: &quot;events\n0\n&quot;)
+    assert main([&quot;summary&quot;, PATH]) == 0
+    assert capsys.readouterr().out == &quot;events\n0\n&quot;
+
+
+def test_failing_handler_writes_no_partial_output(monkeypatch, capsys):
+    def partial(parsed):
+        raise OperationalError(&quot;boom&quot;)
+
+    monkeypatch.setitem(cli.COMMANDS, &quot;top&quot;, partial)
+    assert main([&quot;top&quot;, PATH]) == 1
+    assert capsys.readouterr().out == &quot;&quot;
+
+
+def test_unexpected_exception_is_not_mapped_to_an_exit_code(monkeypatch):
+    def broken(parsed):
+        raise RuntimeError(&quot;bug&quot;)
+
+    monkeypatch.setitem(cli.COMMANDS, &quot;summary&quot;, broken)
+    try:
+        main([&quot;summary&quot;, PATH])
+    except RuntimeError as exc:
+        assert str(exc) == &quot;bug&quot;
+    else:
+        raise AssertionError(&quot;an unexpected exception must propagate&quot;)
+
+
+def test_missing_command_is_a_usage_error_with_empty_stdout(capsys):
+    assert main([]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == &quot;&quot;
+    assert len(captured.err.splitlines()) == 1
+
+
+def test_valid_command_without_a_registered_handler_is_not_silently_successful(monkeypatch):
+    monkeypatch.delitem(cli.COMMANDS, &quot;summary&quot;, raising=False)
+    assert main([&quot;summary&quot;, PATH]) == 2
+
+
+def test_launcher_exit_status_matches_main_for_a_usage_error():
+    result = subprocess.run([str(ROOT / &quot;quakes&quot;), &quot;frobnicate&quot;], capture_output=True, text=True, cwd=ROOT)
+    assert result.returncode == main([&quot;frobnicate&quot;]) == 2
+</pre></article>
+</main>
+</body>
+</html>

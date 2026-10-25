@@ -1,0 +1,17 @@
+<unattached story="architecture"/>
+<unattached story="cli-foundation"/>
+<unattached story="options"/>
+<unattached story="exit-codes"/>
+<unattached story="formatting"/>
+<unattached story="feed-validation"/>
+<unattached story="event-extraction"/>
+<unattached story="mag-filter"/>
+<unattached story="test-suite"/>
+<unattached story="summary"/>
+<unattached story="regions"/>
+<unattached story="daily"/>
+<unattached story="top"/>
+<unattached story="fetch"/>
+<unattached story="fetch-failure"/>
+<unattached story="near"/>
+<unattached story="verification"/>

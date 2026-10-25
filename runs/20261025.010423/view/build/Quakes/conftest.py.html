@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/conftest.py</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/conftest.py</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../build/Quakes/conftest.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Shared pytest configuration for the quakes test suite.&quot;&quot;&quot;
+
+import json
+
+import pytest
+
+
+@pytest.fixture
+def cli_runner():
+    &quot;&quot;&quot;Run the `quakes` command in-process and return (exit_code, stdout, stderr).
+
+    The implementation lives in `cli.testing`; it is imported lazily so that
+    collecting the foundation tests does not depend on the CLI package.
+    &quot;&quot;&quot;
+    from cli import testing
+
+    return testing.cli_runner
+
+
+@pytest.fixture
+def write_feed(tmp_path):
+    &quot;&quot;&quot;Write a GeoJSON FeatureCollection holding `features` to a temporary file and return its path.&quot;&quot;&quot;
+
+    def _write(features, name=&quot;feed.geojson&quot;):
+        path = tmp_path / name
+        path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+        return str(path)
+
+    return _write
+</pre></article>
+</main>
+</body>
+</html>

@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompts/20261025.011739.796Z_quakes_build_claude.prompt.md</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompts/20261025.011739.796Z_quakes_build_claude.prompt.md</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompts/20261025.011739.796Z_quakes_build_claude.prompt.md">Raw file</a></div></header>
+<article class="doc"><h1>System Instructions</h1>
+<p>This prompt is divided into three sections:</p>
+<ol><li><strong>System Instructions</strong> (this section) — structural orientation only. Do not treat this</li></ol>
+<p>section as task input.</p>
+<ol><li><strong>Input Context</strong> — begins with the heading <code># Input Context</code>. All blocks are wrapped in</li></ol>
+<p><code>&lt;pblock&gt;</code> tags. Two block types:</p>
+<ul><li>File blocks: <code>&lt;pblock filename=&quot;&lt;name&gt;&quot; role=&quot;&lt;role&gt;&quot; guidance=&quot;...&quot;&gt;</code> — optional</li></ul>
+<p><code>guidance</code> attribute carries context-specific instructions; content is in a fenced block.</p>
+<ul><li>Metadata/section blocks: <code>&lt;pblock label=&quot;&lt;label&gt;&quot; kind=&quot;&lt;kind&gt;&quot;&gt;</code> — job parameters,</li></ul>
+<p>rules, instructions, or group headers.</p>
+<ol><li><strong>Agent Task</strong> — begins with the heading <code># Agent Task</code>. Defines your persona, constraints,</li></ol>
+<p>and required outputs. Read all input context before acting on this section.</p>
+<h1>Input Context</h1>
+<p>&lt;pblock label=&quot;Build block job&quot; kind=&quot;job&quot;&gt;</p>
+<h2>Build block job</h2>
+<ul><li>TARGET: Quakes</li><li>BUILD_DIRECTORY: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/build/Quakes</li><li>WORKING_DIRECTORY: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/build/Quakes</li><li>BUILD_BLOCK: Block 3 · Service (block-3)</li><li>STORIES: Parse and validate the command, options, and file argument, with usage errors exiting 2. (options), Map usage and operational failures to exit codes 2 and 1 with silent stdout and one stderr line. (exit-codes), Format times, magnitudes, depths, distances, and CSV output. (formatting), Read a saved GeoJSON file and validate that it is a FeatureCollection. (feed-validation), Extract event fields from features and exclude null-magnitude events. (event-extraction), Apply the --min-mag filter to events. (mag-filter), Provide bin/test.sh running the pytest suite. (test-suite)</li><li>DATE: 2026-10-24</li><li>BUILD_SCOPE: exactly one MANIFEST.md build block</li></ul>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Stories in this block&quot; kind=&quot;section&quot;&gt;</p>
+<h2>Stories in this block</h2>
+<ul><li>Parse and validate the command, options, and file argument, with usage errors exiting 2. (options) [story]</li><li>Map usage and operational failures to exit codes 2 and 1 with silent stdout and one stderr line. (exit-codes) [story]</li><li>Format times, magnitudes, depths, distances, and CSV output. (formatting) [story]</li><li>Read a saved GeoJSON file and validate that it is a FeatureCollection. (feed-validation) [story]</li><li>Extract event fields from features and exclude null-magnitude events. (event-extraction) [story]</li><li>Apply the --min-mag filter to events. (mag-filter) [story]</li><li>Provide bin/test.sh running the pytest suite. (test-suite) [story]</li></ul>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Files on disk&quot; kind=&quot;section&quot;&gt;</p>
+<h2>Files on disk in the build directory</h2>
+<ul><li>sources/quakes_2025-01-01_07.geojson</li><li>sources/run.sh</li></ul>
+<p>These are the only imported files present on disk. Every other file named in this prompt is supplied as prompt context and is not on disk; read it here and do not report it as a missing input.</p>
+<p>&lt;/pblock&gt;</p>
+<h2>COMPASS - Target Orientation</h2>
+<p>&lt;pblock filename=&quot;COMPASS.md&quot; role=&quot;compass&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/COMPASS.md&quot; guidance=&quot;Important: This is the core project intent, constraints, and guardrails. It should have presecedence in conflicts.&quot;&gt;</p>
+<pre><code># COMPASS: Quakes
+
+## Compass
+
+Build a command-line earthquake feed reporter, an executable named `quakes` at the application
+root, as described in `sources/INSTRUCTIONS.md`. It downloads a period of the USGS event feed as
+GeoJSON and writes five CSV reports from a saved file: summary, largest events, events per day,
+events per region, and events within a haversine distance of a point.
+
+Correctness is measured by `sources/run.sh`: 26 checks of exit code and standard output against a
+frozen 44-event USGS snapshot. The goal is every check passing.
+
+## Constraints
+
+- Implement in Python 3.11 or newer with the standard library only.
+- Provide an executable named `quakes` at the application root, invoked as `./quakes &lt;command&gt;`.
+- Reading the file, filtering, computing each report, and formatting are separate, unit-tested
+  functions.
+- Tests stub the HTTP call; no test opens a network connection.
+- Diagnostics go to standard error and are never compared.
+
+## Guardrails
+
+- Do not modify, rewrite, regenerate, or substitute any file under `sources/`.
+- Do not read `sources/run.sh` or the snapshot from application code, and do not hardcode a
+  report row, a count, or a distance. Every value comes from the file being read.
+
+## Verification Protocol
+
+| Story kind | Command | Asserts |
+|---|---|---|
+| Every behavioral story | `sh bin/test.sh` | exit `0` |
+| Terminal story (once, last) | `sh sources/run.sh` | exit `0` |
+
+&lt;!-- drydock:build-write-guardrail:start --&gt;
+## Build Write Guardrail
+
+- Authorized build directory: `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/build/Quakes`
+- Authorized Target directory: `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes`
+- Build agents have permission to create, modify, and remove files required by the active build block inside these authorized directories.
+- No path outside these authorized directories may be modified.
+- Protected Drydock artifacts:
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/MANIFEST.md`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/COMPASS.md`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/QuarterDeck/`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/evidence/`
+&lt;!-- drydock:build-write-guardrail:end --&gt;</code></pre>
+<p>&lt;/pblock&gt;</p>
+<h2>STACK - Technology HOW</h2>
+<p>&lt;pblock filename=&quot;python_compact.md&quot; role=&quot;stack&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/Rigging/languages/python/python_compact.md&quot;&gt;</p>
+<pre><code>&lt;!-- Compacted from Rigging/languages/python/python.md sha256=fe344456a351e3237cfe3bae2408a69758d401430b935f60c15f91b9a97e8016 on 2026-10-18 by Rigging maintenance --&gt;
+
+## Foundation Contract
+
+- source_root: ./
+- test_command: pytest -q
+- environment: `.venv`, created by `uv venv` and activated by launchers in `bin/`
+- dependencies: `pyproject.toml` and committed `uv.lock`
+
+The language foundation owns the project root, environment, dependency manifest, and test runner.
+Later foundations add their packages to this tree without replacing those contracts.
+
+### How do we execute and measure Acceptance Criteria in this language?
+
+An Acceptance Criterion (AC) is an executable check of Blueprint-required behavior. Use the
+existing Programmatic Acceptance format: a Python script with assertions against the built
+product. Drydock executes each criterion through `languages/python/acceptance/runner.py`; `pytest -q`
+runs the project test suite. Retain the criterion ID, observed values, stdout/stderr and result;
+an assertion failure fails the check. The harness reports failure operands and available case
+counts. Code coverage and persistence interactions require explicit instrumentation; record
+available observations as key/value data associated with the criterion. Missing observations
+are unknown, not proof that code or an interaction was unused.
+
+### How does this language provide the shared persistence contract?
+
+Use `stack/persistence.md`. Drydock copies `Rigging/languages/python/persistence/{db,sqlite,postgres}.py` and generates
+`persistence/{schema,__init__,testing}.py` plus `schema.sql` from `DATABASE.md`. Call
+`open_database(dsn)` and `db.&lt;table&gt;.&lt;operation&gt;(...)`; use `persistence.testing.db_session()`
+for criteria. SQLite uses the standard library; PostgreSQL needs `psycopg[binary]` in the project
+dependencies. Both engines ship together and the DSN selects the engine. Library verification
+lives in `tests/test_shipped_database.py`; a Target still verifies its own schema and operations.
+
+## Consumer Rules
+
+- Python &gt;=3.11; use modern type hints on public interfaces and named cross-package data shapes.
+- Centralize typed runtime settings; use Blueprint names and defaults. Keep secrets out of Git and logs.
+- Keep behavior in importable modules; launchers activate `.venv` and invoke modules.
+- Use pytest with isolated external state; all test gates run `pytest -q`.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;cli.md&quot; role=&quot;stack&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/Rigging/stack/cli.md&quot;&gt;</p>
+<pre><code># Command-Line Application
+
+**Type:** cli
+**Version:** 20260920 V1
+**Tier:** platform
+**Category:** Technologies
+**Foundation:** cli
+**Description:** Command-line application structure: entry point, argument parsing, exit codes, cross-platform launchers, and testing without spawning a process.
+
+Technology reference. This file does not change between projects.
+
+Prerequisites: `stack/common.md`, `languages/python/python.md`
+
+---
+
+## Foundation Contract
+
+The published shape of this foundation. Drydock synthesizes the story that builds it and every
+acceptance criterion writes against these names. Carried verbatim into `cli_compact.md`.
+
+- package: cli
+- entry: main(argv: list[str] | None = None) -&gt; int
+- fixture: cli_runner
+- fixture_source: cli/testing.py
+
+```python
+# cli/__init__.py
+def main(argv: list[str] | None = None) -&gt; int:
+    ...
+
+# cli/testing.py
+import contextlib
+import io
+from cli import main
+
+def cli_runner(*args: str) -&gt; tuple[int, str, str]:
+    &quot;&quot;&quot;Return (exit_code, stdout, stderr) without spawning a process.&quot;&quot;&quot;
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        code = main(list(args))
+    return code, out.getvalue(), err.getvalue()
+
+# conftest.py
+import pytest
+from cli import testing
+
+@pytest.fixture
+def cli_runner():
+    return testing.cli_runner
+```
+
+A criterion imports `cli_runner` from `cli.testing`, calls `cli_runner(&quot;status&quot;, &quot;--json&quot;)`, and
+asserts on the returned tuple. It does not call `subprocess.run`, which measures the installed
+console script and the shell rather than the code the story wrote.
+
+---
+
+## 1. Directory Layout
+
+**Rule**: Command code lives in `cli/`. The root holds only packaging and infrastructure files.
+
+```
+project/
+  pyproject.toml            # [project.scripts] declares the console script
+  cli/
+    __init__.py             # main() — the single entry point
+    commands.py             # one function per command; no argument parsing
+    parser.py               # argparse construction; no behavior
+  bin/
+    run.sh                  # bash launcher
+    run.ps1                 # PowerShell launcher
+  tests/
+```
+
+**Why**: Parsing, behavior, and launching are three contracts. Collapsing them produces a command
+that cannot be tested without a shell.
+
+---
+
+## 2. Entry Point and Exit Codes
+
+**Rule**: `main(argv=None) -&gt; int` parses, dispatches, and returns an exit code. It never calls
+`sys.exit` and never raises for an expected failure. The console script is the only caller that
+translates the return value into a process exit.
+
+```python
+# cli/__init__.py
+import sys
+from cli.parser import build_parser
+from cli import commands
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = build_parser().parse_args(argv)
+    try:
+        return commands.dispatch(args)
+    except OperationalError as exc:
+        print(f&quot;error: {exc}&quot;, file=sys.stderr)
+        return 1
+```
+
+```toml
+# pyproject.toml
+[project.scripts]
+mytool = &quot;cli:main&quot;
+```
+
+**Exit codes**: `0` success, `1` operational failure, `2` usage error. `argparse` already returns
+`2` for a usage error; do not override it.
+
+**Why**: A `main` that returns rather than exits is callable from a test in-process. A `main` that
+calls `sys.exit` forces every criterion to spawn a subprocess and measure the shell.
+
+---
+
+## 3. Parsing Is Separate From Behavior
+
+**Rule**: `parser.py` builds the `argparse` tree and returns it. `commands.py` holds one function
+per command taking plain arguments, not a `Namespace`. Neither imports the other.
+
+```python
+# cli/parser.py
+import argparse
+
+def build_parser() -&gt; argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog=&quot;mytool&quot;)
+    sub = parser.add_subparsers(dest=&quot;command&quot;, required=True)
+    status = sub.add_parser(&quot;status&quot;, help=&quot;Report current state&quot;)
+    status.add_argument(&quot;--json&quot;, action=&quot;store_true&quot;)
+    return parser
+```
+
+```python
+# cli/commands.py
+def status(*, as_json: bool) -&gt; int:
+    ...
+
+def dispatch(args) -&gt; int:
+    if args.command == &quot;status&quot;:
+        return status(as_json=args.json)
+    return 2
+```
+
+**Why**: Behavior tested through a `Namespace` is behavior tested through the parser. Separating
+them lets a criterion call `status(as_json=True)` directly.
+
+---
+
+## 4. Cross-Platform Launchers
+
+**Rule**: Ship both launchers. They locate the environment and invoke the package entry point;
+they contain no business logic. A launcher that makes a decision is a second implementation of the
+command.
+
+```bash
+#!/usr/bin/env bash
+# bin/run.sh — locate the environment and hand off. No business logic.
+set -euo pipefail
+ROOT=&quot;$(cd &quot;$(dirname &quot;${BASH_SOURCE[0]}&quot;)/..&quot; &amp;&amp; pwd)&quot;
+if [ -d &quot;$ROOT/.venv&quot; ]; then
+    source &quot;$ROOT/.venv/bin/activate&quot;
+fi
+exec python -m cli &quot;$@&quot;
+```
+
+```powershell
+# bin/run.ps1 — locate the environment and hand off. No business logic.
+$ErrorActionPreference = &quot;Stop&quot;
+$Root = Split-Path -Parent $PSScriptRoot
+$Activate = Join-Path $Root &quot;.venv\Scripts\Activate.ps1&quot;
+if (Test-Path $Activate) { &amp; $Activate }
+python -m cli @args
+exit $LASTEXITCODE
+```
+
+```python
+# cli/__main__.py — makes `python -m cli` work identically on both platforms
+import sys
+from cli import main
+
+sys.exit(main())
+```
+
+**Why**: `python -m cli` is the one invocation both launchers share, so the two scripts cannot
+drift in behavior — only in how they find the interpreter. `exit $LASTEXITCODE` is required in
+PowerShell; without it the exit code is discarded and a failing command reports success.
+
+---
+
+## 5. Output and Streams
+
+**Rule**: Results go to stdout, diagnostics to stderr. A `--json` mode prints one JSON document to
+stdout and nothing else. Never interleave progress text into a machine-readable stream.
+
+**Why**: A caller piping stdout to `jq` receives the progress lines too, and the command becomes
+unusable in a pipeline.
+
+---
+
+## 6. Testing Without a Process
+
+**Rule**: Test through `main([&quot;status&quot;, &quot;--json&quot;])` or the `cli_runner` fixture. Reserve
+`subprocess.run` for one packaging test asserting the installed console script exists and runs.
+
+```python
+def test_status_reports_json(cli_runner):
+    code, out, err = cli_runner(&quot;status&quot;, &quot;--json&quot;)
+    assert code == 0
+    assert json.loads(out)[&quot;state&quot;] == &quot;ready&quot;
+    assert err == &quot;&quot;
+```
+
+**Why**: In-process tests are fast, debuggable, and measure the code. Subprocess tests measure the
+installed environment, which is a different and much smaller question.
+
+---
+
+## Checklist
+
+- [ ] `cli/` package; `main(argv=None) -&gt; int` that returns rather than exits
+- [ ] `[project.scripts]` declares the console script
+- [ ] `cli/__main__.py` so `python -m cli` works
+- [ ] Both `bin/run.sh` and `bin/run.ps1`, neither holding logic; `.ps1` ends with `exit $LASTEXITCODE`
+- [ ] Parsing in `parser.py`, behavior in `commands.py`, no import between them
+- [ ] Exit codes `0` / `1` / `2` used consistently
+- [ ] Results on stdout, diagnostics on stderr, `--json` emits nothing else
+- [ ] Criteria use `cli_runner`; at most one subprocess test for packaging</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;common_compact.md&quot; role=&quot;stack&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/Rigging/stack/common_compact.md&quot;&gt;</p>
+<pre><code>&lt;!-- Compacted from /mnt/c/Users/barlo/projects/drydock/Rigging/stack/common.md sha256=2d665e4a232b3ef5b681149974e74928c8f5abb9adaac02604cc6b5987ac0f85 on 2026-10-24 by drydock rigging compact — regenerate with: drydock rigging compact --include-file {rel_source} --&gt;
+
+# Common Best Practices — Contract Surface
+
+## Project Layout
+
+### Rule: project-directory-layout
+
+Every project must use the standard root layout and may add stack-specific directories.
+
+Constraints: Include `bin/`, `data/` with `logs/` and `backups/`, `docs/`, `tests/`, optional `PROJECT/`, `.env`, `.env.example`, `.gitignore`, `CLAUDE.md`, and `Links.md`; keep runtime data under `data/`.
+
+## Shell Scripts
+
+### Rule: user-facing-operation-scripts
+
+User-facing operations must be implemented as Bash scripts in `bin/`.
+
+Constraints: Scripts must use standardized headers, `set -euo pipefail`, resolve project-relative paths, create `data/logs/`, log execution details, run from the project root, tee output to console and a timestamped log, and record completion.
+
+### Rule: command-center-discovery-header
+
+A discoverable script must begin with a Command Center header.
+
+| Field | Required | Values |
+|---|---:|---|
+| `# CommandCenter Operation` | Yes | Literal |
+| `# Name:` | Yes | Free text |
+| `# Type:` | No | `daemon` or `batch`; defaults to `batch` |
+| `# Port:` | No | Integer; daemon port |
+
+Constraints: Scripts without `# CommandCenter Operation` remain valid but are not discoverable by Command Center.
+
+### Rule: standard-scripts
+
+Projects should provide applicable operation scripts with these names and purposes.
+
+| Script | Type | Purpose |
+|---|---|---|
+| `bin/start.sh` | daemon | Start the development server |
+| `bin/stop.sh` | batch | Stop the development server |
+| `bin/test.sh` | batch | Run tests |
+| `bin/build.sh` | batch | Build or compile |
+| `bin/deploy.sh` | batch | Deploy to production |
+| `bin/backup.sh` | batch | Back up data or databases |
+
+### Rule: script-logging
+
+Operation scripts must capture stdout and stderr in `data/logs/`.
+
+Constraints: Log filenames must follow `&lt;script&gt;_&lt;YYYY-MM-DD_HHMMSS&gt;.log`; initial log lines must record timestamp, arguments, and working directory.
+
+## Links
+
+### Rule: links-file
+
+Every project must provide a root-level `Links.md` containing one two-column Markdown table.
+
+| Column | Requirement |
+|---|---|
+| `Label` | Short and descriptive |
+| `URL` | Relevant project URL |
+
+Constraints: Command Center reads this table and exposes the links through project configuration.
+
+## Agent Instructions
+
+### Rule: claude-file
+
+Every project must provide a root-level `CLAUDE.md` with the following sections.
+
+| Section | Required content |
+|---|---|
+| `## Project Overview` | Purpose and key features |
+| `## Architecture` | Technology stack, key files, and patterns |
+| `## Dev Commands` | Bash project commands in a code block |
+| `## Service Endpoints` | `- Label: https://url` entries |
+| `## Bookmarks` | Grouped links using `### Group` and `- [Title](URL)` |
+
+Constraints: Normalize equivalent headings to the standard names: `Commands`, `Development Commands`, and `Build Commands` become `Dev Commands`; `Overview` and `Project Purpose` become `Project Overview`; `Stack` becomes `Architecture`.
+
+## Version Control
+
+### Rule: gitignore-and-secrets
+
+Repositories must ignore secrets, generated files, and runtime data.
+
+Constraints: Ignore `data/`, `*.db`, `*.log`, `.env`, `venv/`, `node_modules/`, Python caches and bytecode, `*.egg-info/`, `dist/`, `build/`, `.DS_Store`, and `Thumbs.db`; commit `.env.example` with placeholders.
+
+### Rule: commit-message
+
+Commit messages must use imperative, descriptive text without AI or tool mentions.
+
+## Development Workflow
+
+### Rule: task-commit
+
+Completed, error-free tasks must be committed immediately.
+
+### Rule: local-only-commit
+
+Changes must be committed locally and must not be pushed.
+
+### Rule: co-authorship
+
+Commits must not contain `Co-authored-by` lines.
+
+### Rule: restart-notice
+
+Code-change responses for web-server projects must state whether a restart is required.
+
+Constraints: Template, CSS, or static-only changes require the notice `No restart needed — browser refresh is enough.`; Python or JavaScript server changes require `Restart required — run the start script or equivalent.`</code></pre>
+<p>&lt;/pblock&gt;</p>
+<h2>CONTEXT - Read-Only Support</h2>
+<p>&lt;pblock filename=&quot;ARCHITECTURE_compact.md&quot; role=&quot;context&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/ARCHITECTURE_compact.md&quot;&gt;</p>
+<pre><code>&lt;!-- Compacted from ARCHITECTURE.md sha256=a4f0e3d35e74a3a608621cd364fd70b71c5a216cf0ef99264d9f012b2fdd0b87 on 2026-10-24 by drydock build agent --&gt;
+
+Project: quakes (Python &gt;=3.11, stdlib only at runtime; pytest dev-only). Executable `quakes` at root -&gt; `cli.main(argv=None)-&gt;int`.
+Modules: cli/__init__.py (main, COMMANDS: dict[str, Callable[[Parsed], str]], exit mapping); cli/errors.py (UsageError exit 2, OperationalError exit 1); cli/options.py (parse_args(argv)-&gt;Parsed); cli/formatting.py (format_time, format_mag, format_mean, format_decimal, render_csv, write_csv); cli/feed.py (read_feed(path)-&gt;list[dict], extract_events(features)-&gt;list[Event], Event, filter_events(events,min_mag)); cli/reports.py (one pure fn per report, haversine_km); cli/fetch.py (build_url, http_get, fetch command); cli/testing.py (cli_runner(*args)-&gt;(exit_code, stdout, stderr)).
+Parsed dataclass: command:str, min_mag:float|None, n:int (default 10), lat, lon, radius:float|None, start, end, out, file:str|None. min_mag default None for reports, 2.5 for fetch.
+Commands: fetch, summary, top, daily, regions, near.
+Exit codes: 0 success (incl. empty report); 1 OperationalError (unreadable file, not FeatureCollection, fetch network/HTTP/body failure); 2 UsageError. Failing command: empty stdout, one stderr line.
+Pipeline: read_feed -&gt; extract_events (drops null magnitude) -&gt; filter_events -&gt; report fn returns rows of preformatted strings -&gt; write_csv. Handlers return full stdout text; main writes only after success.
+Technical: half-up rounding via Decimal(repr(x)) ROUND_HALF_UP; string ordering by code point; UTF-8 output. Tests stub cli.fetch.http_get; no network in tests. No hardcoded rows/counts/distances.
+Guardrails: never modify/read sources/ from app code. Tests never open network.
+Project layout: pyproject.toml + uv.lock, .venv (uv venv), conftest.py (cli_runner fixture from cli.testing), tests/, bin/test.sh (runs pytest -q).</code></pre>
+<p>&lt;/pblock&gt;</p>
+<h2>IMPLEMENTS - Authoritative Step Specifications</h2>
+<p>&lt;pblock label=&quot;Implementation recency anchor&quot; kind=&quot;section&quot;&gt; The files in this section are the load-bearing specifications for this build block. Build these files exactly. Treat earlier sections as constraints and context.</p>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Options.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-Options.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Options
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Parses and validates the command, its options, and the file argument, raising a usage error for any malformed invocation. |
+| Depends On  | FEATURE-CliFoundation.md |
+| Provides    | parse_args |
+
+## Purpose
+
+`cli.options.parse_args(argv) -&gt; Parsed` turns the argument list into a validated `Parsed` record or raises `cli.errors.UsageError`. `UsageError` is defined in `cli/errors.py` (see `FEATURE-ExitCodes.md`); this story creates the module with both exception classes if it does not exist yet. The dispatcher maps `UsageError` to exit code 2.
+
+## Grammar
+
+```text
+quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;
+quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;
+quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;
+quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;
+quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;
+quakes near --lat &lt;deg&gt; --lon &lt;deg&gt; --radius &lt;km&gt; [--min-mag &lt;m&gt;] &lt;file&gt;
+```
+
+- The command is the first argument. Options follow in any order; the file (for report commands) is last.
+- Each command accepts only its listed options; any other option is a `UsageError`.
+- `&lt;m&gt;`, `&lt;deg&gt;`, `&lt;km&gt;` match `-?[0-9]+(\.[0-9]+)?` and a value may begin with `-`. Anything else is malformed.
+- `&lt;count&gt;` is a positive integer (digits only, greater than zero), default `10`.
+- `--lat` is within -90 to 90, `--lon` within -180 to 180, `--radius` greater than zero. `near` requires all three.
+- `fetch` requires `--start`, `--end`, `--out`; dates match `YYYY-MM-DD`. `fetch` takes no positional file. `--min-mag` defaults to `2.5` for `fetch`; for report commands it is `None` when omitted.
+- A missing command, unknown command, missing option value, missing file, extra positional argument, or repeated option is a `UsageError` (decision Q-001).
+- `parse_args` does not touch the file system.
+
+## Programmatic Acceptance
+
+=== AC options-valid-summary ===
+Intent: A valid summary invocation parses into the expected command, filter, and file.
+
+from cli.options import parse_args
+
+path = &quot;quakes-file.geojson&quot;
+parsed = parse_args([&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5.5&quot;, path])
+assert parsed.command == &quot;summary&quot;
+assert parsed.min_mag == 5.5
+assert parsed.file == path
+=== END AC options-valid-summary ===
+
+=== AC options-defaults ===
+Intent: top defaults n to 10, reports default min_mag to None, and fetch defaults min_mag to 2.5.
+
+from cli.options import parse_args
+
+path = &quot;quakes-file.geojson&quot;
+top = parse_args([&quot;top&quot;, path])
+assert top.n == 10
+assert top.min_mag is None
+fetch = parse_args([&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, path])
+assert fetch.min_mag == 2.5
+=== END AC options-defaults ===
+
+=== AC options-any-order ===
+Intent: Options may appear in any order and produce the same parsed values.
+
+from cli.options import parse_args
+
+path = &quot;quakes-file.geojson&quot;
+a = parse_args([&quot;top&quot;, &quot;--n&quot;, &quot;3&quot;, &quot;--min-mag&quot;, &quot;5.1&quot;, path])
+b = parse_args([&quot;top&quot;, &quot;--min-mag&quot;, &quot;5.1&quot;, &quot;--n&quot;, &quot;3&quot;, path])
+assert a.n == b.n == 3
+assert a.min_mag == b.min_mag == 5.1
+assert a.file == b.file == path
+=== END AC options-any-order ===
+
+=== AC options-near-valid ===
+Intent: near parses its three required options, accepting the range boundaries and negative decimals.
+
+from cli.options import parse_args
+
+path = &quot;quakes-file.geojson&quot;
+parsed = parse_args([&quot;near&quot;, &quot;--lat&quot;, &quot;90&quot;, &quot;--lon&quot;, &quot;-180&quot;, &quot;--radius&quot;, &quot;0.5&quot;, path])
+assert parsed.lat == 90.0
+assert parsed.lon == -180.0
+assert parsed.radius == 0.5
+negative = parse_args([&quot;summary&quot;, &quot;--min-mag&quot;, &quot;-1&quot;, path])
+assert negative.min_mag == -1.0
+=== END AC options-near-valid ===
+
+=== AC options-fetch-valid ===
+Intent: fetch parses start, end, out, and an explicit min-mag.
+
+from cli.options import parse_args
+
+start, end, out = &quot;2025-01-01&quot;, &quot;2025-01-08&quot;, &quot;feed.geojson&quot;
+parsed = parse_args([&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--end&quot;, end, &quot;--min-mag&quot;, &quot;5&quot;, &quot;--out&quot;, out])
+assert parsed.command == &quot;fetch&quot;
+assert parsed.start == start
+assert parsed.end == end
+assert parsed.out == out
+assert parsed.min_mag == 5.0
+=== END AC options-fetch-valid ===
+
+=== AC options-usage-errors ===
+Intent: Every malformed invocation raises UsageError.
+
+from cli.errors import UsageError
+from cli.options import parse_args
+
+f = &quot;quakes-file.geojson&quot;
+bad = [
+    [],
+    [&quot;frobnicate&quot;, f],
+    [&quot;near&quot;, &quot;--lat&quot;, &quot;27.72&quot;, &quot;--lon&quot;, &quot;85.32&quot;, f],
+    [&quot;near&quot;, &quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;, f],
+    [&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;181&quot;, &quot;--radius&quot;, &quot;10&quot;, f],
+    [&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;0&quot;, f],
+    [&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, f],
+    [&quot;top&quot;, &quot;--n&quot;, &quot;2.5&quot;, f],
+    [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;big&quot;, f],
+    [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5.&quot;, f],
+    [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;.5&quot;, f],
+    [&quot;summary&quot;, &quot;--n&quot;, &quot;3&quot;, f],
+    [&quot;summary&quot;],
+    [&quot;summary&quot;, f, f],
+    [&quot;summary&quot;, &quot;--min-mag&quot;, f],
+    [&quot;summary&quot;, &quot;--min-mag&quot;, &quot;5&quot;, &quot;--min-mag&quot;, &quot;6&quot;, f],
+    [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;],
+    [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--out&quot;, f],
+    [&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, f, f],
+    [&quot;fetch&quot;, &quot;--start&quot;, &quot;yesterday&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, f],
+]
+for argv in bad:
+    try:
+        parse_args(list(argv))
+    except UsageError:
+        continue
+    raise AssertionError(f&quot;no UsageError for {argv}&quot;)
+=== END AC options-usage-errors ===
+
+=== AC options-exit-two ===
+Intent: Through the executable entry point, an unknown command and a missing command both exit 2.
+
+from cli.testing import cli_runner
+
+code_unknown, out_unknown, _ = cli_runner(&quot;frobnicate&quot;, &quot;quakes-file.geojson&quot;)
+code_none, out_none, _ = cli_runner()
+assert code_unknown == 2
+assert code_none == 2
+assert out_unknown == &quot;&quot;
+assert out_none == &quot;&quot;
+=== END AC options-exit-two ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Usage errors never print to standard output; the parser raises `UsageError` rather than using argparse&#x27;s default error behavior.
+- An option the command does not list is always a usage error.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-ExitCodes.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-ExitCodes.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Exit Codes
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Maps usage and operational failures to exit codes 2 and 1 with empty standard output and one standard-error line. |
+| Depends On  | FEATURE-Options.md |
+| Provides    | UsageError, OperationalError, exit code mapping |
+
+## Purpose
+
+`cli/errors.py` defines `UsageError` (exit 2) and `OperationalError` (exit 1), both subclasses of a common `QuakesError(Exception)` carrying a one-line message. `cli.main` parses arguments, looks up the handler in `cli.COMMANDS`, and runs it.
+
+## Behavior
+
+- Success, including a report with no matching events, returns `0` after writing the handler&#x27;s returned text to standard output.
+- `UsageError` returns `2`; `OperationalError` returns `1`.
+- On either failure `main` writes nothing to standard output and exactly one diagnostic line (ending in a single newline, no embedded newline) to standard error.
+- Handlers return their complete output text and write nothing themselves, so a failure leaves standard output empty.
+- An unexpected exception is not mapped; only the two named errors are.
+
+## Programmatic Acceptance
+
+=== AC exit-usage-code ===
+Intent: A usage error returns exit code 2 with empty stdout and a single stderr line.
+
+from cli.testing import cli_runner
+
+code, out, err = cli_runner(&quot;frobnicate&quot;, &quot;quakes-file.geojson&quot;)
+assert code == 2
+assert out == &quot;&quot;
+assert len(err.splitlines()) == 1
+=== END AC exit-usage-code ===
+
+=== AC exit-operational-code ===
+Intent: An OperationalError raised by a handler returns exit code 1 with empty stdout and a single stderr line.
+
+import cli
+from cli.errors import OperationalError
+from cli.testing import cli_runner
+
+def failing(parsed):
+    raise OperationalError(&quot;cannot read the file&quot;)
+
+original = cli.COMMANDS.get(&quot;summary&quot;)
+cli.COMMANDS[&quot;summary&quot;] = failing
+try:
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;quakes-file.geojson&quot;)
+finally:
+    if original is None:
+        del cli.COMMANDS[&quot;summary&quot;]
+    else:
+        cli.COMMANDS[&quot;summary&quot;] = original
+assert code == 1
+assert out == &quot;&quot;
+assert len(err.splitlines()) == 1
+=== END AC exit-operational-code ===
+
+=== AC exit-success-code ===
+Intent: A handler that returns text yields exit 0 and that exact text on stdout, and an empty result is still success.
+
+import cli
+from cli.testing import cli_runner
+
+text = &quot;header\nrow\n&quot;
+original = cli.COMMANDS.get(&quot;daily&quot;)
+cli.COMMANDS[&quot;daily&quot;] = lambda parsed: text
+try:
+    code, out, err = cli_runner(&quot;daily&quot;, &quot;quakes-file.geojson&quot;)
+    cli.COMMANDS[&quot;daily&quot;] = lambda parsed: &quot;&quot;
+    empty_code, empty_out, _ = cli_runner(&quot;daily&quot;, &quot;quakes-file.geojson&quot;)
+finally:
+    if original is None:
+        del cli.COMMANDS[&quot;daily&quot;]
+    else:
+        cli.COMMANDS[&quot;daily&quot;] = original
+assert code == 0
+assert out == text
+assert empty_code == 0
+assert empty_out == &quot;&quot;
+=== END AC exit-success-code ===
+
+=== AC exit-error-classes ===
+Intent: UsageError and OperationalError are distinct exception classes.
+
+from cli.errors import OperationalError, UsageError
+
+assert issubclass(UsageError, Exception)
+assert issubclass(OperationalError, Exception)
+assert not issubclass(UsageError, OperationalError)
+assert not issubclass(OperationalError, UsageError)
+=== END AC exit-error-classes ===
+
+=== AC exit-launcher-status ===
+Intent: The quakes executable surfaces exit 2 for a usage error with empty stdout.
+
+import subprocess
+import sys
+
+result = subprocess.run([&quot;./quakes&quot;, &quot;frobnicate&quot;, &quot;quakes-file.geojson&quot;], capture_output=True, text=True)
+print(result.stdout)
+print(result.stderr, file=sys.stderr)
+assert result.returncode == 2
+assert result.stdout == &quot;&quot;
+=== END AC exit-launcher-status ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- A failing command never writes to standard output.
+- Standard error carries exactly one diagnostic line on failure; its wording is not part of the contract.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Formatting.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-Formatting.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Formatting
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Formats UTC times, magnitudes, depths, distances, and CSV output for every report. |
+| Depends On  | ARCHITECTURE.md |
+| Provides    | format_time, format_mag, format_mean, format_decimal, write_csv |
+
+## Purpose
+
+`cli/formatting.py` holds the pure formatting functions every report uses.
+
+## Interface
+
+- `format_time(ms: int | float) -&gt; str` — epoch milliseconds to UTC `YYYY-MM-DDTHH:MM:SSZ`, truncated (floored) to whole seconds. The date is the first 10 characters.
+- `format_mag(x) -&gt; str` — one decimal place (`5.0`, `7.1`).
+- `format_mean(x) -&gt; str` — two decimal places, rounded half up.
+- `format_decimal(x) -&gt; str` — one decimal place, rounded half up (used for `depth_km` and `distance_km`).
+- `render_csv(rows) -&gt; str` — rows (lists of strings) rendered with Python&#x27;s `csv` module, `lineterminator=&quot;\n&quot;`, so a field containing a comma is quoted.
+- `write_csv(rows, stream=None)` — writes `render_csv(rows)` to `stream`; when `stream` is `None` it writes UTF-8 to standard output (the underlying binary buffer when present, otherwise `sys.stdout.write`).
+
+Rounding uses `decimal.Decimal(repr(x))` quantized with `ROUND_HALF_UP` (decision Q-002); built-in `round()` is not used. Output is UTF-8 and non-ASCII place names are written unescaped.
+
+## Programmatic Acceptance
+
+=== AC fmt-time ===
+Intent: format_time yields a UTC timestamp truncated to whole seconds whose first 10 characters are the date.
+
+from datetime import datetime, timezone
+
+from cli.formatting import format_time
+
+seconds = 1735706358
+ms = seconds * 1000 + 999
+text = format_time(ms)
+parsed = datetime.strptime(text, &quot;%Y-%m-%dT%H:%M:%SZ&quot;).replace(tzinfo=timezone.utc)
+assert int(parsed.timestamp()) == seconds
+assert len(text) == 20
+assert text[:10] == parsed.strftime(&quot;%Y-%m-%d&quot;)
+assert format_time(seconds * 1000) == text
+=== END AC fmt-time ===
+
+=== AC fmt-magnitude ===
+Intent: Magnitudes are written with exactly one decimal place.
+
+from cli.formatting import format_mag
+
+assert format_mag(5) == &quot;5.0&quot;
+assert format_mag(7.1) == &quot;7.1&quot;
+assert format_mag(5.0) == &quot;5.0&quot;
+=== END AC fmt-magnitude ===
+
+=== AC fmt-mean-half-up ===
+Intent: mean_mag has two decimals and rounds exact halves up.
+
+from cli.formatting import format_mean
+
+assert format_mean(5.3) == &quot;5.30&quot;
+assert format_mean(5.125) == &quot;5.13&quot;
+assert format_mean(5.135) == &quot;5.14&quot;
+assert format_mean(5) == &quot;5.00&quot;
+=== END AC fmt-mean-half-up ===
+
+=== AC fmt-decimal-half-up ===
+Intent: depth and distance have one decimal and round exact halves up.
+
+from cli.formatting import format_decimal
+
+assert format_decimal(0.25) == &quot;0.3&quot;
+assert format_decimal(10) == &quot;10.0&quot;
+assert format_decimal(216.25) == &quot;216.3&quot;
+assert format_decimal(46) == &quot;46.0&quot;
+=== END AC fmt-decimal-half-up ===
+
+=== AC fmt-csv-roundtrip ===
+Intent: render_csv round-trips fields containing commas and non-ASCII characters through the csv parser with \n line endings.
+
+import csv
+import io
+
+from cli.formatting import render_csv
+
+place = &quot;\u0100wash, Ethiopia&quot;
+rows = [[&quot;time&quot;, &quot;place&quot;], [&quot;2025-01-01T00:00:00Z&quot;, place], [&quot;a&quot;, &quot;plain&quot;]]
+text = render_csv(rows)
+parsed = list(csv.reader(io.StringIO(text, newline=&quot;&quot;)))
+assert parsed == rows
+assert text.count(&quot;\n&quot;) == len(rows)
+assert text.endswith(&quot;\n&quot;)
+=== END AC fmt-csv-roundtrip ===
+
+=== AC fmt-write-csv ===
+Intent: write_csv writes the rendered CSV to the given stream and to standard output by default.
+
+import contextlib
+import io
+
+from cli.formatting import render_csv, write_csv
+
+rows = [[&quot;h1&quot;, &quot;h2&quot;], [&quot;x&quot;, &quot;y, z&quot;]]
+stream = io.StringIO()
+write_csv(rows, stream)
+assert stream.getvalue() == render_csv(rows)
+
+captured = io.StringIO()
+with contextlib.redirect_stdout(captured):
+    write_csv(rows)
+assert captured.getvalue() == render_csv(rows)
+=== END AC fmt-write-csv ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- CSV is always produced with Python&#x27;s `csv` module, never by string concatenation.
+- Rounding never uses built-in `round()`.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-FeedValidation.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-FeedValidation.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Feed Validation
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Read a saved GeoJSON file and confirm it is a USGS FeatureCollection. |
+| Depends On  | ARCHITECTURE.md, FEATURE-ExitCodes.md |
+| Provides    | read_feed |
+| Consumes    | OperationalError |
+
+## Purpose
+
+Every report command starts by reading a saved feed file. `read_feed` returns the raw `features` list
+and rejects anything that is not a GeoJSON FeatureCollection as an operational failure (exit 1).
+
+## Interface
+
+- Module: `cli.feed`. Function: `read_feed(path) -&gt; list`.
+- `path` is a `str` or `pathlib.Path`. The file is read as UTF-8 and parsed with `json`.
+- Returns the value of the `features` array unchanged (a `list` of feature objects).
+- Raises `OperationalError` when:
+  - the file cannot be read (missing, directory, permissions, undecodable bytes),
+  - the content is not valid JSON,
+  - the JSON value is not an object,
+  - `&quot;type&quot;` is not the string `FeatureCollection`,
+  - `features` is missing or not an array.
+- An empty `features` array is valid and returns `[]`.
+- The function writes nothing to standard output. The diagnostic line is produced by `main`.
+
+## Programmatic Acceptance
+
+=== AC feed-valid-collection ===
+Intent: A FeatureCollection file returns its features list, including an empty one.
+Requires: executable=python3; scope=test
+
+import json
+import tempfile
+from pathlib import Path
+
+from cli.feed import read_feed
+
+with tempfile.TemporaryDirectory() as tmp:
+    features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;a&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0}, &quot;geometry&quot;: None},
+                {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;b&quot;, &quot;properties&quot;: {&quot;mag&quot;: 6.0}, &quot;geometry&quot;: None}]
+    full = Path(tmp) / &quot;full.geojson&quot;
+    full.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    assert read_feed(full) == features
+    assert read_feed(str(full)) == features
+
+    empty = Path(tmp) / &quot;empty.geojson&quot;
+    empty.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}), encoding=&quot;utf-8&quot;)
+    assert read_feed(empty) == []
+=== END AC feed-valid-collection ===
+
+=== AC feed-unreadable-file ===
+Intent: A missing file and a directory both raise OperationalError.
+Requires: executable=python3; scope=test
+
+import tempfile
+from pathlib import Path
+
+from cli.feed import read_feed
+
+with tempfile.TemporaryDirectory() as tmp:
+    for target in (Path(tmp) / &quot;no-such-file.geojson&quot;, Path(tmp)):
+        raised = None
+        try:
+            read_feed(target)
+        except Exception as exc:
+            raised = exc
+        assert raised is not None
+        assert type(raised).__name__ == &quot;OperationalError&quot;
+=== END AC feed-unreadable-file ===
+
+=== AC feed-not-json ===
+Intent: Content that is not JSON raises OperationalError.
+Requires: executable=python3; scope=test
+
+import tempfile
+from pathlib import Path
+
+from cli.feed import read_feed
+
+with tempfile.TemporaryDirectory() as tmp:
+    garbage = Path(tmp) / &quot;garbage.json&quot;
+    garbage.write_text(&quot;this is not json\n&quot;, encoding=&quot;utf-8&quot;)
+    raised = None
+    try:
+        read_feed(garbage)
+    except Exception as exc:
+        raised = exc
+    assert raised is not None
+    assert type(raised).__name__ == &quot;OperationalError&quot;
+=== END AC feed-not-json ===
+
+=== AC feed-wrong-shape ===
+Intent: JSON that is not a FeatureCollection object with a features array raises OperationalError.
+Requires: executable=python3; scope=test
+
+import json
+import tempfile
+from pathlib import Path
+
+from cli.feed import read_feed
+
+bad_values = [
+    {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {}, &quot;geometry&quot;: None},
+    {&quot;type&quot;: &quot;FeatureCollection&quot;},
+    {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: {&quot;a&quot;: 1}},
+    {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: None},
+    {&quot;features&quot;: []},
+    [],
+    &quot;FeatureCollection&quot;,
+    None,
+]
+with tempfile.TemporaryDirectory() as tmp:
+    for n, value in enumerate(bad_values):
+        path = Path(tmp) / f&quot;bad{n}.json&quot;
+        path.write_text(json.dumps(value), encoding=&quot;utf-8&quot;)
+        raised = None
+        try:
+            read_feed(path)
+        except Exception as exc:
+            raised = exc
+        assert raised is not None, value
+        assert type(raised).__name__ == &quot;OperationalError&quot;, value
+=== END AC feed-wrong-shape ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Application code never reads `sources/run.sh` or the frozen snapshot.
+- `read_feed` never writes to standard output; failures surface only through `OperationalError`.
+- Standard library only.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-EventExtraction.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-EventExtraction.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Event Extraction
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Turn GeoJSON features into event records and drop events with a null magnitude. |
+| Depends On  | FEATURE-FeedValidation.md |
+| Provides    | extract_events, Event |
+| Consumes    | read_feed |
+
+## Purpose
+
+Reports operate on `Event` records, not raw features. Extraction reads only the fields the reports
+need and excludes every feature whose magnitude is `null`.
+
+## Interface
+
+- Module: `cli.feed`. Function: `extract_events(features) -&gt; list[Event]`, preserving feed order.
+- `Event` is an immutable dataclass with fields:
+  - `id` (str), `mag` (float), `place` (str or `None`),
+  - `time_ms` (int, milliseconds since the Unix epoch), `tsunami` (int),
+  - `lon` (float), `lat` (float), `depth_km` (float).
+- Source fields: `id`, `properties.mag`, `properties.place`, `properties.time`,
+  `properties.tsunami`, and `geometry.coordinates` as `[longitude, latitude, depth_km]`.
+  Every other field is ignored.
+- A feature whose `properties.mag` is `null` is dropped. A magnitude of `0` is kept.
+- A `null` place stays `None`; the regions report maps it to `Unknown`.
+- A missing `tsunami` is read as `0`.
+
+## Programmatic Acceptance
+
+=== AC extract-fields ===
+Intent: Every needed field is read from the feature into the matching Event attribute.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events
+
+feature = {
+    &quot;type&quot;: &quot;Feature&quot;,
+    &quot;id&quot;: &quot;ev1&quot;,
+    &quot;properties&quot;: {&quot;mag&quot;: 5.4, &quot;place&quot;: &quot;10 km N of Town, Land&quot;, &quot;time&quot;: 1735706358208,
+                   &quot;tsunami&quot;: 1, &quot;ignored&quot;: {&quot;deep&quot;: [1, 2, 3]}},
+    &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [169.5, -20.25, 22]},
+}
+events = extract_events([feature])
+assert len(events) == 1
+event = events[0]
+assert event.id == feature[&quot;id&quot;]
+assert event.mag == feature[&quot;properties&quot;][&quot;mag&quot;]
+assert event.place == feature[&quot;properties&quot;][&quot;place&quot;]
+assert event.time_ms == feature[&quot;properties&quot;][&quot;time&quot;]
+assert event.tsunami == feature[&quot;properties&quot;][&quot;tsunami&quot;]
+lon, lat, depth = feature[&quot;geometry&quot;][&quot;coordinates&quot;]
+assert event.lon == lon
+assert event.lat == lat
+assert event.depth_km == depth
+=== END AC extract-fields ===
+
+=== AC extract-null-mag-excluded ===
+Intent: Features with a null magnitude are absent from the result and the rest keep feed order.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events
+
+
+def feature(ident, mag):
+    return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: ident,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}
+
+
+features = [feature(&quot;a&quot;, 5.0), feature(&quot;b&quot;, None), feature(&quot;c&quot;, 0), feature(&quot;d&quot;, 6.1), feature(&quot;e&quot;, None)]
+events = extract_events(features)
+kept_ids = [f[&quot;id&quot;] for f in features if f[&quot;properties&quot;][&quot;mag&quot;] is not None]
+assert [e.id for e in events] == kept_ids
+assert len(events) == len(kept_ids)
+=== END AC extract-null-mag-excluded ===
+
+=== AC extract-null-place-and-empty ===
+Intent: A null place is preserved as None and an empty feature list yields no events.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events
+
+assert extract_events([]) == []
+
+feature = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;np&quot;,
+           &quot;properties&quot;: {&quot;mag&quot;: 5.1, &quot;place&quot;: None, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+           &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}
+events = extract_events([feature])
+assert len(events) == 1
+assert events[0].place is None
+=== END AC extract-null-place-and-empty ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Fields other than those listed are never read into an `Event`.
+- No event value is hardcoded; every value comes from the feature given.
+- Standard library only.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-MagFilter.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-MagFilter.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Magnitude Filter
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Keep only events whose magnitude is at least the --min-mag value. |
+| Depends On  | FEATURE-EventExtraction.md |
+| Provides    | filter_events |
+| Consumes    | extract_events |
+
+## Purpose
+
+`--min-mag &lt;m&gt;` applies to every report. `filter_events` is the single shared implementation, so
+all reports share one inclusive rule: `mag &gt;= m`.
+
+## Interface
+
+- Module: `cli.feed`. Function: `filter_events(events, min_mag) -&gt; list[Event]`.
+- `min_mag` is a `float` or `None`. `None` keeps every event.
+- An event whose magnitude equals `min_mag` is kept.
+- Feed order is preserved. The input list is not mutated.
+
+## Programmatic Acceptance
+
+=== AC filter-threshold-inclusive ===
+Intent: Events at or above the threshold are kept, including those exactly at it, and order is preserved.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events, filter_events
+
+
+def feature(ident, mag):
+    return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: ident,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}
+
+
+mags = [5.0, 5.4, 5.5, 5.6, 7.1, 5.49]
+features = [feature(f&quot;e{i}&quot;, m) for i, m in enumerate(mags)]
+events = extract_events(features)
+threshold = 5.5
+kept = filter_events(events, threshold)
+expected_ids = [f&quot;e{i}&quot; for i, m in enumerate(mags) if m &gt;= threshold]
+assert [e.id for e in kept] == expected_ids
+assert any(e.mag == threshold for e in kept)
+=== END AC filter-threshold-inclusive ===
+
+=== AC filter-none-keeps-all ===
+Intent: A None threshold keeps every event and does not mutate the input.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events, filter_events
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: f&quot;e{i}&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.0 + i, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}} for i in range(4)]
+events = extract_events(features)
+before = list(events)
+kept = filter_events(events, None)
+assert [e.id for e in kept] == [e.id for e in before]
+assert events == before
+=== END AC filter-none-keeps-all ===
+
+=== AC filter-nothing-matches ===
+Intent: A threshold above every magnitude yields an empty list rather than an error.
+Requires: executable=python3; scope=test
+
+from cli.feed import extract_events, filter_events
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;only&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.2, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}]
+events = extract_events(features)
+assert filter_events(events, 9.0) == []
+=== END AC filter-nothing-matches ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- The comparison is `mag &gt;= min_mag`, never `&gt;`.
+- Standard library only.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-TestSuite.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-TestSuite.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Test Suite
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Provide a POSIX bin/test.sh that runs the application&#x27;s pytest suite and exits zero only when every test passes. |
+| Depends On  | ARCHITECTURE.md, FEATURE-CliFoundation.md |
+| Provides    | bin/test.sh |
+| Consumes    | cli.testing.cli_runner |
+
+## Purpose
+
+The Compass requires reading, filtering, computing, and formatting to be separate unit-tested functions, with HTTP stubbed and no network connection in any test. `bin/test.sh` is the single entry point that runs that suite from the application root. It is the command named by the Compass Verification Protocol for every behavioral story.
+
+## Behavior
+
+- `bin/test.sh` is a POSIX `sh` script (`#!/bin/sh`), with no bashisms.
+- It resolves the application root from its own location (the parent of `bin/`) and changes to it, so it works from any current directory.
+- When `.venv/bin/activate` exists under the application root it is sourced; otherwise the ambient interpreter is used.
+- It runs `pytest -q` over the whole suite, unfiltered: no `-k`, no marker selection, no path restriction.
+- It exits with pytest&#x27;s own exit status: zero only when every test passes, nonzero otherwise.
+- It writes nothing of its own to standard output beyond what pytest prints.
+
+## Suite Requirements
+
+The tests the build agent writes beside the code must:
+
+- Cover each report (`summary`, `top`, `daily`, `regions`, `near`), each option, the region rule, the haversine distance rule, and each exit code, using files the tests write themselves.
+- Exercise `fetch` through a stubbed `http_get`; no test opens a network connection.
+- Never read `sources/run.sh` or the snapshot from tests or application code.
+
+## Programmatic Acceptance
+
+=== AC testsuite-script-exists ===
+Intent: bin/test.sh exists at the application root and declares a POSIX sh interpreter.
+Requires: executable=sh; scope=test
+
+from pathlib import Path
+
+script = Path(&quot;bin/test.sh&quot;)
+assert script.is_file()
+first_line = script.read_text(encoding=&quot;utf-8&quot;).splitlines()[0]
+print(first_line)
+assert first_line.startswith(&quot;#!&quot;)
+assert first_line.rstrip().endswith(&quot;sh&quot;)
+assert &quot;bash&quot; not in first_line
+=== END AC testsuite-script-exists ===
+
+=== AC testsuite-runs-green ===
+Intent: Running bin/test.sh over the built application&#x27;s own pytest suite exits zero.
+Requires: executable=sh; scope=test
+Requires: python-package=pytest; scope=test
+
+import subprocess
+
+result = subprocess.run([&quot;sh&quot;, &quot;bin/test.sh&quot;], capture_output=True, text=True)
+print(result.stdout)
+print(result.stderr)
+assert result.returncode == 0
+=== END AC testsuite-runs-green ===
+
+=== AC testsuite-runs-from-other-directory ===
+Intent: bin/test.sh resolves the application root itself, so an outside working directory gives the same exit status.
+Requires: executable=sh; scope=test
+Requires: python-package=pytest; scope=test
+
+import os
+import subprocess
+import tempfile
+
+script = os.path.abspath(&quot;bin/test.sh&quot;)
+with tempfile.TemporaryDirectory() as elsewhere:
+    result = subprocess.run([&quot;sh&quot;, script], capture_output=True, text=True, cwd=elsewhere)
+print(result.stdout)
+print(result.stderr)
+assert result.returncode == 0
+=== END AC testsuite-runs-from-other-directory ===
+
+=== AC testsuite-propagates-failure ===
+Intent: bin/test.sh exits nonzero when a test in its application root fails.
+Requires: executable=sh; scope=test
+Requires: python-package=pytest; scope=test
+
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+
+script_source = os.path.abspath(&quot;bin/test.sh&quot;)
+with tempfile.TemporaryDirectory() as root:
+    os.makedirs(os.path.join(root, &quot;bin&quot;))
+    os.makedirs(os.path.join(root, &quot;tests&quot;))
+    shutil.copy(script_source, os.path.join(root, &quot;bin&quot;, &quot;test.sh&quot;))
+    with open(os.path.join(root, &quot;tests&quot;, &quot;test_always_fails.py&quot;), &quot;w&quot;, encoding=&quot;utf-8&quot;) as handle:
+        handle.write(&quot;def test_always_fails():\n    assert False\n&quot;)
+    env = {**os.environ, &quot;PATH&quot;: os.path.dirname(sys.executable) + os.pathsep + os.environ.get(&quot;PATH&quot;, &quot;&quot;)}
+    result = subprocess.run(
+        [&quot;sh&quot;, os.path.join(root, &quot;bin&quot;, &quot;test.sh&quot;)],
+        capture_output=True, text=True, env=env, cwd=root,
+    )
+print(result.stdout)
+print(result.stderr)
+assert result.returncode != 0
+=== END AC testsuite-propagates-failure ===
+
+=== AC testsuite-passes-when-tests-pass ===
+Intent: bin/test.sh exits zero for an application root whose only test passes.
+Requires: executable=sh; scope=test
+Requires: python-package=pytest; scope=test
+
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+
+script_source = os.path.abspath(&quot;bin/test.sh&quot;)
+with tempfile.TemporaryDirectory() as root:
+    os.makedirs(os.path.join(root, &quot;bin&quot;))
+    os.makedirs(os.path.join(root, &quot;tests&quot;))
+    shutil.copy(script_source, os.path.join(root, &quot;bin&quot;, &quot;test.sh&quot;))
+    with open(os.path.join(root, &quot;tests&quot;, &quot;test_always_passes.py&quot;), &quot;w&quot;, encoding=&quot;utf-8&quot;) as handle:
+        handle.write(&quot;def test_always_passes():\n    assert True\n&quot;)
+    env = {**os.environ, &quot;PATH&quot;: os.path.dirname(sys.executable) + os.pathsep + os.environ.get(&quot;PATH&quot;, &quot;&quot;)}
+    result = subprocess.run(
+        [&quot;sh&quot;, os.path.join(root, &quot;bin&quot;, &quot;test.sh&quot;)],
+        capture_output=True, text=True, env=env, cwd=root,
+    )
+print(result.stdout)
+print(result.stderr)
+assert result.returncode == 0
+=== END AC testsuite-passes-when-tests-pass ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- `bin/test.sh` runs the full suite unfiltered; it never skips, deselects, or reinterprets tests.
+- No test opens a network connection; `fetch` is tested only through a stubbed HTTP call.
+- No test or application code reads `sources/run.sh` or the snapshot.
+- Nothing under `sources/` is modified.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Build instructions&quot; kind=&quot;instructions&quot;&gt;</p>
+<h3>Build instructions for this block</h3>
+<h4>Parse and validate the command, options, and file argument, with usage errors exiting 2. (options)</h4>
+<p>Command first, options in any order, file last. Each command accepts only its listed options. Decimals match -?[0-9]+(\.[0-9]+)?. --n is a positive integer. --lat in -90..90, --lon in -180..180, --radius positive, near requires all three. Missing or extra file, unknown command, and no command are usage errors.</p>
+<p>Do not use argparse default error behavior that prints to stdout; usage errors raise a UsageError that the dispatcher maps to exit 2.</p>
+<h4>Map usage and operational failures to exit codes 2 and 1 with silent stdout and one stderr line. (exit-codes)</h4>
+<p>Define UsageError (exit 2) and OperationalError (exit 1). main catches them, writes exactly one diagnostic line to stderr, and writes nothing to stdout. Reports build their full output before writing so a failure leaves stdout empty. Success, including empty reports, is exit 0.</p>
+<h4>Format times, magnitudes, depths, distances, and CSV output. (formatting)</h4>
+<p>Time is UTC YYYY-MM-DDTHH:MM:SSZ truncated to whole seconds from epoch milliseconds. Magnitude has one decimal. mean_mag has two decimals and depth_km and distance_km one decimal, all rounded half up using decimal.Decimal with ROUND_HALF_UP on the exact repr of the value. CSV is written with the csv module, lineterminator &quot;\n&quot;, UTF-8 stdout.</p>
+<h4>Read a saved GeoJSON file and validate that it is a FeatureCollection. (feed-validation)</h4>
+<p>read_feed(path) returns the features list. An unreadable file, non-JSON content, or a value that is not an object with &quot;type&quot; equal to &quot;FeatureCollection&quot; and a list &quot;features&quot; raises OperationalError.</p>
+<h4>Extract event fields from features and exclude null-magnitude events. (event-extraction)</h4>
+<p>Read id, properties.mag, properties.place, properties.time, properties.tsunami, and geometry.coordinates [lon, lat, depth_km]. Ignore every other field. A feature whose mag is null is dropped. A null place stays None here; regions handle it.</p>
+<h4>Apply the --min-mag filter to events. (mag-filter)</h4>
+<p>filter_events(events, min_mag) keeps events with mag &gt;= min_mag; None keeps all.</p>
+<h4>Provide bin/test.sh running the pytest suite. (test-suite)</h4>
+<p>POSIX sh script that changes to the application root, activates .venv when present, and runs pytest -q unfiltered, exiting with pytest&#x27;s status. Tests stub HTTP and never use the network.</p>
+<p>&lt;/pblock&gt;</p>
+<h1>Agent Task</h1>
+<p>You are a Drydock build agent implementing exactly one build step of a larger plan. The build job block below names the target, the build working directory, and the step. Everything you need is stacked into this prompt under role headings:</p>
+<ul><li><code>compass</code> — the Target&#x27;s COMPASS.md orientation.</li><li><code>implements</code> — the Typed Specification files this step builds. These are</li></ul>
+<p>authoritative; implement them exactly.</p>
+<ul><li><code>context</code> — read-only support specifications. Do not reimplement them.</li><li><code>stack</code> — enterprise stack and technology rules. Honor them.</li><li><code>rules</code> — governance and branding rules. Honor them.</li></ul>
+<p>Operating contract:</p>
+<ol><li>Follow the write authorization and protected paths in the stacked <code>COMPASS.md</code> exactly.</li></ol>
+<p>That persisted guardrail is the sole authority for paths this build may modify.</p>
+<ol><li>Start by inspecting the build working directory. Preserve existing application</li></ol>
+<p>files unless this step&#x27;s specifications require a change. Its <code>sources/</code> subdirectory holds staged build assets — imported test corpora, conformance harnesses, and fixtures — placed there for you. They are read-only inputs: run them, import them, and write code against them, but never create, rewrite, trim, regenerate, or substitute one, even to make a check pass. A step that modifies a staged asset fails and the asset is restored. If an asset you expect is absent, report that; do not author a replacement.</p>
+<ol><li>Implement only this step. Use <code>context</code>, <code>stack</code>, and <code>rules</code> as constraints,</li></ol>
+<p>not as additional work to perform.</p>
+<ol><li>Follow the stack and rules for languages, structure, naming, and branding.</li><li>The programmatic acceptance assertions in the <code>implements</code> specifications are</li></ol>
+<p>this step&#x27;s <strong>Definition of Done</strong> — human-owned, declared before the build, and fixed. Build the story and, in this same step, write the deterministic tests that prove each declared assertion, as a TDD master would; add finer tests for coverage. Every test you write follows the same rule the acceptance assertions do: <strong>act on the system, read the state back, compare to expected.</strong> The oracle is a return value, parsed JSON, a status code, a stored row, file contents read back, or an exit status — never a substring of captured stdout or stderr, a test-runner tally, or a log line. Write tests in the project&#x27;s own language using that language&#x27;s libraries; an in-language HTTP client yields a status code and a parsed body, where <code>curl</code> yields text to scrape. Round-trip anything that stores state: act, then read back through the public interface. Assert declared failure signals on negative paths, never message wording. You may add tests but must never remove, soften, or weaken a declared acceptance assertion. A <code>Suite: full</code> conformance check gates on the entire imported test suite: the step is done only when it passes in full, never on a representative subset — reproduce the standard exactly rather than wrapping a third-party library that approximates it. For a suite, the runner&#x27;s exit status is the verdict and the whole verdict: print its captured output for diagnosis, never assert on the text of its summary. When an assertion is a static or filesystem scan (import boundary, &quot;X never appears outside Y,&quot; grep/AST gate), honor the scope the specification states and never widen it: scan production source only, exclude <code>.venv/</code>, <code>site-packages</code>, and vendored or generated code, and do not flag test doubles or fixtures that use the guarded dependency. Run every declared acceptance assertion before returning. For a conformance suite, use its section or example filters to diagnose coherent root-cause clusters, but rerun the full declared scope before reporting the result. Treat failing examples as a work queue for fixing general behavior; never add example-specific exceptions.</p>
+<ol><li>Grow the project&#x27;s own test suite as you write the code, and treat it as the project&#x27;s</li></ol>
+<p>real coverage. The acceptance assertions in <code>implements</code> are gates: few, fixed, and written before any code existed, so every expectation in them is a prediction. The tests you write are written <em>beside</em> the finished code, so their expected values are observed rather than predicted — which is why exhaustive coverage belongs here and not there. Extend the suite in the project&#x27;s established location and runner, keep it runnable by the project&#x27;s declared test command, and leave it green when you return. Cover, at minimum: every public entry point and every verb it declares, including declared error paths; the boundaries — empty, exactly one, many, absent optional fields, declared maxima; declared idempotence, applied twice; one behavior per test, named for the behavior; and isolation — database criteria use the provisioned application store and the shipped rollback fixture, passing its connection into the feature. Other connections and durability tests use criterion-owned records, idempotent setup and checked cleanup through supported interfaces. Never replace the configured store, reapply schema, or delete unrelated business records. Where a staged authoritative suite already covers a surface, that suite is the coverage: run it, and do not restate its cases. Run it <strong>only through the invocation this step&#x27;s acceptance criteria declare</strong>. A criterion marked <code>Suite: scoped</code> names the whole of this step&#x27;s obligation to that suite; running the suite&#x27;s unscoped entry point instead is not extra rigor, it is a different step&#x27;s gate executed early. A partial capability fails most of an authoritative corpus by construction and its unimplemented cases exhaust the runner&#x27;s per-case timeout rather than returning, so the unscoped run costs the most where it teaches the least, and interrupting it forfeits the step. If no criterion in this step invokes the staged suite, do not invoke it. Report the pass/fail counts of the invocations you did run in your <code>SUMMARY</code> so a reader can see coverage moving across steps.</p>
+<ol><li>Treat <code>User Acceptance</code> entries as review evidence requirements. Implement</li></ol>
+<p>the supporting behavior, but do not claim to have performed human judgment.</p>
+<ol><li>The <code>implements</code> section is authoritative and intentionally stacked late in</li></ol>
+<p>the prompt as the recency anchor. Build that WHAT exactly; do not substitute generic framework defaults.</p>
+<ol><li>Before adding or installing Python dependencies, verify each package name</li></ol>
+<p>against the declared registry. Do not invent package names. If a needed package cannot be verified or appears newly published, fail explicitly instead of installing it.</p>
+<ol><li>Use the stack&#x27;s required package manager workflow for dependency changes.</li></ol>
+<p>When the stack requires <code>uv</code>, update manifests through <code>uv</code> conventions rather than bare <code>pip install</code>.</p>
+<ol><li>Do not claim success unless you actually created or modified project files in</li></ol>
+<p>the build working directory. If you cannot write files or cannot complete the step, report failure explicitly.</p>
+<ol><li>Do not run <code>git add</code>, <code>git commit</code>, create branches, create tags, rewrite</li></ol>
+<p>history, or otherwise mutate Git history. Drydock checkpoints application changes and Target evidence after each execution and completed step. File lineage comes from Git and the Manifest&#x27;s <code>implements:</code> entries; no additional attribution response is required.</p>
+<ol><li>End your response with this exact closing structure:</li></ol>
+<pre><code>RESULT: SUCCESS | FAILED
+
+FILES CHANGED:
+- relative/path
+
+SUMMARY:
+&lt;brief reviewable summary&gt;
+
+BLOCKERS:
+- &lt;only if any&gt;</code></pre>
+<p>Before <code>RESULT</code>, you may emit one optional JSON payload when implementation required a bounded choice not already settled by the owning specification. This records what you did; it does not ask permission, create a questionnaire, or excuse incomplete work:</p>
+<pre><code>&lt;blueprint-decisions&gt;
+[{&quot;spec&quot;:&quot;FEATURE-Example.md&quot;,&quot;severity&quot;:&quot;Material&quot;,&quot;subject&quot;:&quot;Chosen behavior&quot;,&quot;decision&quot;:&quot;Options A and B were available. I implemented B because ... Is that acceptable, or should this change on replan?&quot;}]
+&lt;/blueprint-decisions&gt;</code></pre>
+<p>Name only a specification implemented by this build block. Use <code>Low</code> or <code>Material</code>; Build never emits a Blocking decision. Omit the payload when no implementation decision was necessary.</p>
+<ol><li><code>FILES CHANGED</code> must list only files actually written in the build working</li></ol>
+<p>directory. When the existing implementation already satisfies this step, report <code>RESULT: SUCCESS</code>, list no changed files, and state the checks performed and their results. A verification-only step requires no application changes. Drydock runs the declared deterministic checks and decides the outcome independently of this report.</p>
+<ol><li>On <code>RESULT: FAILED</code>, append two additional lines so the failure is actionable</li></ol>
+<p>without opening logs. <code>FAILURE_SUMMARY</code> is one line naming the cause; <code>FAILURE_DETAIL</code> states what happened, why, and what to change before a rerun. Name concrete conditions when they apply: token or context limit exceeded, could not execute commands in this environment, a required input was missing, or a specific tool or command failed.</p>
+<pre><code>FAILURE_SUMMARY: &lt;one line naming the cause&gt;
+FAILURE_DETAIL: &lt;what happened, why, and what to change before rerunning&gt;</code></pre>
+<ol><li>When a declared acceptance criterion cannot pass no matter how the code is written,</li></ol>
+<p>say so with this exact token. You may not edit the criterion — it is staged and restored before grading:</p>
+<pre><code>AC_BROKEN: &lt;check-id&gt;[, &lt;check-id&gt;]</code></pre>
+<p>This is a report, not a verdict, and it stops nothing. A criterion reaches you only when its expected value is one its author could not have invented — a status code, a staged suite&#x27;s exit status, a value the criterion itself supplied as input — so your claim that the criterion rather than the code is at fault is the less likely explanation, and the budget is spent as it would be for any other failure. A criterion whose expectation <em>was</em> hand-typed already settles <code>DISPUTED</code> on its own, without you naming it. Emit the token only after running the criterion and confirming the underlying command succeeded while the assertion still failed. Name the affected check ids, emit it alongside your normal <code>RESULT</code> line, state the reasoning in <code>FAILURE_DETAIL</code>, and emit it even when <code>RESULT: SUCCESS</code>. Do not use it for a criterion you merely failed to satisfy.</p></article>
+</main>
+</body>
+</html>

@@ -1,0 +1,36 @@
+Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
+Next: drydock build Quakes
+
+Blueprint: Quakes
+Target: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes
+Rows: <state> <type>  <Name>  [<id>]   — pass [<id>] to --step
+
+Block: Build Block 1 · Foundational  [block-1]   — 0/1 stories complete
+  [pending] story  Stand up the Python project tree, environment, dependency manifest, and pytest runner.  [architecture]  <- next
+
+Block: Build Block 2 · Foundational  [block-2]   — 0/1 stories complete
+  [pending] story  Publish the cli package, main entry point, cli_runner test helper, and the quakes launcher.  [cli-foundation]
+
+Block: Build Block 3 · Service  [block-3]   — 0/7 stories complete
+  [pending] story  Parse and validate the command, options, and file argument, with usage errors exiting 2.  [options]
+  [pending] story  Map usage and operational failures to exit codes 2 and 1 with silent stdout and one stderr line.  [exit-codes]
+  [pending] story  Format times, magnitudes, depths, distances, and CSV output.  [formatting]
+  [pending] story  Read a saved GeoJSON file and validate that it is a FeatureCollection.  [feed-validation]
+  [pending] story  Extract event fields from features and exclude null-magnitude events.  [event-extraction]
+  [pending] story  Apply the --min-mag filter to events.  [mag-filter]
+  [pending] story  Provide bin/test.sh running the pytest suite.  [test-suite]
+
+Block: Build Block 4 · Service  [block-4]   — 0/7 stories complete
+  [pending] story  The summary report.  [summary]
+  [pending] story  The regions report of events per region.  [regions]
+  [pending] story  The daily report of events per UTC date.  [daily]
+  [pending] story  The top report listing the largest events.  [top]
+  [pending] story  The fetch command that downloads a USGS date range to a file.  [fetch]
+  [pending] story  Fetch fails without writing a file on network, HTTP, or body errors.  [fetch-failure]
+  [pending] story  The near report using haversine distance.  [near]
+
+Block: Build Block 5 · Feature  [block-5]   — 0/1 stories complete
+  [pending] story  Terminal gate running the supplied grader against the finished application.  [verification]
+
+Steps: 17 total — 0 done, 0 built (await verify), 0 in review, 17 pending, 0 blocked by questions, 0 failed (0% complete)
+Buildable now: block-1

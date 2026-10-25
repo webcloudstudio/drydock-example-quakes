@@ -1,0 +1,169 @@
+[
+  {
+    "id": "Q-001",
+    "type": "choice",
+    "severity": "low",
+    "origin": "plan",
+    "blueprint": "FEATURE-Options.md",
+    "story": "options",
+    "status": "recommended",
+    "archived": false,
+    "title": "Usage error exit when an option is repeated",
+    "description": "Sources do not say what a repeated option does. Weighed: last wins vs usage error. Chose the narrower, stricter behavior.",
+    "options": [
+      {
+        "value": "usage-error",
+        "label": "Repeated option is a usage error (exit 2)"
+      },
+      {
+        "value": "last-wins",
+        "label": "Last occurrence wins"
+      }
+    ],
+    "system_choice": "usage-error"
+  },
+  {
+    "id": "Q-002",
+    "type": "choice",
+    "severity": "low",
+    "origin": "plan",
+    "blueprint": "FEATURE-Formatting.md",
+    "story": "formatting",
+    "status": "recommended",
+    "archived": false,
+    "title": "Half-up rounding implementation",
+    "description": "Python round() is banker's rounding. Chose decimal.Decimal on the value's repr with ROUND_HALF_UP so 5.125 style values round up as the instructions require.",
+    "options": [
+      {
+        "value": "decimal-half-up",
+        "label": "Decimal(repr(x)) quantized ROUND_HALF_UP"
+      },
+      {
+        "value": "round",
+        "label": "Built-in round()"
+      }
+    ],
+    "system_choice": "decimal-half-up"
+  },
+  {
+    "id": "Q-003",
+    "type": "choice",
+    "severity": "low",
+    "origin": "plan",
+    "blueprint": "FEATURE-Fetch.md",
+    "story": "fetch",
+    "status": "recommended",
+    "archived": false,
+    "title": "Fetch usage-error and file-write behavior",
+    "description": "fetch with missing --start, --end, or --out, or an extra positional argument, is a usage error (exit 2). The output file is written only after the response validates, so failure never creates or alters a file.",
+    "options": [
+      {
+        "value": "validate-then-write",
+        "label": "Validate body, then write file"
+      },
+      {
+        "value": "write-then-validate",
+        "label": "Write then remove on failure"
+      }
+    ],
+    "system_choice": "validate-then-write"
+  },
+  {
+    "id": "build-architecture.md-cli_runner-fixture-import-timing",
+    "type": "text",
+    "severity": "low",
+    "origin": "build",
+    "blueprint": "ARCHITECTURE.md",
+    "story": null,
+    "status": "recommended",
+    "archived": false,
+    "title": "cli_runner fixture import timing",
+    "description": "conftest.py defines the cli_runner fixture but imports cli.testing lazily inside the fixture body, because cli/ is built in a later block and an eager import would break collection of the foundation tests. Is that acceptable, or should cli/testing.py be created in this block?",
+    "options": [],
+    "system_choice": "conftest.py defines the cli_runner fixture but imports cli.testing lazily inside the fixture body, because cli/ is built in a later block and an eager import would break collection of the foundation tests. Is that acceptable, or should cli/testing.py be created in this block?"
+  },
+  {
+    "id": "build-feature-clifoundation.md-dispatch-skeleton-behaviour-for-registered-commands",
+    "type": "text",
+    "severity": "low",
+    "origin": "build",
+    "blueprint": "FEATURE-CliFoundation.md",
+    "story": null,
+    "status": "recommended",
+    "archived": false,
+    "title": "Dispatch skeleton behaviour for registered commands",
+    "description": "The spec says main consults COMMANDS for dispatch but defines no parser yet. A registered command name is accepted and main returns 0 without calling its handler, since Parsed does not exist until the options story. COMMANDS is typed Callable[[Any], str] to avoid importing a module that is not built yet. The options story should replace the placeholder with real dispatch. Is that acceptable?",
+    "options": [],
+    "system_choice": "The spec says main consults COMMANDS for dispatch but defines no parser yet. A registered command name is accepted and main returns 0 without calling its handler, since Parsed does not exist until the options story. COMMANDS is typed Callable[[Any], str] to avoid importing a module that is not built yet. The options story should replace the placeholder with real dispatch. Is that acceptable?"
+  },
+  {
+    "id": "build-feature-eventextraction.md-malformed-feature-handling",
+    "type": "text",
+    "severity": "low",
+    "origin": "build",
+    "blueprint": "FEATURE-EventExtraction.md",
+    "story": null,
+    "status": "recommended",
+    "archived": false,
+    "title": "Malformed feature handling",
+    "description": "A feature missing id, properties, time, or coordinates raises OperationalError (exit 1) instead of a traceback. A null tsunami is read as 0, like a missing one. Is that acceptable?",
+    "options": [],
+    "system_choice": "A feature missing id, properties, time, or coordinates raises OperationalError (exit 1) instead of a traceback. A null tsunami is read as 0, like a missing one. Is that acceptable?"
+  },
+  {
+    "id": "build-feature-exitcodes.md-valid-command-with-no-registered-handler",
+    "type": "text",
+    "severity": "low",
+    "origin": "build",
+    "blueprint": "FEATURE-ExitCodes.md",
+    "story": null,
+    "status": "recommended",
+    "archived": false,
+    "title": "Valid command with no registered handler",
+    "description": "Until report handlers are registered in later blocks, a valid command such as summary exits 2 with 'command not available'. I chose a usage error over a silent success. The later blocks will replace this when they register handlers. Is that acceptable?",
+    "options": [],
+    "system_choice": "Until report handlers are registered in later blocks, a valid command such as summary exits 2 with 'command not available'. I chose a usage error over a silent success. The later blocks will replace this when they register handlers. Is that acceptable?"
+  },
+  {
+    "id": "build-feature-fetch.md-minmagnitude-text",
+    "type": "text",
+    "severity": "low",
+    "origin": "build",
+    "blueprint": "FEATURE-Fetch.md",
+    "story": null,
+    "status": "recommended",
+    "archived": false,
+    "title": "minmagnitude text",
+    "description": "The spec says minmagnitude carries the text given on the command line. Parsed stores a float, so the fetch handler sends str(float). `--min-mag 5` therefore goes out as `5.0`. The declared ACs (4.5 and the 2.5 default) pass. Acceptable, or should Parsed keep the raw text?",
+    "options": [],
+    "system_choice": "The spec says minmagnitude carries the text given on the command line. Parsed stores a float, so the fetch handler sends str(float). `--min-mag 5` therefore goes out as `5.0`. The declared ACs (4.5 and the 2.5 default) pass. Acceptable, or should Parsed keep the raw text?"
+  },
+  {
+    "id": "build-feature-options.md-date-validation",
+    "type": "text",
+    "severity": "low",
+    "origin": "build",
+    "blueprint": "FEATURE-Options.md",
+    "story": null,
+    "status": "recommended",
+    "archived": false,
+    "title": "Date validation",
+    "description": "Dates must match YYYY-MM-DD and also be real calendar dates (2025-02-30 is a usage error). The spec only states the pattern. Is that acceptable?",
+    "options": [],
+    "system_choice": "Dates must match YYYY-MM-DD and also be real calendar dates (2025-02-30 is a usage error). The spec only states the pattern. Is that acceptable?"
+  },
+  {
+    "id": "build-feature-options.md-parser-implementation-and-module",
+    "type": "text",
+    "severity": "low",
+    "origin": "build",
+    "blueprint": "FEATURE-Options.md",
+    "story": null,
+    "status": "recommended",
+    "archived": false,
+    "title": "Parser implementation and module",
+    "description": "ARCHITECTURE names cli/options.py and the stack doc suggests argparse in parser.py. I hand-wrote the parser in cli/options.py so the number grammar, repeated options, and extra positionals follow the spec exactly and nothing prints. Is that acceptable?",
+    "options": [],
+    "system_choice": "ARCHITECTURE names cli/options.py and the stack doc suggests argparse in parser.py. I hand-wrote the parser in cli/options.py so the number grammar, repeated options, and extra positionals follow the spec exactly and nothing prints. Is that acceptable?"
+  }
+]

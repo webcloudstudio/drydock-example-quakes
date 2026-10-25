@@ -1,0 +1,333 @@
+=== BEGIN ARTIFACT TOPOLOGY.md ===
+## Declarations
+
+## story architecture
+summary:      Stand up the Python project tree, environment, dependency manifest, and pytest runner.
+type:         foundational
+kind:         capability
+phase:        1
+implements:   ARCHITECTURE.md
+stack:        common.md, python.md
+provides:     project tree, pytest runner
+acceptance:   yes
+instructions: |
+  Create the application root with pyproject.toml, a committed uv.lock, a .venv created by uv venv,
+  a tests/ directory, and a conftest.py that exposes the cli_runner fixture.
+
+  Python 3.11 or newer, standard library only at runtime. pytest is the only dev dependency.
+
+  Never read sources/run.sh or the snapshot from application code.
+
+## story cli-foundation
+summary:      Publish the cli package, main entry point, cli_runner test helper, and the quakes launcher.
+type:         foundational
+kind:         capability
+phase:        1
+implements:   FEATURE-CliFoundation.md
+stack:        python.md, cli.md
+provides:     cli.main, cli.testing.cli_runner, ./quakes
+depends:      architecture
+acceptance:   yes
+instructions: |
+  Create cli/__init__.py with main(argv=None) -> int and cli/testing.py with cli_runner per the
+  Foundation Contract in TECHNOLOGY_STACK.md.
+
+  Create an executable file named quakes at the application root that calls cli.main and exits
+  with its return value.
+
+  Dispatch is a skeleton here; later stories register the commands.
+
+## story options
+summary:      Parse and validate the command, options, and file argument, with usage errors exiting 2.
+type:         service
+kind:         capability
+phase:        2
+implements:   FEATURE-Options.md
+covers:       CLI-001
+stack:        python.md, cli.md
+provides:     parse_args
+depends:      cli-foundation
+acceptance:   yes
+instructions: |
+  Command first, options in any order, file last. Each command accepts only its listed options.
+  Decimals match -?[0-9]+(\.[0-9]+)?. --n is a positive integer. --lat in -90..90, --lon in
+  -180..180, --radius positive, near requires all three. Missing or extra file, unknown command,
+  and no command are usage errors.
+
+  Do not use argparse default error behavior that prints to stdout; usage errors raise a UsageError
+  that the dispatcher maps to exit 2.
+
+## story exit-codes
+summary:      Map usage and operational failures to exit codes 2 and 1 with silent stdout and one stderr line.
+type:         service
+kind:         capability
+phase:        2
+implements:   FEATURE-ExitCodes.md
+covers:       CLI-002
+accepts:      st-007
+stack:        python.md, cli.md
+provides:     UsageError, OperationalError, exit code mapping
+depends:      options
+acceptance:   yes
+instructions: |
+  Define UsageError (exit 2) and OperationalError (exit 1). main catches them, writes exactly one
+  diagnostic line to stderr, and writes nothing to stdout. Reports build their full output before
+  writing so a failure leaves stdout empty. Success, including empty reports, is exit 0.
+
+## story formatting
+summary:      Format times, magnitudes, depths, distances, and CSV output.
+type:         service
+kind:         capability
+phase:        2
+implements:   FEATURE-Formatting.md
+covers:       FMT-001
+stack:        python.md
+provides:     format_time, format_mag, format_mean, format_decimal, write_csv
+depends:      architecture
+acceptance:   yes
+instructions: |
+  Time is UTC YYYY-MM-DDTHH:MM:SSZ truncated to whole seconds from epoch milliseconds. Magnitude has
+  one decimal. mean_mag has two decimals and depth_km and distance_km one decimal, all rounded half
+  up using decimal.Decimal with ROUND_HALF_UP on the exact repr of the value. CSV is written with
+  the csv module, lineterminator "\n", UTF-8 stdout.
+
+## story feed-validation
+summary:      Read a saved GeoJSON file and validate that it is a FeatureCollection.
+type:         service
+kind:         capability
+phase:        2
+implements:   FEATURE-FeedValidation.md
+covers:       READ-001
+stack:        python.md
+provides:     read_feed
+depends:      exit-codes
+acceptance:   yes
+instructions: |
+  read_feed(path) returns the features list. An unreadable file, non-JSON content, or a value that
+  is not an object with "type" equal to "FeatureCollection" and a list "features" raises
+  OperationalError.
+
+## story event-extraction
+summary:      Extract event fields from features and exclude null-magnitude events.
+type:         service
+kind:         capability
+phase:        2
+implements:   FEATURE-EventExtraction.md
+covers:       READ-002
+stack:        python.md
+provides:     extract_events, Event
+depends:      feed-validation
+acceptance:   yes
+instructions: |
+  Read id, properties.mag, properties.place, properties.time, properties.tsunami, and
+  geometry.coordinates [lon, lat, depth_km]. Ignore every other field. A feature whose mag is null
+  is dropped. A null place stays None here; regions handle it.
+
+## story mag-filter
+summary:      Apply the --min-mag filter to events.
+type:         service
+kind:         capability
+phase:        2
+implements:   FEATURE-MagFilter.md
+covers:       READ-003
+accepts:      st-005
+stack:        python.md
+provides:     filter_events
+depends:      event-extraction
+acceptance:   yes
+instructions: |
+  filter_events(events, min_mag) keeps events with mag >= min_mag; None keeps all.
+
+## story summary
+summary:      The summary report.
+type:         service
+kind:         capability
+phase:        3
+implements:   FEATURE-Summary.md
+covers:       SUM-001
+stack:        python.md, cli.md
+provides:     quakes summary
+consumes:     read_feed, extract_events, filter_events, write_csv, parse_args
+depends:      mag-filter, formatting
+acceptance:   yes
+instructions: |
+  Header events,first,last,min_mag,max_mag,mean_mag,tsunami. One row; first and last are the
+  earliest and latest times; tsunami counts events equal to 1. No events yields 0,,,,,,0.
+
+## story top
+summary:      The top report listing the largest events.
+type:         service
+kind:         capability
+phase:        3
+implements:   FEATURE-Top.md
+covers:       TOP-001
+stack:        python.md, cli.md
+provides:     quakes top
+consumes:     read_feed, extract_events, filter_events, write_csv, parse_args
+depends:      mag-filter, formatting
+acceptance:   yes
+instructions: |
+  Header time,mag,depth_km,place,id. Sort by mag descending then time ascending, take --n
+  (default 10). Filter applies before the cut.
+
+## story daily
+summary:      The daily report of events per UTC date.
+type:         service
+kind:         capability
+phase:        3
+implements:   FEATURE-Daily.md
+covers:       DAY-001
+stack:        python.md, cli.md
+provides:     quakes daily
+consumes:     read_feed, extract_events, filter_events, write_csv, parse_args
+depends:      mag-filter, formatting
+acceptance:   yes
+instructions: |
+  Header date,events,max_mag. One row per date with events, ascending, then TOTAL,<events>,<max>.
+  Date is the first 10 characters of the formatted time. No events yields TOTAL,0,.
+
+## story regions
+summary:      The regions report of events per region.
+type:         service
+kind:         capability
+phase:        3
+implements:   FEATURE-Regions.md
+covers:       REG-001
+stack:        python.md, cli.md
+provides:     quakes regions
+consumes:     read_feed, extract_events, filter_events, write_csv, parse_args
+depends:      mag-filter, formatting
+acceptance:   yes
+instructions: |
+  Header region,events,max_mag. Region is the text after the last ", " in place, else the whole
+  place; null place is Unknown. Order by events descending then region ascending by byte value.
+
+## story near
+summary:      The near report using haversine distance.
+type:         service
+kind:         capability
+phase:        3
+implements:   FEATURE-Near.md
+covers:       NEAR-001
+accepts:      st-004
+stack:        python.md, cli.md
+provides:     quakes near, haversine_km
+consumes:     read_feed, extract_events, filter_events, write_csv, parse_args
+depends:      mag-filter, formatting
+acceptance:   yes
+instructions: |
+  Header distance_km,time,mag,place,id. Haversine on a 6371.0 km sphere. Include events with
+  distance <= --radius (compare unrounded distance), ordered by distance ascending then time
+  ascending. Distance is written with one decimal, rounded half up.
+
+## story fetch
+summary:      The fetch command that downloads a USGS date range to a file.
+type:         service
+kind:         integration
+phase:        3
+implements:   FEATURE-Fetch.md
+covers:       FETCH-001
+accepts:      st-006, st-008
+stack:        python.md, cli.md
+provides:     quakes fetch, build_url, http_get
+consumes:     parse_args, read_feed
+depends:      options, exit-codes, feed-validation
+acceptance:   yes
+instructions: |
+  Request https://earthquake.usgs.gov/fdsnws/event/1/query with format=geojson, starttime, endtime,
+  minmagnitude (default 2.5), orderby=time-asc, using urllib.request via a single replaceable
+  function http_get(url) returning (status, body bytes). Write the body unchanged to --out and print
+  fetched,<count>. Tests stub http_get and never open a network connection.
+
+## story fetch-failure
+summary:      Fetch fails without writing a file on network, HTTP, or body errors.
+type:         service
+kind:         capability
+phase:        3
+implements:   FEATURE-FetchFailure.md
+covers:       FETCH-002
+stack:        python.md, cli.md
+provides:     fetch failure handling
+consumes:     http_get
+depends:      fetch
+acceptance:   yes
+instructions: |
+  A network error, status other than 200, or body that is not a FeatureCollection raises
+  OperationalError (exit 1) before any file is created. A pre-existing output file is left untouched.
+
+## story test-suite
+summary:      Provide bin/test.sh running the pytest suite.
+type:         service
+kind:         test harness
+phase:        2
+implements:   FEATURE-TestSuite.md
+covers:       TEST-001
+accepts:      st-002
+stack:        common.md, python.md
+provides:     bin/test.sh
+depends:      architecture, cli-foundation
+acceptance:   yes
+instructions: |
+  POSIX sh script that changes to the application root, activates .venv when present, and runs
+  pytest -q unfiltered, exiting with pytest's status. Tests stub HTTP and never use the network.
+
+## story verification
+summary:      Terminal gate running the supplied grader against the finished application.
+type:         feature
+kind:         test harness
+phase:        4
+implements:   VERIFICATION.md
+accepts:      st-001, st-003
+stack:        common.md
+depends:      summary, top, daily, regions, near, fetch-failure, test-suite
+acceptance:   yes
+instructions: |
+  Assembly story. Run sh sources/run.sh with Suite: full and require exit 0, and run sh bin/test.sh
+  requiring exit 0. Do not modify anything under sources/.
+=== END ARTIFACT ===
+=== BEGIN ARTIFACT DECISIONS.json ===
+[
+  {
+    "id": "Q-001",
+    "type": "choice",
+    "severity": "low",
+    "blueprint": "FEATURE-Options.md",
+    "story": "options",
+    "title": "Usage error exit when an option is repeated",
+    "description": "Sources do not say what a repeated option does. Weighed: last wins vs usage error. Chose the narrower, stricter behavior.",
+    "options": [
+      { "value": "usage-error", "label": "Repeated option is a usage error (exit 2)" },
+      { "value": "last-wins", "label": "Last occurrence wins" }
+    ],
+    "system_choice": "usage-error"
+  },
+  {
+    "id": "Q-002",
+    "type": "choice",
+    "severity": "low",
+    "blueprint": "FEATURE-Formatting.md",
+    "story": "formatting",
+    "title": "Half-up rounding implementation",
+    "description": "Python round() is banker's rounding. Chose decimal.Decimal on the value's repr with ROUND_HALF_UP so 5.125 style values round up as the instructions require.",
+    "options": [
+      { "value": "decimal-half-up", "label": "Decimal(repr(x)) quantized ROUND_HALF_UP" },
+      { "value": "round", "label": "Built-in round()" }
+    ],
+    "system_choice": "decimal-half-up"
+  },
+  {
+    "id": "Q-003",
+    "type": "choice",
+    "severity": "low",
+    "blueprint": "FEATURE-Fetch.md",
+    "story": "fetch",
+    "title": "Fetch usage-error and file-write behavior",
+    "description": "fetch with missing --start, --end, or --out, or an extra positional argument, is a usage error (exit 2). The output file is written only after the response validates, so failure never creates or alters a file.",
+    "options": [
+      { "value": "validate-then-write", "label": "Validate body, then write file" },
+      { "value": "write-then-validate", "label": "Write then remove on failure" }
+    ],
+    "system_choice": "validate-then-write"
+  }
+]
+=== END ARTIFACT ===

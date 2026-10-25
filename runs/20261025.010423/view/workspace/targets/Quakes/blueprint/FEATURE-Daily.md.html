@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-Daily.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-Daily.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-Daily.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Daily</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>The <code>daily</code> report: event count and maximum magnitude per UTC date, followed by a TOTAL row.</td></tr><tr><td>Depends On</td><td>FEATURE-MagFilter.md, FEATURE-Formatting.md, FEATURE-Options.md, FEATURE-ExitCodes.md</td></tr><tr><td>Provides</td><td>quakes daily</td></tr><tr><td>Consumes</td><td>read_feed, extract_events, filter_events, write_csv, format_time, format_mag, parse_args</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p><code>quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;</code> reads a saved USGS GeoJSON file and reports how many events occurred on each UTC date and the strongest magnitude on that date.</p>
+<h2>Trigger</h2>
+<p>Command line: <code>./quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;</code>. The command accepts only <code>--min-mag</code>; any other option is a usage error handled by <code>parse_args</code>.</p>
+<h2>Sequence</h2>
+<ol><li><code>read_feed(file)</code> validates and returns the features (<code>OperationalError</code>, exit 1, on failure).</li><li><code>extract_events</code> drops null-magnitude features.</li><li><code>filter_events(events, min_mag)</code> applies <code>--min-mag</code>.</li><li><code>compute_daily(events)</code> groups events by date, where date is the first 10 characters of <code>format_time(event.time)</code>.</li><li>Rows are ordered by date ascending (byte order), followed by one <code>TOTAL</code> row.</li><li><code>write_csv</code> writes the whole report to standard output in one step, after it is fully computed.</li></ol>
+<p><code>compute_daily(events)</code> is a pure function returning <code>(rows, total_row)</code> with no I/O; formatting is performed by the <code>format_daily</code> step that uses <code>format_mag</code> and <code>write_csv</code>.</p>
+<h2>Output</h2>
+<p>Header: <code>date,events,max_mag</code>.</p>
+<ul><li>One row per date that has at least one event, ascending.</li><li><code>events</code> is the integer count; <code>max_mag</code> is the maximum magnitude with one decimal.</li><li>Final row: <code>TOTAL,&lt;events&gt;,&lt;max_mag&gt;</code> where both values are over all kept events.</li><li>With no events the output is the header followed by <code>TOTAL,0,</code> (empty max).</li><li>Exit code 0, including the empty case.</li></ul>
+<h2>Reads</h2>
+<p>The saved GeoJSON file named on the command line. No other input.</p>
+<h2>Writes</h2>
+<p>Standard output only. Nothing is written to any file.</p>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC daily-groups-by-utc-date ===<br>Intent: Events are grouped per UTC date with counts and maximum magnitude, ascending, followed by a TOTAL row.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import csv import io import json import os import tempfile from datetime import datetime, timezone</p>
+<p>from cli.testing import cli_runner</p>
+<p>def ms(day, hour, minute=0, second=0, milli=0): moment = datetime(2025, 1, day, hour, minute, second, tzinfo=timezone.utc) return int(moment.timestamp()) * 1000 + milli</p>
+<p>def feat(i, mag, t): return { &quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;10 km N of Town, Land&quot;, &quot;time&quot;: t, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 20.0, 5.0]}, &quot;id&quot;: &quot;e&quot; + str(i), }</p>
+<p>specs = [ (5.0, ms(3, 1)), (6.1, ms(1, 2)), (5.4, ms(1, 23, 59, 59, 999)), (5.5, ms(3, 12)), (5.2, ms(7, 0)), ] expected = {} for mag, t in specs: label = datetime.fromtimestamp(t // 1000, timezone.utc).strftime(&quot;%Y-%m-%d&quot;) entry = expected.setdefault(label, [0, mag]) entry[0] += 1 entry[1] = max(entry[1], mag)</p>
+<p>doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [feat(i, m, t) for i, (m, t) in enumerate(specs)]} with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump(doc, fh) code, out, err = cli_runner(&quot;daily&quot;, path) print(out) print(err) assert code == 0 rows = list(csv.reader(io.StringIO(out))) assert rows[0] == [&quot;date&quot;, &quot;events&quot;, &quot;max_mag&quot;] body = rows[1:-1] assert [r[0] for r in body] == sorted(expected) for r in body: assert int(r[1]) == expected[r[0]][0] assert float(r[2]) == expected[r[0]][1] total = rows[-1] assert total[0] == &quot;TOTAL&quot; assert int(total[1]) == len(specs) assert float(total[2]) == max(m for m, _ in specs) === END AC daily-groups-by-utc-date ===</p>
+<p>=== AC daily-empty-report ===<br>Intent: With no matching events the report is the header and a TOTAL row with zero events and an empty maximum, exit 0.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import csv import io import json import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>feature = { &quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;X, Y&quot;, &quot;time&quot;: 1735706358208, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}, &quot;id&quot;: &quot;only&quot;, } doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [feature]} threshold = 9 with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump(doc, fh) code, out, err = cli_runner(&quot;daily&quot;, &quot;--min-mag&quot;, str(threshold), path) empty_doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []} path2 = os.path.join(tmp, &quot;empty.geojson&quot;) with open(path2, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump(empty_doc, fh) code2, out2, err2 = cli_runner(&quot;daily&quot;, path2) print(out, out2) assert code == 0 and code2 == 0 for text in (out, out2): rows = list(csv.reader(io.StringIO(text))) assert rows == [[&quot;date&quot;, &quot;events&quot;, &quot;max_mag&quot;], [&quot;TOTAL&quot;, &quot;0&quot;, &quot;&quot;]] === END AC daily-empty-report ===</p>
+<p>=== AC daily-min-mag-and-null-mag ===<br>Intent: --min-mag keeps only events with mag at or above it, and null-magnitude events are absent from rows and TOTAL.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import csv import io import json import os import tempfile from datetime import datetime, timezone</p>
+<p>from cli.testing import cli_runner</p>
+<p>def ms(day, hour): return int(datetime(2025, 1, day, hour, tzinfo=timezone.utc).timestamp()) * 1000</p>
+<p>def feat(i, mag, t): return { &quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: t, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}, &quot;id&quot;: &quot;e&quot; + str(i), }</p>
+<p>threshold = 5.4 specs = [(5.0, ms(1, 1)), (5.4, ms(1, 2)), (6.0, ms(2, 3)), (None, ms(2, 4)), (5.3, ms(4, 5))] kept = [(m, t) for m, t in specs if m is not None and m &gt;= threshold] doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [feat(i, m, t) for i, (m, t) in enumerate(specs)]} with tempfile.TemporaryDirectory() as tmp: path = os.path.join(tmp, &quot;q.geojson&quot;) with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: json.dump(doc, fh) code, out, err = cli_runner(&quot;daily&quot;, &quot;--min-mag&quot;, str(threshold), path) code_all, out_all, err_all = cli_runner(&quot;daily&quot;, path) print(out) print(out_all) assert code == 0 and code_all == 0 rows = list(csv.reader(io.StringIO(out))) assert int(rows[-1][1]) == len(kept) assert float(rows[-1][2]) == max(m for m, _ in kept) assert len(rows) - 2 == len({datetime.fromtimestamp(t // 1000, timezone.utc).date() for _, t in kept}) rows_all = list(csv.reader(io.StringIO(out_all))) assert int(rows_all[-1][1]) == len([1 for m, _ in specs if m is not None]) === END AC daily-min-mag-and-null-mag ===</p>
+<p>=== AC daily-failure-contract ===<br>Intent: An unreadable file exits 1 and an option daily does not take exits 2, both with empty standard output.<br>Suite: scoped<br>Requires: executable=python3; scope=test</p>
+<p>import os import tempfile</p>
+<p>from cli.testing import cli_runner</p>
+<p>with tempfile.TemporaryDirectory() as tmp: missing = os.path.join(tmp, &quot;absent.geojson&quot;) code, out, err = cli_runner(&quot;daily&quot;, missing) assert code == 1 assert out == &quot;&quot; present = os.path.join(tmp, &quot;x.geojson&quot;) with open(present, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh: fh.write(&quot;{}&quot;) code2, out2, err2 = cli_runner(&quot;daily&quot;, &quot;--n&quot;, &quot;3&quot;, present) assert code2 == 2 assert out2 == &quot;&quot; === END AC daily-failure-contract ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>The date is the first 10 characters of the formatted UTC time; local time zones are never used.</li><li>No report row, count, or date is hardcoded; every value is computed from the file read.</li><li>Standard output is written only after the report is fully computed, so a failure leaves it empty.</li><li><code>daily</code> accepts no option other than <code>--min-mag</code>.</li></ul></article>
+</main>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/DECISIONS.json</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/DECISIONS.json</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../workspace/targets/Quakes/DECISIONS.json">Raw file</a></div></header>
+<article class="doc"><pre>[
+  {
+    &quot;id&quot;: &quot;Q-001&quot;,
+    &quot;type&quot;: &quot;choice&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;plan&quot;,
+    &quot;blueprint&quot;: &quot;FEATURE-Options.md&quot;,
+    &quot;story&quot;: &quot;options&quot;,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;Usage error exit when an option is repeated&quot;,
+    &quot;description&quot;: &quot;Sources do not say what a repeated option does. Weighed: last wins vs usage error. Chose the narrower, stricter behavior.&quot;,
+    &quot;options&quot;: [
+      {
+        &quot;value&quot;: &quot;usage-error&quot;,
+        &quot;label&quot;: &quot;Repeated option is a usage error (exit 2)&quot;
+      },
+      {
+        &quot;value&quot;: &quot;last-wins&quot;,
+        &quot;label&quot;: &quot;Last occurrence wins&quot;
+      }
+    ],
+    &quot;system_choice&quot;: &quot;usage-error&quot;
+  },
+  {
+    &quot;id&quot;: &quot;Q-002&quot;,
+    &quot;type&quot;: &quot;choice&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;plan&quot;,
+    &quot;blueprint&quot;: &quot;FEATURE-Formatting.md&quot;,
+    &quot;story&quot;: &quot;formatting&quot;,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;Half-up rounding implementation&quot;,
+    &quot;description&quot;: &quot;Python round() is banker&#x27;s rounding. Chose decimal.Decimal on the value&#x27;s repr with ROUND_HALF_UP so 5.125 style values round up as the instructions require.&quot;,
+    &quot;options&quot;: [
+      {
+        &quot;value&quot;: &quot;decimal-half-up&quot;,
+        &quot;label&quot;: &quot;Decimal(repr(x)) quantized ROUND_HALF_UP&quot;
+      },
+      {
+        &quot;value&quot;: &quot;round&quot;,
+        &quot;label&quot;: &quot;Built-in round()&quot;
+      }
+    ],
+    &quot;system_choice&quot;: &quot;decimal-half-up&quot;
+  },
+  {
+    &quot;id&quot;: &quot;Q-003&quot;,
+    &quot;type&quot;: &quot;choice&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;plan&quot;,
+    &quot;blueprint&quot;: &quot;FEATURE-Fetch.md&quot;,
+    &quot;story&quot;: &quot;fetch&quot;,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;Fetch usage-error and file-write behavior&quot;,
+    &quot;description&quot;: &quot;fetch with missing --start, --end, or --out, or an extra positional argument, is a usage error (exit 2). The output file is written only after the response validates, so failure never creates or alters a file.&quot;,
+    &quot;options&quot;: [
+      {
+        &quot;value&quot;: &quot;validate-then-write&quot;,
+        &quot;label&quot;: &quot;Validate body, then write file&quot;
+      },
+      {
+        &quot;value&quot;: &quot;write-then-validate&quot;,
+        &quot;label&quot;: &quot;Write then remove on failure&quot;
+      }
+    ],
+    &quot;system_choice&quot;: &quot;validate-then-write&quot;
+  },
+  {
+    &quot;id&quot;: &quot;build-architecture.md-cli_runner-fixture-import-timing&quot;,
+    &quot;type&quot;: &quot;text&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;build&quot;,
+    &quot;blueprint&quot;: &quot;ARCHITECTURE.md&quot;,
+    &quot;story&quot;: null,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;cli_runner fixture import timing&quot;,
+    &quot;description&quot;: &quot;conftest.py defines the cli_runner fixture but imports cli.testing lazily inside the fixture body, because cli/ is built in a later block and an eager import would break collection of the foundation tests. Is that acceptable, or should cli/testing.py be created in this block?&quot;,
+    &quot;options&quot;: [],
+    &quot;system_choice&quot;: &quot;conftest.py defines the cli_runner fixture but imports cli.testing lazily inside the fixture body, because cli/ is built in a later block and an eager import would break collection of the foundation tests. Is that acceptable, or should cli/testing.py be created in this block?&quot;
+  },
+  {
+    &quot;id&quot;: &quot;build-feature-clifoundation.md-dispatch-skeleton-behaviour-for-registered-commands&quot;,
+    &quot;type&quot;: &quot;text&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;build&quot;,
+    &quot;blueprint&quot;: &quot;FEATURE-CliFoundation.md&quot;,
+    &quot;story&quot;: null,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;Dispatch skeleton behaviour for registered commands&quot;,
+    &quot;description&quot;: &quot;The spec says main consults COMMANDS for dispatch but defines no parser yet. A registered command name is accepted and main returns 0 without calling its handler, since Parsed does not exist until the options story. COMMANDS is typed Callable[[Any], str] to avoid importing a module that is not built yet. The options story should replace the placeholder with real dispatch. Is that acceptable?&quot;,
+    &quot;options&quot;: [],
+    &quot;system_choice&quot;: &quot;The spec says main consults COMMANDS for dispatch but defines no parser yet. A registered command name is accepted and main returns 0 without calling its handler, since Parsed does not exist until the options story. COMMANDS is typed Callable[[Any], str] to avoid importing a module that is not built yet. The options story should replace the placeholder with real dispatch. Is that acceptable?&quot;
+  },
+  {
+    &quot;id&quot;: &quot;build-feature-eventextraction.md-malformed-feature-handling&quot;,
+    &quot;type&quot;: &quot;text&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;build&quot;,
+    &quot;blueprint&quot;: &quot;FEATURE-EventExtraction.md&quot;,
+    &quot;story&quot;: null,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;Malformed feature handling&quot;,
+    &quot;description&quot;: &quot;A feature missing id, properties, time, or coordinates raises OperationalError (exit 1) instead of a traceback. A null tsunami is read as 0, like a missing one. Is that acceptable?&quot;,
+    &quot;options&quot;: [],
+    &quot;system_choice&quot;: &quot;A feature missing id, properties, time, or coordinates raises OperationalError (exit 1) instead of a traceback. A null tsunami is read as 0, like a missing one. Is that acceptable?&quot;
+  },
+  {
+    &quot;id&quot;: &quot;build-feature-exitcodes.md-valid-command-with-no-registered-handler&quot;,
+    &quot;type&quot;: &quot;text&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;build&quot;,
+    &quot;blueprint&quot;: &quot;FEATURE-ExitCodes.md&quot;,
+    &quot;story&quot;: null,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;Valid command with no registered handler&quot;,
+    &quot;description&quot;: &quot;Until report handlers are registered in later blocks, a valid command such as summary exits 2 with &#x27;command not available&#x27;. I chose a usage error over a silent success. The later blocks will replace this when they register handlers. Is that acceptable?&quot;,
+    &quot;options&quot;: [],
+    &quot;system_choice&quot;: &quot;Until report handlers are registered in later blocks, a valid command such as summary exits 2 with &#x27;command not available&#x27;. I chose a usage error over a silent success. The later blocks will replace this when they register handlers. Is that acceptable?&quot;
+  },
+  {
+    &quot;id&quot;: &quot;build-feature-fetch.md-minmagnitude-text&quot;,
+    &quot;type&quot;: &quot;text&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;build&quot;,
+    &quot;blueprint&quot;: &quot;FEATURE-Fetch.md&quot;,
+    &quot;story&quot;: null,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;minmagnitude text&quot;,
+    &quot;description&quot;: &quot;The spec says minmagnitude carries the text given on the command line. Parsed stores a float, so the fetch handler sends str(float). `--min-mag 5` therefore goes out as `5.0`. The declared ACs (4.5 and the 2.5 default) pass. Acceptable, or should Parsed keep the raw text?&quot;,
+    &quot;options&quot;: [],
+    &quot;system_choice&quot;: &quot;The spec says minmagnitude carries the text given on the command line. Parsed stores a float, so the fetch handler sends str(float). `--min-mag 5` therefore goes out as `5.0`. The declared ACs (4.5 and the 2.5 default) pass. Acceptable, or should Parsed keep the raw text?&quot;
+  },
+  {
+    &quot;id&quot;: &quot;build-feature-options.md-date-validation&quot;,
+    &quot;type&quot;: &quot;text&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;build&quot;,
+    &quot;blueprint&quot;: &quot;FEATURE-Options.md&quot;,
+    &quot;story&quot;: null,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;Date validation&quot;,
+    &quot;description&quot;: &quot;Dates must match YYYY-MM-DD and also be real calendar dates (2025-02-30 is a usage error). The spec only states the pattern. Is that acceptable?&quot;,
+    &quot;options&quot;: [],
+    &quot;system_choice&quot;: &quot;Dates must match YYYY-MM-DD and also be real calendar dates (2025-02-30 is a usage error). The spec only states the pattern. Is that acceptable?&quot;
+  },
+  {
+    &quot;id&quot;: &quot;build-feature-options.md-parser-implementation-and-module&quot;,
+    &quot;type&quot;: &quot;text&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;origin&quot;: &quot;build&quot;,
+    &quot;blueprint&quot;: &quot;FEATURE-Options.md&quot;,
+    &quot;story&quot;: null,
+    &quot;status&quot;: &quot;recommended&quot;,
+    &quot;archived&quot;: false,
+    &quot;title&quot;: &quot;Parser implementation and module&quot;,
+    &quot;description&quot;: &quot;ARCHITECTURE names cli/options.py and the stack doc suggests argparse in parser.py. I hand-wrote the parser in cli/options.py so the number grammar, repeated options, and extra positionals follow the spec exactly and nothing prints. Is that acceptable?&quot;,
+    &quot;options&quot;: [],
+    &quot;system_choice&quot;: &quot;ARCHITECTURE names cli/options.py and the stack doc suggests argparse in parser.py. I hand-wrote the parser in cli/options.py so the number grammar, repeated options, and extra positionals follow the spec exactly and nothing prints. Is that acceptable?&quot;
+  }
+]
+</pre></article>
+</main>
+</body>
+</html>

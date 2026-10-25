@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-FeedValidation.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-FeedValidation.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-FeedValidation.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Feed Validation</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>Read a saved GeoJSON file and confirm it is a USGS FeatureCollection.</td></tr><tr><td>Depends On</td><td>ARCHITECTURE.md, FEATURE-ExitCodes.md</td></tr><tr><td>Provides</td><td>read_feed</td></tr><tr><td>Consumes</td><td>OperationalError</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>Every report command starts by reading a saved feed file. <code>read_feed</code> returns the raw <code>features</code> list and rejects anything that is not a GeoJSON FeatureCollection as an operational failure (exit 1).</p>
+<h2>Interface</h2>
+<ul><li>Module: <code>cli.feed</code>. Function: <code>read_feed(path) -&gt; list</code>.</li><li><code>path</code> is a <code>str</code> or <code>pathlib.Path</code>. The file is read as UTF-8 and parsed with <code>json</code>.</li><li>Returns the value of the <code>features</code> array unchanged (a <code>list</code> of feature objects).</li><li>Raises <code>OperationalError</code> when:<ul><li>the file cannot be read (missing, directory, permissions, undecodable bytes),</li><li>the content is not valid JSON,</li><li>the JSON value is not an object,</li><li><code>&quot;type&quot;</code> is not the string <code>FeatureCollection</code>,</li><li><code>features</code> is missing or not an array.</li></ul></li><li>An empty <code>features</code> array is valid and returns <code>[]</code>.</li><li>The function writes nothing to standard output. The diagnostic line is produced by <code>main</code>.</li></ul>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC feed-valid-collection ===<br>Intent: A FeatureCollection file returns its features list, including an empty one.<br>Requires: executable=python3; scope=test</p>
+<p>import json import tempfile from pathlib import Path</p>
+<p>from cli.feed import read_feed</p>
+<p>with tempfile.TemporaryDirectory() as tmp: features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;a&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.0}, &quot;geometry&quot;: None}, {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;b&quot;, &quot;properties&quot;: {&quot;mag&quot;: 6.0}, &quot;geometry&quot;: None}] full = Path(tmp) / &quot;full.geojson&quot; full.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;) assert read_feed(full) == features assert read_feed(str(full)) == features</p>
+<p>empty = Path(tmp) / &quot;empty.geojson&quot; empty.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}), encoding=&quot;utf-8&quot;) assert read_feed(empty) == [] === END AC feed-valid-collection ===</p>
+<p>=== AC feed-unreadable-file ===<br>Intent: A missing file and a directory both raise OperationalError.<br>Requires: executable=python3; scope=test</p>
+<p>import tempfile from pathlib import Path</p>
+<p>from cli.feed import read_feed</p>
+<p>with tempfile.TemporaryDirectory() as tmp: for target in (Path(tmp) / &quot;no-such-file.geojson&quot;, Path(tmp)): raised = None try: read_feed(target) except Exception as exc: raised = exc assert raised is not None assert type(raised).<strong>name</strong> == &quot;OperationalError&quot; === END AC feed-unreadable-file ===</p>
+<p>=== AC feed-not-json ===<br>Intent: Content that is not JSON raises OperationalError.<br>Requires: executable=python3; scope=test</p>
+<p>import tempfile from pathlib import Path</p>
+<p>from cli.feed import read_feed</p>
+<p>with tempfile.TemporaryDirectory() as tmp: garbage = Path(tmp) / &quot;garbage.json&quot; garbage.write_text(&quot;this is not json\n&quot;, encoding=&quot;utf-8&quot;) raised = None try: read_feed(garbage) except Exception as exc: raised = exc assert raised is not None assert type(raised).<strong>name</strong> == &quot;OperationalError&quot; === END AC feed-not-json ===</p>
+<p>=== AC feed-wrong-shape ===<br>Intent: JSON that is not a FeatureCollection object with a features array raises OperationalError.<br>Requires: executable=python3; scope=test</p>
+<p>import json import tempfile from pathlib import Path</p>
+<p>from cli.feed import read_feed</p>
+<p>bad_values = [ {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {}, &quot;geometry&quot;: None}, {&quot;type&quot;: &quot;FeatureCollection&quot;}, {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: {&quot;a&quot;: 1}}, {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: None}, {&quot;features&quot;: []}, [], &quot;FeatureCollection&quot;, None, ] with tempfile.TemporaryDirectory() as tmp: for n, value in enumerate(bad_values): path = Path(tmp) / f&quot;bad{n}.json&quot; path.write_text(json.dumps(value), encoding=&quot;utf-8&quot;) raised = None try: read_feed(path) except Exception as exc: raised = exc assert raised is not None, value assert type(raised).<strong>name</strong> == &quot;OperationalError&quot;, value === END AC feed-wrong-shape ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Application code never reads <code>sources/run.sh</code> or the frozen snapshot.</li><li><code>read_feed</code> never writes to standard output; failures surface only through <code>OperationalError</code>.</li><li>Standard library only.</li></ul></article>
+</main>
+</body>
+</html>

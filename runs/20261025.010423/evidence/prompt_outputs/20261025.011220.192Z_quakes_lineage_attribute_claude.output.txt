@@ -1,0 +1,67 @@
+<requirement name="stack-and-executable" stories="architecture,cli-foundation">
+Implement in Python 3.11 or newer using only the standard library (`urllib.request` for HTTP).
+Tests run under pytest. The product is an executable named `quakes` at the application root.
+</requirement>
+<requirement name="command-line-syntax" stories="options">
+The command comes first, options follow it in any order, and the file is last. An option that the
+command does not list is a usage error.
+</requirement>
+<requirement name="fetch-command" stories="fetch">
+`fetch` requests
+`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=<start>&endtime=<end>&minmagnitude=<m>&orderby=time-asc`
+(`--min-mag` defaults to `2.5`) and writes the response body unchanged to `<file>`. It writes
+`fetched,<count>` to standard output, where `<count>` is the number of features.
+</requirement>
+<requirement name="fetch-failure" stories="fetch-failure">
+A network error,
+an HTTP status other than 200, or a body that is not a GeoJSON FeatureCollection is an operational
+failure, and no file is written.
+</requirement>
+<requirement name="read-feature-collection" stories="feed-validation">
+The file is a GeoJSON `FeatureCollection` as the USGS feed returns it. A file that cannot be
+read, is not JSON, or is not an object with `"type": "FeatureCollection"` and a `features`
+array is an operational failure.
+</requirement>
+<requirement name="extract-event-fields" stories="event-extraction">
+Each feature is one event. The tool reads `id`, `properties.mag`, `properties.place`,
+`properties.time` (milliseconds since the Unix epoch), `properties.tsunami` (`1` or `0`), and
+`geometry.coordinates` (`[longitude, latitude, depth_km]`). Every other field is ignored.
+</requirement>
+<requirement name="min-mag-filter" stories="mag-filter">
+`--min-mag <m>` keeps only events with `mag >= m`. It applies to every report.
+</requirement>
+<requirement name="output-formatting" stories="formatting">
+- Magnitudes are written with one decimal place: `5.0`, `7.1`.
+- `mean_mag` is written with two decimal places, rounded half up.
+- `depth_km` and `distance_km` are written with one decimal place, rounded half up.
+- Text is compared by byte value.
+- Output is CSV on standard output with `\n` line endings, written with Python's `csv` module, so
+  a place containing a comma is quoted. Place names contain non-ASCII characters and are written
+  as UTF-8.
+</requirement>
+<requirement name="summary-report" stories="summary">
+| `summary` | `events,first,last,min_mag,max_mag,mean_mag,tsunami` | One row. `first` and `last` are the earliest and latest event times. `tsunami` counts events with `tsunami` equal to `1`. With no events: `0,,,,,,0`. |
+</requirement>
+<requirement name="top-report" stories="top">
+| `top` | `time,mag,depth_km,place,id` | The `--n` largest events, by `mag` descending, then time ascending. |
+</requirement>
+<requirement name="daily-report" stories="daily">
+| `daily` | `date,events,max_mag` | One row per date that has events, ascending, then `TOTAL,<events>,<max_mag>`. With no events, the max is empty: `TOTAL,0,`. |
+</requirement>
+<requirement name="regions-report" stories="regions">
+| `regions` | `region,events,max_mag` | One row per region, by events descending, then region ascending. |
+</requirement>
+<requirement name="near-report" stories="near">
+| `near` | `distance_km,time,mag,place,id` | Events whose distance from (`--lat`, `--lon`) is at most `--radius` km, by distance ascending, then time ascending. |
+</requirement>
+<requirement name="exit-codes" stories="exit-codes">
+A failing command writes nothing to standard output and one diagnostic line to standard error.
+</requirement>
+<requirement name="test-suite" stories="test-suite">
+The completed application provides a POSIX-compatible `bin/test.sh` that runs its own pytest suite
+from the application root and exits zero only when every test passes.
+</requirement>
+<requirement name="scoring-harness" stories="verification">
+`drydock uat` runs `sh sources/run.sh` from the
+completed application root and takes its exit code and output as the score.
+</requirement>

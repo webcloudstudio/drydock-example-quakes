@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>workspace/targets/Quakes/blueprint/FEATURE-EventExtraction.md</title>
+<link rel="stylesheet" href="../../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>workspace/targets/Quakes/blueprint/FEATURE-EventExtraction.md</h1><div class="filenav"><a href="../../../../../index.html">&larr; Report</a><a href="../../../../../workspace/targets/Quakes/blueprint/FEATURE-EventExtraction.md">Raw file</a></div></header>
+<article class="doc"><h1>FEATURE: Event Extraction</h1>
+<div class="scroll"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Version</td><td>20261025 V1</td></tr><tr><td>Description</td><td>Turn GeoJSON features into event records and drop events with a null magnitude.</td></tr><tr><td>Depends On</td><td>FEATURE-FeedValidation.md</td></tr><tr><td>Provides</td><td>extract_events, Event</td></tr><tr><td>Consumes</td><td>read_feed</td></tr></tbody></table></div>
+<h2>Purpose</h2>
+<p>Reports operate on <code>Event</code> records, not raw features. Extraction reads only the fields the reports need and excludes every feature whose magnitude is <code>null</code>.</p>
+<h2>Interface</h2>
+<ul><li>Module: <code>cli.feed</code>. Function: <code>extract_events(features) -&gt; list[Event]</code>, preserving feed order.</li><li><code>Event</code> is an immutable dataclass with fields:<ul><li><code>id</code> (str), <code>mag</code> (float), <code>place</code> (str or <code>None</code>),</li><li><code>time_ms</code> (int, milliseconds since the Unix epoch), <code>tsunami</code> (int),</li><li><code>lon</code> (float), <code>lat</code> (float), <code>depth_km</code> (float).</li></ul></li><li>Source fields: <code>id</code>, <code>properties.mag</code>, <code>properties.place</code>, <code>properties.time</code>,</li></ul>
+<p><code>properties.tsunami</code>, and <code>geometry.coordinates</code> as <code>[longitude, latitude, depth_km]</code>. Every other field is ignored.</p>
+<ul><li>A feature whose <code>properties.mag</code> is <code>null</code> is dropped. A magnitude of <code>0</code> is kept.</li><li>A <code>null</code> place stays <code>None</code>; the regions report maps it to <code>Unknown</code>.</li><li>A missing <code>tsunami</code> is read as <code>0</code>.</li></ul>
+<h2>Programmatic Acceptance</h2>
+<p>=== AC extract-fields ===<br>Intent: Every needed field is read from the feature into the matching Event attribute.<br>Requires: executable=python3; scope=test</p>
+<p>from cli.feed import extract_events</p>
+<p>feature = { &quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;ev1&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.4, &quot;place&quot;: &quot;10 km N of Town, Land&quot;, &quot;time&quot;: 1735706358208, &quot;tsunami&quot;: 1, &quot;ignored&quot;: {&quot;deep&quot;: [1, 2, 3]}}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [169.5, -20.25, 22]}, } events = extract_events([feature]) assert len(events) == 1 event = events[0] assert event.id == feature[&quot;id&quot;] assert event.mag == feature[&quot;properties&quot;][&quot;mag&quot;] assert event.place == feature[&quot;properties&quot;][&quot;place&quot;] assert event.time_ms == feature[&quot;properties&quot;][&quot;time&quot;] assert event.tsunami == feature[&quot;properties&quot;][&quot;tsunami&quot;] lon, lat, depth = feature[&quot;geometry&quot;][&quot;coordinates&quot;] assert event.lon == lon assert event.lat == lat assert event.depth_km == depth === END AC extract-fields ===</p>
+<p>=== AC extract-null-mag-excluded ===<br>Intent: Features with a null magnitude are absent from the result and the rest keep feed order.<br>Requires: executable=python3; scope=test</p>
+<p>from cli.feed import extract_events</p>
+<p>def feature(ident, mag): return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: ident, &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}}</p>
+<p>features = [feature(&quot;a&quot;, 5.0), feature(&quot;b&quot;, None), feature(&quot;c&quot;, 0), feature(&quot;d&quot;, 6.1), feature(&quot;e&quot;, None)] events = extract_events(features) kept_ids = [f[&quot;id&quot;] for f in features if f[&quot;properties&quot;][&quot;mag&quot;] is not None] assert [e.id for e in events] == kept_ids assert len(events) == len(kept_ids) === END AC extract-null-mag-excluded ===</p>
+<p>=== AC extract-null-place-and-empty ===<br>Intent: A null place is preserved as None and an empty feature list yields no events.<br>Requires: executable=python3; scope=test</p>
+<p>from cli.feed import extract_events</p>
+<p>assert extract_events([]) == []</p>
+<p>feature = {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;np&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.1, &quot;place&quot;: None, &quot;time&quot;: 1735706358000, &quot;tsunami&quot;: 0}, &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]}} events = extract_events([feature]) assert len(events) == 1 assert events[0].place is None === END AC extract-null-place-and-empty ===</p>
+<h2>User Acceptance</h2>
+<ul><li>None.</li></ul>
+<h2>Guardrails</h2>
+<ul><li>Fields other than those listed are never read into an <code>Event</code>.</li><li>No event value is hardcoded; every value comes from the feature given.</li><li>Standard library only.</li></ul></article>
+</main>
+</body>
+</html>

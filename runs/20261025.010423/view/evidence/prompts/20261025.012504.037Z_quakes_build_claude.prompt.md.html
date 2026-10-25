@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evidence/prompts/20261025.012504.037Z_quakes_build_claude.prompt.md</title>
+<link rel="stylesheet" href="../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>evidence/prompts/20261025.012504.037Z_quakes_build_claude.prompt.md</h1><div class="filenav"><a href="../../../index.html">&larr; Report</a><a href="../../../evidence/prompts/20261025.012504.037Z_quakes_build_claude.prompt.md">Raw file</a></div></header>
+<article class="doc"><h1>System Instructions</h1>
+<p>This prompt is divided into three sections:</p>
+<ol><li><strong>System Instructions</strong> (this section) — structural orientation only. Do not treat this</li></ol>
+<p>section as task input.</p>
+<ol><li><strong>Input Context</strong> — begins with the heading <code># Input Context</code>. All blocks are wrapped in</li></ol>
+<p><code>&lt;pblock&gt;</code> tags. Two block types:</p>
+<ul><li>File blocks: <code>&lt;pblock filename=&quot;&lt;name&gt;&quot; role=&quot;&lt;role&gt;&quot; guidance=&quot;...&quot;&gt;</code> — optional</li></ul>
+<p><code>guidance</code> attribute carries context-specific instructions; content is in a fenced block.</p>
+<ul><li>Metadata/section blocks: <code>&lt;pblock label=&quot;&lt;label&gt;&quot; kind=&quot;&lt;kind&gt;&quot;&gt;</code> — job parameters,</li></ul>
+<p>rules, instructions, or group headers.</p>
+<ol><li><strong>Agent Task</strong> — begins with the heading <code># Agent Task</code>. Defines your persona, constraints,</li></ol>
+<p>and required outputs. Read all input context before acting on this section.</p>
+<h1>Input Context</h1>
+<p>&lt;pblock label=&quot;Build block job&quot; kind=&quot;job&quot;&gt;</p>
+<h2>Build block job</h2>
+<ul><li>TARGET: Quakes</li><li>BUILD_DIRECTORY: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/build/Quakes</li><li>WORKING_DIRECTORY: /mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/build/Quakes</li><li>BUILD_BLOCK: Block 4 · Service (block-4)</li><li>STORIES: The summary report. (summary), The regions report of events per region. (regions), The daily report of events per UTC date. (daily), The top report listing the largest events. (top), The fetch command that downloads a USGS date range to a file. (fetch), Fetch fails without writing a file on network, HTTP, or body errors. (fetch-failure), The near report using haversine distance. (near)</li><li>DATE: 2026-10-24</li><li>BUILD_SCOPE: exactly one MANIFEST.md build block</li></ul>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Stories in this block&quot; kind=&quot;section&quot;&gt;</p>
+<h2>Stories in this block</h2>
+<ul><li>The summary report. (summary) [story]</li><li>The regions report of events per region. (regions) [story]</li><li>The daily report of events per UTC date. (daily) [story]</li><li>The top report listing the largest events. (top) [story]</li><li>The fetch command that downloads a USGS date range to a file. (fetch) [story]</li><li>Fetch fails without writing a file on network, HTTP, or body errors. (fetch-failure) [story]</li><li>The near report using haversine distance. (near) [story]</li></ul>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Files on disk&quot; kind=&quot;section&quot;&gt;</p>
+<h2>Files on disk in the build directory</h2>
+<ul><li>sources/quakes_2025-01-01_07.geojson</li><li>sources/run.sh</li></ul>
+<p>These are the only imported files present on disk. Every other file named in this prompt is supplied as prompt context and is not on disk; read it here and do not report it as a missing input.</p>
+<p>&lt;/pblock&gt;</p>
+<h2>COMPASS - Target Orientation</h2>
+<p>&lt;pblock filename=&quot;COMPASS.md&quot; role=&quot;compass&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/COMPASS.md&quot; guidance=&quot;Important: This is the core project intent, constraints, and guardrails. It should have presecedence in conflicts.&quot;&gt;</p>
+<pre><code># COMPASS: Quakes
+
+## Compass
+
+Build a command-line earthquake feed reporter, an executable named `quakes` at the application
+root, as described in `sources/INSTRUCTIONS.md`. It downloads a period of the USGS event feed as
+GeoJSON and writes five CSV reports from a saved file: summary, largest events, events per day,
+events per region, and events within a haversine distance of a point.
+
+Correctness is measured by `sources/run.sh`: 26 checks of exit code and standard output against a
+frozen 44-event USGS snapshot. The goal is every check passing.
+
+## Constraints
+
+- Implement in Python 3.11 or newer with the standard library only.
+- Provide an executable named `quakes` at the application root, invoked as `./quakes &lt;command&gt;`.
+- Reading the file, filtering, computing each report, and formatting are separate, unit-tested
+  functions.
+- Tests stub the HTTP call; no test opens a network connection.
+- Diagnostics go to standard error and are never compared.
+
+## Guardrails
+
+- Do not modify, rewrite, regenerate, or substitute any file under `sources/`.
+- Do not read `sources/run.sh` or the snapshot from application code, and do not hardcode a
+  report row, a count, or a distance. Every value comes from the file being read.
+
+## Verification Protocol
+
+| Story kind | Command | Asserts |
+|---|---|---|
+| Every behavioral story | `sh bin/test.sh` | exit `0` |
+| Terminal story (once, last) | `sh sources/run.sh` | exit `0` |
+
+&lt;!-- drydock:build-write-guardrail:start --&gt;
+## Build Write Guardrail
+
+- Authorized build directory: `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/build/Quakes`
+- Authorized Target directory: `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes`
+- Build agents have permission to create, modify, and remove files required by the active build block inside these authorized directories.
+- No path outside these authorized directories may be modified.
+- Protected Drydock artifacts:
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/MANIFEST.md`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/COMPASS.md`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/QuarterDeck/`
+  - `/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/evidence/`
+&lt;!-- drydock:build-write-guardrail:end --&gt;</code></pre>
+<p>&lt;/pblock&gt;</p>
+<h2>STACK - Technology HOW</h2>
+<p>&lt;pblock filename=&quot;python_compact.md&quot; role=&quot;stack&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/Rigging/languages/python/python_compact.md&quot;&gt;</p>
+<pre><code>&lt;!-- Compacted from Rigging/languages/python/python.md sha256=fe344456a351e3237cfe3bae2408a69758d401430b935f60c15f91b9a97e8016 on 2026-10-18 by Rigging maintenance --&gt;
+
+## Foundation Contract
+
+- source_root: ./
+- test_command: pytest -q
+- environment: `.venv`, created by `uv venv` and activated by launchers in `bin/`
+- dependencies: `pyproject.toml` and committed `uv.lock`
+
+The language foundation owns the project root, environment, dependency manifest, and test runner.
+Later foundations add their packages to this tree without replacing those contracts.
+
+### How do we execute and measure Acceptance Criteria in this language?
+
+An Acceptance Criterion (AC) is an executable check of Blueprint-required behavior. Use the
+existing Programmatic Acceptance format: a Python script with assertions against the built
+product. Drydock executes each criterion through `languages/python/acceptance/runner.py`; `pytest -q`
+runs the project test suite. Retain the criterion ID, observed values, stdout/stderr and result;
+an assertion failure fails the check. The harness reports failure operands and available case
+counts. Code coverage and persistence interactions require explicit instrumentation; record
+available observations as key/value data associated with the criterion. Missing observations
+are unknown, not proof that code or an interaction was unused.
+
+### How does this language provide the shared persistence contract?
+
+Use `stack/persistence.md`. Drydock copies `Rigging/languages/python/persistence/{db,sqlite,postgres}.py` and generates
+`persistence/{schema,__init__,testing}.py` plus `schema.sql` from `DATABASE.md`. Call
+`open_database(dsn)` and `db.&lt;table&gt;.&lt;operation&gt;(...)`; use `persistence.testing.db_session()`
+for criteria. SQLite uses the standard library; PostgreSQL needs `psycopg[binary]` in the project
+dependencies. Both engines ship together and the DSN selects the engine. Library verification
+lives in `tests/test_shipped_database.py`; a Target still verifies its own schema and operations.
+
+## Consumer Rules
+
+- Python &gt;=3.11; use modern type hints on public interfaces and named cross-package data shapes.
+- Centralize typed runtime settings; use Blueprint names and defaults. Keep secrets out of Git and logs.
+- Keep behavior in importable modules; launchers activate `.venv` and invoke modules.
+- Use pytest with isolated external state; all test gates run `pytest -q`.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;cli.md&quot; role=&quot;stack&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/Rigging/stack/cli.md&quot;&gt;</p>
+<pre><code># Command-Line Application
+
+**Type:** cli
+**Version:** 20260920 V1
+**Tier:** platform
+**Category:** Technologies
+**Foundation:** cli
+**Description:** Command-line application structure: entry point, argument parsing, exit codes, cross-platform launchers, and testing without spawning a process.
+
+Technology reference. This file does not change between projects.
+
+Prerequisites: `stack/common.md`, `languages/python/python.md`
+
+---
+
+## Foundation Contract
+
+The published shape of this foundation. Drydock synthesizes the story that builds it and every
+acceptance criterion writes against these names. Carried verbatim into `cli_compact.md`.
+
+- package: cli
+- entry: main(argv: list[str] | None = None) -&gt; int
+- fixture: cli_runner
+- fixture_source: cli/testing.py
+
+```python
+# cli/__init__.py
+def main(argv: list[str] | None = None) -&gt; int:
+    ...
+
+# cli/testing.py
+import contextlib
+import io
+from cli import main
+
+def cli_runner(*args: str) -&gt; tuple[int, str, str]:
+    &quot;&quot;&quot;Return (exit_code, stdout, stderr) without spawning a process.&quot;&quot;&quot;
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        code = main(list(args))
+    return code, out.getvalue(), err.getvalue()
+
+# conftest.py
+import pytest
+from cli import testing
+
+@pytest.fixture
+def cli_runner():
+    return testing.cli_runner
+```
+
+A criterion imports `cli_runner` from `cli.testing`, calls `cli_runner(&quot;status&quot;, &quot;--json&quot;)`, and
+asserts on the returned tuple. It does not call `subprocess.run`, which measures the installed
+console script and the shell rather than the code the story wrote.
+
+---
+
+## 1. Directory Layout
+
+**Rule**: Command code lives in `cli/`. The root holds only packaging and infrastructure files.
+
+```
+project/
+  pyproject.toml            # [project.scripts] declares the console script
+  cli/
+    __init__.py             # main() — the single entry point
+    commands.py             # one function per command; no argument parsing
+    parser.py               # argparse construction; no behavior
+  bin/
+    run.sh                  # bash launcher
+    run.ps1                 # PowerShell launcher
+  tests/
+```
+
+**Why**: Parsing, behavior, and launching are three contracts. Collapsing them produces a command
+that cannot be tested without a shell.
+
+---
+
+## 2. Entry Point and Exit Codes
+
+**Rule**: `main(argv=None) -&gt; int` parses, dispatches, and returns an exit code. It never calls
+`sys.exit` and never raises for an expected failure. The console script is the only caller that
+translates the return value into a process exit.
+
+```python
+# cli/__init__.py
+import sys
+from cli.parser import build_parser
+from cli import commands
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = build_parser().parse_args(argv)
+    try:
+        return commands.dispatch(args)
+    except OperationalError as exc:
+        print(f&quot;error: {exc}&quot;, file=sys.stderr)
+        return 1
+```
+
+```toml
+# pyproject.toml
+[project.scripts]
+mytool = &quot;cli:main&quot;
+```
+
+**Exit codes**: `0` success, `1` operational failure, `2` usage error. `argparse` already returns
+`2` for a usage error; do not override it.
+
+**Why**: A `main` that returns rather than exits is callable from a test in-process. A `main` that
+calls `sys.exit` forces every criterion to spawn a subprocess and measure the shell.
+
+---
+
+## 3. Parsing Is Separate From Behavior
+
+**Rule**: `parser.py` builds the `argparse` tree and returns it. `commands.py` holds one function
+per command taking plain arguments, not a `Namespace`. Neither imports the other.
+
+```python
+# cli/parser.py
+import argparse
+
+def build_parser() -&gt; argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog=&quot;mytool&quot;)
+    sub = parser.add_subparsers(dest=&quot;command&quot;, required=True)
+    status = sub.add_parser(&quot;status&quot;, help=&quot;Report current state&quot;)
+    status.add_argument(&quot;--json&quot;, action=&quot;store_true&quot;)
+    return parser
+```
+
+```python
+# cli/commands.py
+def status(*, as_json: bool) -&gt; int:
+    ...
+
+def dispatch(args) -&gt; int:
+    if args.command == &quot;status&quot;:
+        return status(as_json=args.json)
+    return 2
+```
+
+**Why**: Behavior tested through a `Namespace` is behavior tested through the parser. Separating
+them lets a criterion call `status(as_json=True)` directly.
+
+---
+
+## 4. Cross-Platform Launchers
+
+**Rule**: Ship both launchers. They locate the environment and invoke the package entry point;
+they contain no business logic. A launcher that makes a decision is a second implementation of the
+command.
+
+```bash
+#!/usr/bin/env bash
+# bin/run.sh — locate the environment and hand off. No business logic.
+set -euo pipefail
+ROOT=&quot;$(cd &quot;$(dirname &quot;${BASH_SOURCE[0]}&quot;)/..&quot; &amp;&amp; pwd)&quot;
+if [ -d &quot;$ROOT/.venv&quot; ]; then
+    source &quot;$ROOT/.venv/bin/activate&quot;
+fi
+exec python -m cli &quot;$@&quot;
+```
+
+```powershell
+# bin/run.ps1 — locate the environment and hand off. No business logic.
+$ErrorActionPreference = &quot;Stop&quot;
+$Root = Split-Path -Parent $PSScriptRoot
+$Activate = Join-Path $Root &quot;.venv\Scripts\Activate.ps1&quot;
+if (Test-Path $Activate) { &amp; $Activate }
+python -m cli @args
+exit $LASTEXITCODE
+```
+
+```python
+# cli/__main__.py — makes `python -m cli` work identically on both platforms
+import sys
+from cli import main
+
+sys.exit(main())
+```
+
+**Why**: `python -m cli` is the one invocation both launchers share, so the two scripts cannot
+drift in behavior — only in how they find the interpreter. `exit $LASTEXITCODE` is required in
+PowerShell; without it the exit code is discarded and a failing command reports success.
+
+---
+
+## 5. Output and Streams
+
+**Rule**: Results go to stdout, diagnostics to stderr. A `--json` mode prints one JSON document to
+stdout and nothing else. Never interleave progress text into a machine-readable stream.
+
+**Why**: A caller piping stdout to `jq` receives the progress lines too, and the command becomes
+unusable in a pipeline.
+
+---
+
+## 6. Testing Without a Process
+
+**Rule**: Test through `main([&quot;status&quot;, &quot;--json&quot;])` or the `cli_runner` fixture. Reserve
+`subprocess.run` for one packaging test asserting the installed console script exists and runs.
+
+```python
+def test_status_reports_json(cli_runner):
+    code, out, err = cli_runner(&quot;status&quot;, &quot;--json&quot;)
+    assert code == 0
+    assert json.loads(out)[&quot;state&quot;] == &quot;ready&quot;
+    assert err == &quot;&quot;
+```
+
+**Why**: In-process tests are fast, debuggable, and measure the code. Subprocess tests measure the
+installed environment, which is a different and much smaller question.
+
+---
+
+## Checklist
+
+- [ ] `cli/` package; `main(argv=None) -&gt; int` that returns rather than exits
+- [ ] `[project.scripts]` declares the console script
+- [ ] `cli/__main__.py` so `python -m cli` works
+- [ ] Both `bin/run.sh` and `bin/run.ps1`, neither holding logic; `.ps1` ends with `exit $LASTEXITCODE`
+- [ ] Parsing in `parser.py`, behavior in `commands.py`, no import between them
+- [ ] Exit codes `0` / `1` / `2` used consistently
+- [ ] Results on stdout, diagnostics on stderr, `--json` emits nothing else
+- [ ] Criteria use `cli_runner`; at most one subprocess test for packaging</code></pre>
+<p>&lt;/pblock&gt;</p>
+<h2>CONTEXT - Read-Only Support</h2>
+<p>&lt;pblock filename=&quot;ARCHITECTURE_compact.md&quot; role=&quot;context&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/ARCHITECTURE_compact.md&quot;&gt;</p>
+<pre><code>&lt;!-- Compacted from ARCHITECTURE.md sha256=a4f0e3d35e74a3a608621cd364fd70b71c5a216cf0ef99264d9f012b2fdd0b87 on 2026-10-24 by drydock build agent --&gt;
+
+Project: quakes (Python &gt;=3.11, stdlib only at runtime; pytest dev-only). Executable `quakes` at root -&gt; `cli.main(argv=None)-&gt;int`.
+Modules: cli/__init__.py (main, COMMANDS: dict[str, Callable[[Parsed], str]], exit mapping); cli/errors.py (UsageError exit 2, OperationalError exit 1); cli/options.py (parse_args(argv)-&gt;Parsed); cli/formatting.py (format_time, format_mag, format_mean, format_decimal, render_csv, write_csv); cli/feed.py (read_feed(path)-&gt;list[dict], extract_events(features)-&gt;list[Event], Event, filter_events(events,min_mag)); cli/reports.py (one pure fn per report, haversine_km); cli/fetch.py (build_url, http_get, fetch command); cli/testing.py (cli_runner(*args)-&gt;(exit_code, stdout, stderr)).
+Parsed dataclass: command:str, min_mag:float|None, n:int (default 10), lat, lon, radius:float|None, start, end, out, file:str|None. min_mag default None for reports, 2.5 for fetch.
+Commands: fetch, summary, top, daily, regions, near.
+Exit codes: 0 success (incl. empty report); 1 OperationalError (unreadable file, not FeatureCollection, fetch network/HTTP/body failure); 2 UsageError. Failing command: empty stdout, one stderr line.
+Pipeline: read_feed -&gt; extract_events (drops null magnitude) -&gt; filter_events -&gt; report fn returns rows of preformatted strings -&gt; write_csv. Handlers return full stdout text; main writes only after success.
+Technical: half-up rounding via Decimal(repr(x)) ROUND_HALF_UP; string ordering by code point; UTF-8 output. Tests stub cli.fetch.http_get; no network in tests. No hardcoded rows/counts/distances.
+Guardrails: never modify/read sources/ from app code. Tests never open network.
+Project layout: pyproject.toml + uv.lock, .venv (uv venv), conftest.py (cli_runner fixture from cli.testing), tests/, bin/test.sh (runs pytest -q).</code></pre>
+<p>&lt;/pblock&gt;</p>
+<h2>IMPLEMENTS - Authoritative Step Specifications</h2>
+<p>&lt;pblock label=&quot;Implementation recency anchor&quot; kind=&quot;section&quot;&gt; The files in this section are the load-bearing specifications for this build block. Build these files exactly. Treat earlier sections as constraints and context.</p>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Summary.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-Summary.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Summary Report
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | The summary command reports event count, time span, magnitude range, mean, and tsunami count. |
+| Depends On  | FEATURE-MagFilter.md, FEATURE-Formatting.md, FEATURE-Options.md, FEATURE-ExitCodes.md |
+| Provides    | quakes summary |
+| Consumes    | read_feed, extract_events, filter_events, write_csv, parse_args |
+
+## Purpose
+
+`quakes summary [--min-mag &lt;m&gt;] &lt;file&gt;` reads a saved feed, applies the filter, and writes a
+one-row CSV report to standard output.
+
+## Behavior
+
+- Header: `events,first,last,min_mag,max_mag,mean_mag,tsunami`.
+- One data row computed over the filtered events:
+  - `events`: the count.
+  - `first` / `last`: the earliest and latest event times, formatted `YYYY-MM-DDTHH:MM:SSZ`.
+  - `min_mag` / `max_mag`: one decimal place.
+  - `mean_mag`: arithmetic mean, two decimals, rounded half up.
+  - `tsunami`: the number of events whose `tsunami` equals `1`.
+- With no events the row is `0,,,,,,0`.
+- Only `--min-mag` is accepted; any other option is a usage error (exit 2).
+- Success, including the empty report, exits `0`. An unreadable or invalid file exits `1` with
+  nothing on standard output.
+
+## Programmatic Acceptance
+
+=== AC summary-values ===
+Intent: The summary row carries count, time span, magnitude range, mean and tsunami count computed from the file.
+Requires: executable=python3; scope=test
+
+import csv
+import datetime
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+BASE = 1735689600000
+
+
+def feature(ident, mag, k, tsunami):
+    return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: ident,
+            &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;10 km N of Town, Land&quot;,
+                           &quot;time&quot;: BASE + k * 3600000, &quot;tsunami&quot;: tsunami},
+            &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 20.0, 12.0]}}
+
+
+specs = [(&quot;a&quot;, 5.0, 5, 0), (&quot;b&quot;, 6.5, 1, 1), (&quot;c&quot;, 5.5, 9, 1), (&quot;d&quot;, 5.0, 3, 0)]
+features = [feature(*s) for s in specs]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, str(path))
+print(out, err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert len(rows) == 2
+header, row = rows
+assert header == [&quot;events&quot;, &quot;first&quot;, &quot;last&quot;, &quot;min_mag&quot;, &quot;max_mag&quot;, &quot;mean_mag&quot;, &quot;tsunami&quot;]
+mags = [s[1] for s in specs]
+times = [BASE + s[2] * 3600000 for s in specs]
+record = dict(zip(header, row))
+assert int(record[&quot;events&quot;]) == len(specs)
+
+
+def epoch(text):
+    return int(datetime.datetime.fromisoformat(text).timestamp() * 1000)
+
+
+assert record[&quot;first&quot;].endswith(&quot;Z&quot;) and record[&quot;last&quot;].endswith(&quot;Z&quot;)
+assert epoch(record[&quot;first&quot;]) == min(times)
+assert epoch(record[&quot;last&quot;]) == max(times)
+assert float(record[&quot;min_mag&quot;]) == min(mags)
+assert float(record[&quot;max_mag&quot;]) == max(mags)
+assert abs(float(record[&quot;mean_mag&quot;]) - sum(mags) / len(mags)) &lt;= 0.005
+assert int(record[&quot;tsunami&quot;]) == sum(s[3] for s in specs)
+=== END AC summary-values ===
+
+=== AC summary-mean-half-up ===
+Intent: A mean falling exactly on a half cent is rounded up, not to even.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+mags = [5.0] * 7 + [6.0]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: f&quot;e{i}&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: m, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}} for i, m in enumerate(mags)]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, str(path))
+print(out, err)
+assert code == 0
+header, row = list(csv.reader(io.StringIO(out)))
+mean_text = dict(zip(header, row))[&quot;mean_mag&quot;]
+# 41.0 / 8 is exactly 5.125, so half-up yields 5.13 (banker&#x27;s rounding would give 5.12).
+assert mean_text == &quot;5.13&quot;
+=== END AC summary-mean-half-up ===
+
+=== AC summary-min-mag-filter ===
+Intent: --min-mag restricts the summary to events at or above the threshold.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+mags = [5.0, 5.4, 5.5, 6.0, 7.1]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: f&quot;e{i}&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: m, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}} for i, m in enumerate(mags)]
+threshold = 5.5
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, str(threshold), str(path))
+print(out, err)
+assert code == 0
+header, row = list(csv.reader(io.StringIO(out)))
+record = dict(zip(header, row))
+kept = [m for m in mags if m &gt;= threshold]
+assert int(record[&quot;events&quot;]) == len(kept)
+assert float(record[&quot;min_mag&quot;]) == min(kept)
+assert float(record[&quot;max_mag&quot;]) == max(kept)
+=== END AC summary-min-mag-filter ===
+
+=== AC summary-null-mag-excluded ===
+Intent: Features with a null magnitude are not counted.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+mags = [5.0, None, 6.0, None]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: f&quot;e{i}&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: m, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}} for i, m in enumerate(mags)]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, str(path))
+print(out, err)
+assert code == 0
+header, row = list(csv.reader(io.StringIO(out)))
+assert int(dict(zip(header, row))[&quot;events&quot;]) == len([m for m in mags if m is not None])
+=== END AC summary-null-mag-excluded ===
+
+=== AC summary-empty ===
+Intent: When nothing matches, the report is a single row with a zero count and empty fields.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;e0&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}}]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, &quot;9&quot;, str(path))
+print(out, err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert len(rows) == 2
+assert rows[1] == [&quot;0&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;0&quot;]
+=== END AC summary-empty ===
+
+=== AC summary-failure-codes ===
+Intent: An invalid file exits 1, an unlisted option or missing file exits 2, and stdout stays empty in both.
+Requires: executable=python3; scope=test
+
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    garbage = Path(tmp) / &quot;garbage.json&quot;
+    garbage.write_text(&quot;this is not json\n&quot;, encoding=&quot;utf-8&quot;)
+    missing = Path(tmp) / &quot;no-such-file.geojson&quot;
+
+    code, out, err = cli_runner(&quot;summary&quot;, str(garbage))
+    assert code == 1 and out == &quot;&quot;
+    code, out, err = cli_runner(&quot;summary&quot;, str(missing))
+    assert code == 1 and out == &quot;&quot;
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;--n&quot;, &quot;3&quot;, str(garbage))
+    assert code == 2 and out == &quot;&quot;
+    code, out, err = cli_runner(&quot;summary&quot;)
+    assert code == 2 and out == &quot;&quot;
+    code, out, err = cli_runner(&quot;summary&quot;, &quot;--min-mag&quot;, &quot;big&quot;, str(garbage))
+    assert code == 2 and out == &quot;&quot;
+=== END AC summary-failure-codes ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- No report row, count, or value is hardcoded; all values are computed from the file read.
+- Application code never reads `sources/run.sh` or the frozen snapshot.
+- Output is built completely before being written, so a failing command leaves standard output empty.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Regions.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-Regions.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Regions
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | The `regions` report: event count and maximum magnitude per region derived from the place text. |
+| Depends On  | FEATURE-MagFilter.md, FEATURE-Formatting.md, FEATURE-Options.md, FEATURE-ExitCodes.md |
+| Provides    | quakes regions |
+| Consumes    | read_feed, extract_events, filter_events, write_csv, format_mag, parse_args |
+
+## Purpose
+
+`quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;` reports the most active regions in a saved USGS GeoJSON file.
+
+## Trigger
+
+Command line: `./quakes regions [--min-mag &lt;m&gt;] &lt;file&gt;`. Only `--min-mag` is accepted.
+
+## Sequence
+
+1. `read_feed`, `extract_events`, and `filter_events` produce the kept events.
+2. `region_of(place)` is a pure function: the text after the last `&quot;, &quot;` (comma, space) in `place`; the whole `place` when it has none; `&quot;Unknown&quot;` when `place` is `None`.
+3. `compute_regions(events)` counts events and tracks the maximum magnitude per region.
+4. Rows are ordered by events descending, then region ascending by byte value (plain code point order, so uppercase sorts before lowercase).
+5. `write_csv` writes the complete report.
+
+## Output
+
+Header: `region,events,max_mag`. One row per region; `max_mag` has one decimal. With no events, the output is only the header, exit 0. A region containing a comma cannot occur (the last `&quot;, &quot;` is split on), but quoting is always delegated to the `csv` module. Non-ASCII region names are written as UTF-8.
+
+## Reads
+
+The saved GeoJSON file named on the command line.
+
+## Writes
+
+Standard output only.
+
+## Programmatic Acceptance
+
+=== AC regions-extract-and-order ===
+Intent: Region is the text after the last comma-space, counts and maxima are per region, ordered by events descending then region by byte value.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+# (region, mag) pairs supplied as input; the place text is built from the region.
+pairs = [
+    (&quot;Zed&quot;, 5.0), (&quot;Zed&quot;, 5.6),
+    (&quot;alpha&quot;, 5.1),
+    (&quot;Beta&quot;, 5.2), (&quot;Beta&quot;, 5.0),
+    (&quot;Gamma&quot;, 5.3), (&quot;Gamma&quot;, 5.9), (&quot;Gamma&quot;, 5.1),
+    (&quot;Delta&quot;, 5.4),
+]
+features = []
+for i, (region, mag) in enumerate(pairs):
+    features.append({
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;12 km N of Town &quot; + str(i) + &quot;, &quot; + region,
+                       &quot;time&quot;: 1735706358208 + i, &quot;tsunami&quot;: 0},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]},
+        &quot;id&quot;: &quot;e&quot; + str(i),
+    })
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}
+expected = {}
+for region, mag in pairs:
+    entry = expected.setdefault(region, [0, mag])
+    entry[0] += 1
+    entry[1] = max(entry[1], mag)
+order = sorted(expected, key=lambda r: (-expected[r][0], r))
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    code, out, err = cli_runner(&quot;regions&quot;, path)
+print(out)
+print(err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows[0] == [&quot;region&quot;, &quot;events&quot;, &quot;max_mag&quot;]
+assert [r[0] for r in rows[1:]] == order
+for r in rows[1:]:
+    assert int(r[1]) == expected[r[0]][0]
+    assert float(r[2]) == expected[r[0]][1]
+=== END AC regions-extract-and-order ===
+
+=== AC regions-place-rules ===
+Intent: A place with several commas splits on the last comma-space, a place without one is its own region, and a null place is Unknown.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+last_part = &quot;Country&quot;
+multi_place = &quot;Near Town, Province, &quot; + last_part
+plain_place = &quot;Mid-Atlantic Ridge&quot;
+comma_no_space = &quot;A,B&quot;
+places = [multi_place, plain_place, comma_no_space, None]
+features = []
+for i, place in enumerate(places):
+    features.append({
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: place, &quot;time&quot;: 1735706358208 + i, &quot;tsunami&quot;: 0},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]},
+        &quot;id&quot;: &quot;e&quot; + str(i),
+    })
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    code, out, err = cli_runner(&quot;regions&quot;, path)
+print(out)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+names = {r[0] for r in rows[1:]}
+assert names == {last_part, plain_place, comma_no_space, &quot;Unknown&quot;}
+=== END AC regions-place-rules ===
+
+=== AC regions-min-mag-and-empty ===
+Intent: --min-mag restricts the regions counted, null magnitudes are excluded, and an empty result is only the header with exit 0.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+threshold = 5.4
+pairs = [(&quot;Aland&quot;, 5.0), (&quot;Aland&quot;, 5.4), (&quot;Bland&quot;, 6.0), (&quot;Cland&quot;, None), (&quot;Dland&quot;, 5.3)]
+features = []
+for i, (region, mag) in enumerate(pairs):
+    features.append({
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;5 km S of T, &quot; + region, &quot;time&quot;: 1735706358208 + i, &quot;tsunami&quot;: 0},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]},
+        &quot;id&quot;: &quot;e&quot; + str(i),
+    })
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}
+kept = [(r, m) for r, m in pairs if m is not None and m &gt;= threshold]
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    code, out, err = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, str(threshold), path)
+    code_none, out_none, err_none = cli_runner(&quot;regions&quot;, &quot;--min-mag&quot;, &quot;9&quot;, path)
+print(out)
+assert code == 0 and code_none == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert {r[0] for r in rows[1:]} == {r for r, _ in kept}
+assert sum(int(r[1]) for r in rows[1:]) == len(kept)
+assert list(csv.reader(io.StringIO(out_none))) == [[&quot;region&quot;, &quot;events&quot;, &quot;max_mag&quot;]]
+=== END AC regions-min-mag-and-empty ===
+
+=== AC regions-failure-contract ===
+Intent: A file that is not a FeatureCollection exits 1 and an unlisted option exits 2, each with empty standard output.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    bad = os.path.join(tmp, &quot;bad.json&quot;)
+    with open(bad, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        fh.write(&quot;this is not json&quot;)
+    code, out, err = cli_runner(&quot;regions&quot;, bad)
+    assert code == 1
+    assert out == &quot;&quot;
+    code2, out2, err2 = cli_runner(&quot;regions&quot;, &quot;--lat&quot;, &quot;1&quot;, bad)
+    assert code2 == 2
+    assert out2 == &quot;&quot;
+=== END AC regions-failure-contract ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Region splitting uses the last `&quot;, &quot;` only; `&quot;,&quot;` without a following space does not split.
+- Ties in event count are broken by region name in byte order, not locale or case-insensitive order.
+- No region row is hardcoded; all values come from the file read.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Daily.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-Daily.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Daily
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | The `daily` report: event count and maximum magnitude per UTC date, followed by a TOTAL row. |
+| Depends On  | FEATURE-MagFilter.md, FEATURE-Formatting.md, FEATURE-Options.md, FEATURE-ExitCodes.md |
+| Provides    | quakes daily |
+| Consumes    | read_feed, extract_events, filter_events, write_csv, format_time, format_mag, parse_args |
+
+## Purpose
+
+`quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;` reads a saved USGS GeoJSON file and reports how many events occurred on each UTC date and the strongest magnitude on that date.
+
+## Trigger
+
+Command line: `./quakes daily [--min-mag &lt;m&gt;] &lt;file&gt;`. The command accepts only `--min-mag`; any other option is a usage error handled by `parse_args`.
+
+## Sequence
+
+1. `read_feed(file)` validates and returns the features (`OperationalError`, exit 1, on failure).
+2. `extract_events` drops null-magnitude features.
+3. `filter_events(events, min_mag)` applies `--min-mag`.
+4. `compute_daily(events)` groups events by date, where date is the first 10 characters of `format_time(event.time)`.
+5. Rows are ordered by date ascending (byte order), followed by one `TOTAL` row.
+6. `write_csv` writes the whole report to standard output in one step, after it is fully computed.
+
+`compute_daily(events)` is a pure function returning `(rows, total_row)` with no I/O; formatting is performed by the `format_daily` step that uses `format_mag` and `write_csv`.
+
+## Output
+
+Header: `date,events,max_mag`.
+
+- One row per date that has at least one event, ascending.
+- `events` is the integer count; `max_mag` is the maximum magnitude with one decimal.
+- Final row: `TOTAL,&lt;events&gt;,&lt;max_mag&gt;` where both values are over all kept events.
+- With no events the output is the header followed by `TOTAL,0,` (empty max).
+- Exit code 0, including the empty case.
+
+## Reads
+
+The saved GeoJSON file named on the command line. No other input.
+
+## Writes
+
+Standard output only. Nothing is written to any file.
+
+## Programmatic Acceptance
+
+=== AC daily-groups-by-utc-date ===
+Intent: Events are grouped per UTC date with counts and maximum magnitude, ascending, followed by a TOTAL row.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import os
+import tempfile
+from datetime import datetime, timezone
+
+from cli.testing import cli_runner
+
+
+def ms(day, hour, minute=0, second=0, milli=0):
+    moment = datetime(2025, 1, day, hour, minute, second, tzinfo=timezone.utc)
+    return int(moment.timestamp()) * 1000 + milli
+
+
+def feat(i, mag, t):
+    return {
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;10 km N of Town, Land&quot;, &quot;time&quot;: t, &quot;tsunami&quot;: 0},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 20.0, 5.0]},
+        &quot;id&quot;: &quot;e&quot; + str(i),
+    }
+
+
+specs = [
+    (5.0, ms(3, 1)),
+    (6.1, ms(1, 2)),
+    (5.4, ms(1, 23, 59, 59, 999)),
+    (5.5, ms(3, 12)),
+    (5.2, ms(7, 0)),
+]
+expected = {}
+for mag, t in specs:
+    label = datetime.fromtimestamp(t // 1000, timezone.utc).strftime(&quot;%Y-%m-%d&quot;)
+    entry = expected.setdefault(label, [0, mag])
+    entry[0] += 1
+    entry[1] = max(entry[1], mag)
+
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [feat(i, m, t) for i, (m, t) in enumerate(specs)]}
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    code, out, err = cli_runner(&quot;daily&quot;, path)
+print(out)
+print(err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows[0] == [&quot;date&quot;, &quot;events&quot;, &quot;max_mag&quot;]
+body = rows[1:-1]
+assert [r[0] for r in body] == sorted(expected)
+for r in body:
+    assert int(r[1]) == expected[r[0]][0]
+    assert float(r[2]) == expected[r[0]][1]
+total = rows[-1]
+assert total[0] == &quot;TOTAL&quot;
+assert int(total[1]) == len(specs)
+assert float(total[2]) == max(m for m, _ in specs)
+=== END AC daily-groups-by-utc-date ===
+
+=== AC daily-empty-report ===
+Intent: With no matching events the report is the header and a TOTAL row with zero events and an empty maximum, exit 0.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+feature = {
+    &quot;type&quot;: &quot;Feature&quot;,
+    &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;X, Y&quot;, &quot;time&quot;: 1735706358208, &quot;tsunami&quot;: 0},
+    &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [1.0, 2.0, 3.0]},
+    &quot;id&quot;: &quot;only&quot;,
+}
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [feature]}
+threshold = 9
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    code, out, err = cli_runner(&quot;daily&quot;, &quot;--min-mag&quot;, str(threshold), path)
+    empty_doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}
+    path2 = os.path.join(tmp, &quot;empty.geojson&quot;)
+    with open(path2, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(empty_doc, fh)
+    code2, out2, err2 = cli_runner(&quot;daily&quot;, path2)
+print(out, out2)
+assert code == 0 and code2 == 0
+for text in (out, out2):
+    rows = list(csv.reader(io.StringIO(text)))
+    assert rows == [[&quot;date&quot;, &quot;events&quot;, &quot;max_mag&quot;], [&quot;TOTAL&quot;, &quot;0&quot;, &quot;&quot;]]
+=== END AC daily-empty-report ===
+
+=== AC daily-min-mag-and-null-mag ===
+Intent: --min-mag keeps only events with mag at or above it, and null-magnitude events are absent from rows and TOTAL.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import os
+import tempfile
+from datetime import datetime, timezone
+
+from cli.testing import cli_runner
+
+
+def ms(day, hour):
+    return int(datetime(2025, 1, day, hour, tzinfo=timezone.utc).timestamp()) * 1000
+
+
+def feat(i, mag, t):
+    return {
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: t, &quot;tsunami&quot;: 0},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]},
+        &quot;id&quot;: &quot;e&quot; + str(i),
+    }
+
+
+threshold = 5.4
+specs = [(5.0, ms(1, 1)), (5.4, ms(1, 2)), (6.0, ms(2, 3)), (None, ms(2, 4)), (5.3, ms(4, 5))]
+kept = [(m, t) for m, t in specs if m is not None and m &gt;= threshold]
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [feat(i, m, t) for i, (m, t) in enumerate(specs)]}
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    code, out, err = cli_runner(&quot;daily&quot;, &quot;--min-mag&quot;, str(threshold), path)
+    code_all, out_all, err_all = cli_runner(&quot;daily&quot;, path)
+print(out)
+print(out_all)
+assert code == 0 and code_all == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert int(rows[-1][1]) == len(kept)
+assert float(rows[-1][2]) == max(m for m, _ in kept)
+assert len(rows) - 2 == len({datetime.fromtimestamp(t // 1000, timezone.utc).date() for _, t in kept})
+rows_all = list(csv.reader(io.StringIO(out_all)))
+assert int(rows_all[-1][1]) == len([1 for m, _ in specs if m is not None])
+=== END AC daily-min-mag-and-null-mag ===
+
+=== AC daily-failure-contract ===
+Intent: An unreadable file exits 1 and an option daily does not take exits 2, both with empty standard output.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    missing = os.path.join(tmp, &quot;absent.geojson&quot;)
+    code, out, err = cli_runner(&quot;daily&quot;, missing)
+    assert code == 1
+    assert out == &quot;&quot;
+    present = os.path.join(tmp, &quot;x.geojson&quot;)
+    with open(present, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        fh.write(&quot;{}&quot;)
+    code2, out2, err2 = cli_runner(&quot;daily&quot;, &quot;--n&quot;, &quot;3&quot;, present)
+    assert code2 == 2
+    assert out2 == &quot;&quot;
+=== END AC daily-failure-contract ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- The date is the first 10 characters of the formatted UTC time; local time zones are never used.
+- No report row, count, or date is hardcoded; every value is computed from the file read.
+- Standard output is written only after the report is fully computed, so a failure leaves it empty.
+- `daily` accepts no option other than `--min-mag`.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Top.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-Top.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Top Report
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | The top command lists the largest events by magnitude. |
+| Depends On  | FEATURE-MagFilter.md, FEATURE-Formatting.md, FEATURE-Options.md, FEATURE-ExitCodes.md |
+| Provides    | quakes top |
+| Consumes    | read_feed, extract_events, filter_events, write_csv, parse_args |
+
+## Purpose
+
+`quakes top [--min-mag &lt;m&gt;] [--n &lt;count&gt;] &lt;file&gt;` writes the `--n` largest events as CSV.
+
+## Behavior
+
+- Header: `time,mag,depth_km,place,id`.
+- Events are filtered by `--min-mag` first, then sorted by magnitude descending, then time ascending
+  (ties beyond that keep feed order), then the first `--n` are written.
+- `--n` is a positive integer and defaults to `10`. `--n 0` or a non-integer is a usage error (exit 2).
+- `time` is `YYYY-MM-DDTHH:MM:SSZ`; `mag` and `depth_km` have one decimal place.
+- A place containing a comma is quoted by the `csv` module.
+- Only `--min-mag` and `--n` are accepted. No matching events yields the header alone with exit `0`.
+
+## Programmatic Acceptance
+
+=== AC top-order-and-default-n ===
+Intent: Rows are sorted by magnitude descending then time ascending, and the default count is ten.
+Requires: executable=python3; scope=test
+
+import csv
+import datetime
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+BASE = 1735689600000
+# (id, mag, minutes offset); two pairs tie on magnitude with different times.
+specs = [(&quot;a&quot;, 5.0, 50), (&quot;b&quot;, 6.0, 40), (&quot;c&quot;, 6.0, 10), (&quot;d&quot;, 5.5, 30), (&quot;e&quot;, 5.1, 20),
+         (&quot;f&quot;, 7.0, 60), (&quot;g&quot;, 5.2, 70), (&quot;h&quot;, 5.3, 80), (&quot;i&quot;, 5.4, 90), (&quot;j&quot;, 5.6, 15),
+         (&quot;k&quot;, 5.7, 25), (&quot;l&quot;, 5.8, 35)]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: s[0],
+             &quot;properties&quot;: {&quot;mag&quot;: s[1], &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: BASE + s[2] * 60000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 12.0]}} for s in specs]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, str(path))
+print(out, err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+header, body = rows[0], rows[1:]
+assert header == [&quot;time&quot;, &quot;mag&quot;, &quot;depth_km&quot;, &quot;place&quot;, &quot;id&quot;]
+ranked = sorted(specs, key=lambda s: (-s[1], s[2]))
+default_n = 10
+assert len(specs) &gt; default_n
+assert [r[4] for r in body] == [s[0] for s in ranked[:default_n]]
+first = dict(zip(header, body[0]))
+assert float(first[&quot;mag&quot;]) == ranked[0][1]
+assert float(first[&quot;depth_km&quot;]) == 12.0
+parsed = datetime.datetime.fromisoformat(first[&quot;time&quot;])
+assert int(parsed.timestamp() * 1000) == BASE + ranked[0][2] * 60000
+=== END AC top-order-and-default-n ===
+
+=== AC top-n-option ===
+Intent: --n limits the number of rows written.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+specs = [(&quot;a&quot;, 5.0), (&quot;b&quot;, 6.0), (&quot;c&quot;, 7.1), (&quot;d&quot;, 5.5), (&quot;e&quot;, 6.2)]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: s[0],
+             &quot;properties&quot;: {&quot;mag&quot;: s[1], &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 5.0]}} for i, s in enumerate(specs)]
+count = 3
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, &quot;--n&quot;, str(count), str(path))
+print(out, err)
+assert code == 0
+body = list(csv.reader(io.StringIO(out)))[1:]
+assert [r[4] for r in body] == [s[0] for s in sorted(specs, key=lambda s: -s[1])[:count]]
+=== END AC top-n-option ===
+
+=== AC top-min-mag-before-cut ===
+Intent: --min-mag filters before --n cuts the list.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+specs = [(&quot;a&quot;, 5.0), (&quot;b&quot;, 5.1), (&quot;c&quot;, 5.2), (&quot;d&quot;, 6.0), (&quot;e&quot;, 7.0)]
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: s[0],
+             &quot;properties&quot;: {&quot;mag&quot;: s[1], &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000 + i * 1000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 5.0]}} for i, s in enumerate(specs)]
+threshold = 5.1
+count = 4
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, &quot;--min-mag&quot;, str(threshold), &quot;--n&quot;, str(count), str(path))
+print(out, err)
+assert code == 0
+body = list(csv.reader(io.StringIO(out)))[1:]
+kept = sorted([s for s in specs if s[1] &gt;= threshold], key=lambda s: -s[1])
+assert [r[4] for r in body] == [s[0] for s in kept[:count]]
+assert all(float(r[1]) &gt;= threshold for r in body)
+=== END AC top-min-mag-before-cut ===
+
+=== AC top-place-with-comma ===
+Intent: A place containing a comma round-trips through CSV quoting.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+place = &quot;56 km SSE of Some Town, Some Country&quot;
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;c1&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 6.2, &quot;place&quot;: place, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 46.0]}}]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, str(path))
+print(out, err)
+assert code == 0
+body = list(csv.reader(io.StringIO(out)))[1:]
+assert len(body) == 1
+assert body[0][3] == place
+assert body[0][4] == &quot;c1&quot;
+=== END AC top-place-with-comma ===
+
+=== AC top-empty-result ===
+Intent: When no event matches, only the header is written and the exit status is 0.
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;e0&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}}]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    code, out, err = cli_runner(&quot;top&quot;, &quot;--min-mag&quot;, &quot;9&quot;, str(path))
+print(out, err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows == [[&quot;time&quot;, &quot;mag&quot;, &quot;depth_km&quot;, &quot;place&quot;, &quot;id&quot;]]
+=== END AC top-empty-result ===
+
+=== AC top-usage-errors ===
+Intent: A non-positive or malformed --n, an unlisted option, and a missing file all exit 2 with empty stdout.
+Requires: executable=python3; scope=test
+
+import json
+import tempfile
+from pathlib import Path
+
+from cli.testing import cli_runner
+
+features = [{&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;e0&quot;,
+             &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: &quot;P&quot;, &quot;time&quot;: 1735689600000, &quot;tsunami&quot;: 0},
+             &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [0.0, 0.0, 1.0]}}]
+with tempfile.TemporaryDirectory() as tmp:
+    path = Path(tmp) / &quot;feed.geojson&quot;
+    path.write_text(json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}), encoding=&quot;utf-8&quot;)
+    for args in ((&quot;top&quot;, &quot;--n&quot;, &quot;0&quot;, str(path)),
+                 (&quot;top&quot;, &quot;--n&quot;, &quot;-2&quot;, str(path)),
+                 (&quot;top&quot;, &quot;--n&quot;, &quot;many&quot;, str(path)),
+                 (&quot;top&quot;, &quot;--lat&quot;, &quot;1&quot;, str(path)),
+                 (&quot;top&quot;,)):
+        code, out, err = cli_runner(*args)
+        assert code == 2, args
+        assert out == &quot;&quot;, args
+=== END AC top-usage-errors ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- No report row is hardcoded; every row is computed from the file read.
+- Application code never reads `sources/run.sh` or the frozen snapshot.
+- Output is built completely before being written, so a failing command leaves standard output empty.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Fetch.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-Fetch.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Fetch
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | The `fetch` command: download a USGS date range as GeoJSON and save the response unchanged to a file. |
+| Depends On  | FEATURE-Options.md, FEATURE-ExitCodes.md, FEATURE-FeedValidation.md |
+| Provides    | quakes fetch, build_url, http_get |
+| Consumes    | parse_args, read_feed |
+
+## Purpose
+
+`quakes fetch --start &lt;YYYY-MM-DD&gt; --end &lt;YYYY-MM-DD&gt; [--min-mag &lt;m&gt;] --out &lt;file&gt;` saves a period of the USGS event feed so the report commands can read it.
+
+## Trigger
+
+Command line. `--start`, `--end`, and `--out` are required; `--min-mag` defaults to `2.5`. A missing required option, an unlisted option, or any positional argument is a usage error (exit 2) and no HTTP call is made.
+
+## Module layout
+
+Code lives in `cli/fetch.py`:
+
+- `build_url(start, end, min_mag) -&gt; str` returns `https://earthquake.usgs.gov/fdsnws/event/1/query` with query parameters `format=geojson`, `starttime=&lt;start&gt;`, `endtime=&lt;end&gt;`, `minmagnitude=&lt;min_mag&gt;`, `orderby=time-asc`. `min_mag` is the text given on the command line (or `2.5`).
+- `http_get(url) -&gt; tuple[int, bytes]` is the single replaceable network function. It calls `urllib.request.urlopen` through attribute access on the `urllib.request` module (so a test can patch `urllib.request.urlopen`), returns the HTTP status and body bytes, and is the only function in the product that opens a connection.
+- The command handler calls `http_get` through the module global (`cli.fetch.http_get`) so tests can replace it.
+
+## Sequence
+
+1. Build the URL and call `http_get(url)`.
+2. Validate: status 200, body parses as JSON, and is an object with `&quot;type&quot;: &quot;FeatureCollection&quot;` and a list `features` (reusing the `read_feed` validation rules on the body).
+3. Only after validation, write the body bytes unchanged (binary write) to `--out`.
+4. Write `fetched,&lt;count&gt;` to standard output, where `&lt;count&gt;` is the number of features.
+
+Failure handling is specified in FEATURE-FetchFailure.md.
+
+## Output
+
+Standard output is exactly one CSV line `fetched,&lt;count&gt;`; exit 0. The saved file is byte-for-byte the response body.
+
+## Reads
+
+The USGS FDSN event web service over HTTPS.
+
+## Writes
+
+The file named by `--out`, and standard output.
+
+## Programmatic Acceptance
+
+=== AC fetch-saves-body-unchanged ===
+Intent: fetch writes the response body byte for byte to --out and prints fetched with the feature count; the HTTP call is stubbed.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import os
+import tempfile
+from unittest import mock
+
+from cli.testing import cli_runner
+
+features = [
+    {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {&quot;mag&quot;: 5.1, &quot;place&quot;: &quot;Awash, Ethiopia&quot;, &quot;time&quot;: 1735706358208, &quot;tsunami&quot;: 0},
+     &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [40.0, 9.0, 10]}, &quot;id&quot;: &quot;a&quot; + str(i)}
+    for i in range(3)
+]
+body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}, indent=3, ensure_ascii=False).encode(&quot;utf-8&quot;) + b&quot;\n\n&quot;
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)) as stub:
+        code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path)
+    print(out)
+    print(err)
+    assert code == 0
+    assert stub.call_count == 1
+    with open(out_path, &quot;rb&quot;) as fh:
+        assert fh.read() == body
+rows = list(csv.reader(io.StringIO(out)))
+assert rows == [[&quot;fetched&quot;, str(len(features))]]
+=== END AC fetch-saves-body-unchanged ===
+
+=== AC fetch-request-url ===
+Intent: The request goes to the USGS FDSN query endpoint with the GeoJSON format, the given dates, the default minimum magnitude, and time ascending order.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import json
+import os
+import tempfile
+import urllib.parse
+from unittest import mock
+
+from cli.testing import cli_runner
+
+start = &quot;2025-01-01&quot;
+end = &quot;2025-01-08&quot;
+body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;)
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)) as stub:
+        code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, start, &quot;--end&quot;, end, &quot;--out&quot;, out_path)
+    assert code == 0
+    url = stub.call_args[0][0]
+parts = urllib.parse.urlsplit(url)
+query = urllib.parse.parse_qs(parts.query)
+assert parts.scheme == &quot;https&quot;
+assert parts.netloc == &quot;earthquake.usgs.gov&quot;
+assert parts.path == &quot;/fdsnws/event/1/query&quot;
+assert query[&quot;format&quot;] == [&quot;geojson&quot;]
+assert query[&quot;starttime&quot;] == [start]
+assert query[&quot;endtime&quot;] == [end]
+assert query[&quot;minmagnitude&quot;] == [&quot;2.5&quot;]
+assert query[&quot;orderby&quot;] == [&quot;time-asc&quot;]
+=== END AC fetch-request-url ===
+
+=== AC fetch-min-mag-passthrough ===
+Intent: An explicit --min-mag value is sent as minmagnitude, and build_url builds the same query directly.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import json
+import os
+import tempfile
+import urllib.parse
+from unittest import mock
+
+from cli.fetch import build_url
+from cli.testing import cli_runner
+
+start = &quot;2025-02-01&quot;
+end = &quot;2025-02-03&quot;
+min_mag = &quot;4.5&quot;
+body = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;)
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)) as stub:
+        code, out, err = cli_runner(
+            &quot;fetch&quot;, &quot;--min-mag&quot;, min_mag, &quot;--end&quot;, end, &quot;--start&quot;, start, &quot;--out&quot;, out_path
+        )
+    assert code == 0
+    url = stub.call_args[0][0]
+query = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+assert query[&quot;minmagnitude&quot;] == [min_mag]
+assert query[&quot;starttime&quot;] == [start]
+assert query[&quot;endtime&quot;] == [end]
+direct = urllib.parse.parse_qs(urllib.parse.urlsplit(build_url(start, end, min_mag)).query)
+assert direct == query
+=== END AC fetch-min-mag-passthrough ===
+
+=== AC fetch-usage-errors ===
+Intent: Missing required options, an unlisted option, or an extra positional argument exit 2, make no HTTP call, and write no file.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import os
+import tempfile
+from unittest import mock
+
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    cases = [
+        (&quot;fetch&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--out&quot;, out_path),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path, &quot;extra&quot;),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--out&quot;, out_path, &quot;--n&quot;, &quot;3&quot;),
+        (&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-08&quot;, &quot;--min-mag&quot;, &quot;big&quot;, &quot;--out&quot;, out_path),
+    ]
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, b&quot;{}&quot;)) as stub:
+        for args in cases:
+            code, out, err = cli_runner(*args)
+            assert code == 2, args
+            assert out == &quot;&quot;, args
+        assert stub.call_count == 0
+    assert not os.path.exists(out_path)
+=== END AC fetch-usage-errors ===
+
+=== AC fetch-http-get-uses-urllib ===
+Intent: http_get returns the status and body from urllib.request.urlopen, which is stubbed so no network connection is opened.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+from unittest import mock
+
+from cli.fetch import http_get
+
+payload = b&quot;payload bytes&quot;
+status = 200
+
+
+class FakeResponse:
+    def __init__(self, code, data):
+        self.status = code
+        self._data = data
+
+    def read(self):
+        return self._data
+
+    def getcode(self):
+        return self.status
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+with mock.patch(&quot;urllib.request.urlopen&quot;, return_value=FakeResponse(status, payload)) as opener:
+    got_status, got_body = http_get(&quot;https://example.invalid/query&quot;)
+assert opener.call_count == 1
+assert got_status == status
+assert got_body == payload
+=== END AC fetch-http-get-uses-urllib ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- Tests never open a network connection; every fetch test replaces `cli.fetch.http_get` or `urllib.request.urlopen`.
+- The saved file is the response body unchanged: no re-serialization, re-encoding, or newline translation.
+- The output file is written only after the response is validated.
+- Only the `fetch` command touches the network; report commands never do.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-FetchFailure.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-FetchFailure.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Fetch Failure
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | Failure behavior of `fetch`: network, HTTP, and body errors exit 1 and never write or alter a file. |
+| Depends On  | FEATURE-Fetch.md, FEATURE-ExitCodes.md |
+| Provides    | fetch failure handling |
+| Consumes    | http_get |
+
+## Purpose
+
+When the download cannot produce a valid GeoJSON FeatureCollection, `fetch` reports an operational failure and leaves the filesystem exactly as it found it.
+
+## Trigger
+
+Any of the following during `quakes fetch` (after arguments parse successfully):
+
+- a network error (any `urllib.error.URLError`, `OSError`, or timeout from the HTTP layer);
+- an HTTP status other than 200;
+- a 200 body that is not JSON, or is JSON but not an object with `&quot;type&quot;: &quot;FeatureCollection&quot;` and a list `features`.
+
+## Behavior
+
+- `http_get` returns `(status, body)` for every HTTP response, including non-200 statuses (an `HTTPError` is converted to its code and body), and raises `OperationalError` for `URLError`, `OSError`, and timeouts.
+- The `fetch` handler also converts any `OSError` raised by a replaced `http_get` into `OperationalError`.
+- A non-200 status or an invalid body raises `OperationalError`.
+- All checks complete before `--out` is opened, so no file is created and a pre-existing file at `--out` keeps its exact bytes.
+- The command exits 1, writes nothing to standard output, and writes one diagnostic line to standard error.
+
+## Reads
+
+The HTTP response only.
+
+## Writes
+
+Standard error only; never the output file on failure.
+
+## Programmatic Acceptance
+
+=== AC fetch-failure-http-status ===
+Intent: A non-200 status exits 1 with empty standard output, one stderr line, and no file written.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import json
+import os
+import tempfile
+from unittest import mock
+
+from cli.testing import cli_runner
+
+valid = json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}).encode(&quot;utf-8&quot;)
+bad_status = 500
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(bad_status, valid)):
+        code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path)
+    print(err)
+    assert code == 1
+    assert out == &quot;&quot;
+    assert len(err.strip().splitlines()) == 1
+    assert not os.path.exists(out_path)
+=== END AC fetch-failure-http-status ===
+
+=== AC fetch-failure-bad-body ===
+Intent: A body that is not JSON, or JSON that is not a FeatureCollection, exits 1 and writes no file.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import json
+import os
+import tempfile
+from unittest import mock
+
+from cli.testing import cli_runner
+
+bodies = [
+    b&quot;this is not json&quot;,
+    json.dumps({&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {}, &quot;geometry&quot;: None}).encode(&quot;utf-8&quot;),
+    json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;}).encode(&quot;utf-8&quot;),
+    json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: &quot;nope&quot;}).encode(&quot;utf-8&quot;),
+    json.dumps([1, 2, 3]).encode(&quot;utf-8&quot;),
+]
+with tempfile.TemporaryDirectory() as tmp:
+    for n, body in enumerate(bodies):
+        out_path = os.path.join(tmp, &quot;saved&quot; + str(n) + &quot;.geojson&quot;)
+        with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, body)):
+            code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path)
+        assert code == 1, n
+        assert out == &quot;&quot;, n
+        assert not os.path.exists(out_path), n
+=== END AC fetch-failure-bad-body ===
+
+=== AC fetch-failure-network-error ===
+Intent: A network error from a stubbed http_get, and a URLError from a patched urlopen, both exit 1 with no file written.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import os
+import tempfile
+import urllib.error
+from unittest import mock
+
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    first = os.path.join(tmp, &quot;first.geojson&quot;)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, side_effect=OSError(&quot;unreachable&quot;)):
+        code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, first)
+    assert code == 1
+    assert out == &quot;&quot;
+    assert not os.path.exists(first)
+
+    second = os.path.join(tmp, &quot;second.geojson&quot;)
+    with mock.patch(&quot;urllib.request.urlopen&quot;, side_effect=urllib.error.URLError(&quot;no route&quot;)) as opener:
+        code2, out2, err2 = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, second)
+    assert opener.call_count == 1
+    assert code2 == 1
+    assert out2 == &quot;&quot;
+    assert not os.path.exists(second)
+=== END AC fetch-failure-network-error ===
+
+=== AC fetch-failure-http-error-status ===
+Intent: An HTTPError raised by urlopen is treated as a non-200 status, exits 1, and writes no file.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import io
+import os
+import tempfile
+import urllib.error
+from unittest import mock
+
+from cli.testing import cli_runner
+
+error = urllib.error.HTTPError(&quot;https://example.invalid&quot;, 503, &quot;unavailable&quot;, {}, io.BytesIO(b&quot;down&quot;))
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    with mock.patch(&quot;urllib.request.urlopen&quot;, side_effect=error):
+        code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path)
+    assert code == 1
+    assert out == &quot;&quot;
+    assert not os.path.exists(out_path)
+=== END AC fetch-failure-http-error-status ===
+
+=== AC fetch-failure-preserves-existing-file ===
+Intent: A failed fetch leaves a pre-existing output file byte-for-byte untouched.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import os
+import tempfile
+from unittest import mock
+
+from cli.testing import cli_runner
+
+original = b&quot;previous contents, not JSON\n&quot;
+with tempfile.TemporaryDirectory() as tmp:
+    out_path = os.path.join(tmp, &quot;saved.geojson&quot;)
+    with open(out_path, &quot;wb&quot;) as fh:
+        fh.write(original)
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(404, b&quot;missing&quot;)):
+        code, out, err = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path)
+    assert code == 1
+    with open(out_path, &quot;rb&quot;) as fh:
+        assert fh.read() == original
+    with mock.patch(&quot;cli.fetch.http_get&quot;, return_value=(200, b&quot;not json&quot;)):
+        code2, out2, err2 = cli_runner(&quot;fetch&quot;, &quot;--start&quot;, &quot;2025-01-01&quot;, &quot;--end&quot;, &quot;2025-01-02&quot;, &quot;--out&quot;, out_path)
+    assert code2 == 1
+    with open(out_path, &quot;rb&quot;) as fh:
+        assert fh.read() == original
+=== END AC fetch-failure-preserves-existing-file ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- A failing `fetch` never creates, truncates, or modifies the output file.
+- A failing command writes nothing to standard output and exactly one diagnostic line to standard error; standard error text is never part of a contract.
+- Tests exercise failure only through stubbed HTTP; no test opens a network connection.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock filename=&quot;FEATURE-Near.md&quot; role=&quot;implements&quot; path=&quot;/mnt/c/Users/barlo/projects/drydock/uat/Quakes/runs/20261025.010423/workspace/targets/Quakes/blueprint/FEATURE-Near.md&quot; guidance=&quot;Feature Specification&quot;&gt;</p>
+<pre><code># FEATURE: Near
+
+| Field       | Value |
+|-------------|-------|
+| Version     | 20261025 V1 |
+| Description | The `near` report: events within a haversine great-circle distance of a point, nearest first. |
+| Depends On  | FEATURE-MagFilter.md, FEATURE-Formatting.md, FEATURE-Options.md, FEATURE-ExitCodes.md |
+| Provides    | quakes near, haversine_km |
+| Consumes    | read_feed, extract_events, filter_events, write_csv, format_time, format_mag, format_decimal, parse_args |
+
+## Purpose
+
+`quakes near --lat &lt;deg&gt; --lon &lt;deg&gt; --radius &lt;km&gt; [--min-mag &lt;m&gt;] &lt;file&gt;` lists the events whose distance from a point is at most the radius.
+
+## Trigger
+
+Command line. `--lat`, `--lon`, and `--radius` are all required. `parse_args` enforces `--lat` in -90..90, `--lon` in -180..180, and `--radius` greater than zero; any violation or omission is a usage error (exit 2).
+
+## Sequence
+
+1. `read_feed`, `extract_events`, and `filter_events` produce the kept events.
+2. `haversine_km(lat1, lon1, lat2, lon2)` is a pure function on a sphere of radius 6371.0 km, with angles in radians:
+   `h = sin^2((lat2 - lat1) / 2) + cos(lat1) * cos(lat2) * sin^2((lon2 - lon1) / 2)` and `d = 2 * 6371.0 * asin(sqrt(h))`. Event coordinates are `[longitude, latitude, depth_km]`.
+3. `compute_near(events, lat, lon, radius)` keeps events whose unrounded distance is `&lt;= radius` and orders them by unrounded distance ascending, then by event time ascending.
+4. `write_csv` writes the report, with `distance_km` rounded half up to one decimal.
+
+## Output
+
+Header: `distance_km,time,mag,place,id`. One row per matching event: distance with one decimal, UTC time, magnitude with one decimal, place, id. An event at exactly the radius is included. No matches yields only the header with exit 0. Places containing commas are quoted by the `csv` module; non-ASCII places are UTF-8.
+
+## Reads
+
+The saved GeoJSON file named on the command line.
+
+## Writes
+
+Standard output only.
+
+## Programmatic Acceptance
+
+=== AC near-haversine-distance-and-radius ===
+Intent: Reported distances match an independent haversine on a 6371.0 km sphere, and only events within the radius are listed, nearest first.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import math
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+
+def hav(lat1, lon1, lat2, lon2):
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = p2 - p1
+    dlam = math.radians(lon2 - lon1)
+    h = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlam / 2) ** 2
+    return 2 * 6371.0 * math.asin(math.sqrt(h))
+
+
+origin = (27.72, 85.32)
+points = [
+    (&quot;far&quot;, 35.68, 139.69),
+    (&quot;mid&quot;, 28.60, 87.37),
+    (&quot;near1&quot;, 28.80, 87.13),
+    (&quot;near2&quot;, 28.50, 87.35),
+]
+features = []
+for i, (name, lat, lon) in enumerate(points):
+    features.append({
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: 5.0 + i / 10, &quot;place&quot;: &quot;Place &quot; + name, &quot;time&quot;: 1736200000000 + i * 1000, &quot;tsunami&quot;: 0},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [lon, lat, 10.0]},
+        &quot;id&quot;: name,
+    })
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}
+dist = {name: hav(origin[0], origin[1], lat, lon) for name, lat, lon in points}
+radius = round(sorted(dist.values())[2] + 1.0, 1)
+inside = sorted([n for n in dist if dist[n] &lt;= radius], key=lambda n: dist[n])
+assert 0 &lt; len(inside) &lt; len(points)
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    code, out, err = cli_runner(
+        &quot;near&quot;, &quot;--lat&quot;, str(origin[0]), &quot;--lon&quot;, str(origin[1]), &quot;--radius&quot;, str(radius), path
+    )
+print(out)
+print(err)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert rows[0] == [&quot;distance_km&quot;, &quot;time&quot;, &quot;mag&quot;, &quot;place&quot;, &quot;id&quot;]
+assert [r[4] for r in rows[1:]] == inside
+for r in rows[1:]:
+    assert abs(float(r[0]) - dist[r[4]]) &lt;= 0.051
+=== END AC near-haversine-distance-and-radius ===
+
+=== AC near-ordering-ties-and-quoting ===
+Intent: Events at equal distance are ordered by time ascending, and a place containing a comma round-trips through CSV quoting.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+place = &quot;10 km N of Somewhere, Country&quot;
+times = [1736200003000, 1736200001000, 1736200002000]
+features = []
+for i, t in enumerate(times):
+    features.append({
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: 5.0, &quot;place&quot;: place, &quot;time&quot;: t, &quot;tsunami&quot;: 0},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [10.0, 10.0, 5.0]},
+        &quot;id&quot;: &quot;t&quot; + str(i),
+    })
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}
+expected_ids = [&quot;t&quot; + str(i) for i in sorted(range(len(times)), key=lambda i: times[i])]
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    code, out, err = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;10&quot;, &quot;--lon&quot;, &quot;10.5&quot;, &quot;--radius&quot;, &quot;500&quot;, path)
+print(out)
+assert code == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert [r[4] for r in rows[1:]] == expected_ids
+assert all(r[3] == place for r in rows[1:])
+=== END AC near-ordering-ties-and-quoting ===
+
+=== AC near-min-mag-null-mag-and-empty ===
+Intent: --min-mag filters near results, null magnitudes never appear, and no match yields only the header with exit 0.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import csv
+import io
+import json
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+threshold = 5.3
+mags = [5.0, 5.3, 6.0, None]
+features = []
+for i, mag in enumerate(mags):
+    features.append({
+        &quot;type&quot;: &quot;Feature&quot;,
+        &quot;properties&quot;: {&quot;mag&quot;: mag, &quot;place&quot;: &quot;P&quot; + str(i), &quot;time&quot;: 1736200000000 + i, &quot;tsunami&quot;: 0},
+        &quot;geometry&quot;: {&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [20.0, 20.0, 5.0]},
+        &quot;id&quot;: &quot;m&quot; + str(i),
+    })
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}
+kept = [&quot;m&quot; + str(i) for i, m in enumerate(mags) if m is not None and m &gt;= threshold]
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    code, out, err = cli_runner(
+        &quot;near&quot;, &quot;--lat&quot;, &quot;20&quot;, &quot;--lon&quot;, &quot;20&quot;, &quot;--radius&quot;, &quot;50&quot;, &quot;--min-mag&quot;, str(threshold), path
+    )
+    code_e, out_e, err_e = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;100&quot;, path)
+print(out)
+assert code == 0 and code_e == 0
+rows = list(csv.reader(io.StringIO(out)))
+assert sorted(r[4] for r in rows[1:]) == sorted(kept)
+assert list(csv.reader(io.StringIO(out_e))) == [[&quot;distance_km&quot;, &quot;time&quot;, &quot;mag&quot;, &quot;place&quot;, &quot;id&quot;]]
+=== END AC near-min-mag-null-mag-and-empty ===
+
+=== AC near-usage-errors ===
+Intent: Missing required options and out-of-range values exit 2 with empty standard output.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import json
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+doc = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, &quot;q.geojson&quot;)
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh)
+    cases = [
+        (&quot;near&quot;, &quot;--lat&quot;, &quot;10&quot;, &quot;--lon&quot;, &quot;10&quot;, path),
+        (&quot;near&quot;, &quot;--lat&quot;, &quot;10&quot;, &quot;--radius&quot;, &quot;5&quot;, path),
+        (&quot;near&quot;, &quot;--lon&quot;, &quot;10&quot;, &quot;--radius&quot;, &quot;5&quot;, path),
+        (&quot;near&quot;, &quot;--lat&quot;, &quot;95&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;10&quot;, path),
+        (&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;181&quot;, &quot;--radius&quot;, &quot;10&quot;, path),
+        (&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;0&quot;, path),
+        (&quot;near&quot;, &quot;--lat&quot;, &quot;x&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;5&quot;, path),
+        (&quot;near&quot;, &quot;--lat&quot;, &quot;0&quot;, &quot;--lon&quot;, &quot;0&quot;, &quot;--radius&quot;, &quot;5&quot;, &quot;--n&quot;, &quot;2&quot;, path),
+    ]
+    for args in cases:
+        code, out, err = cli_runner(*args)
+        assert code == 2, args
+        assert out == &quot;&quot;, args
+=== END AC near-usage-errors ===
+
+=== AC near-unreadable-file ===
+Intent: An unreadable file is an operational failure: exit 1 with empty standard output.
+Suite: scoped
+Requires: executable=python3; scope=test
+
+import os
+import tempfile
+
+from cli.testing import cli_runner
+
+with tempfile.TemporaryDirectory() as tmp:
+    missing = os.path.join(tmp, &quot;absent.geojson&quot;)
+    code, out, err = cli_runner(&quot;near&quot;, &quot;--lat&quot;, &quot;1&quot;, &quot;--lon&quot;, &quot;1&quot;, &quot;--radius&quot;, &quot;5&quot;, missing)
+assert code == 1
+assert out == &quot;&quot;
+=== END AC near-unreadable-file ===
+
+## User Acceptance
+
+- None.
+
+## Guardrails
+
+- The earth radius is exactly 6371.0 km; no other radius or formula is used.
+- The radius test compares the unrounded distance; only the printed value is rounded.
+- An event at exactly the radius is included (`&lt;=`).
+- No distance or row is hardcoded; all values are computed from the file and the arguments.</code></pre>
+<p>&lt;/pblock&gt;</p>
+<p>&lt;pblock label=&quot;Build instructions&quot; kind=&quot;instructions&quot;&gt;</p>
+<h3>Build instructions for this block</h3>
+<h4>The summary report. (summary)</h4>
+<p>Header events,first,last,min_mag,max_mag,mean_mag,tsunami. One row; first and last are the earliest and latest times; tsunami counts events equal to 1. No events yields 0,,,,,,0.</p>
+<h4>The regions report of events per region. (regions)</h4>
+<p>Header region,events,max_mag. Region is the text after the last &quot;, &quot; in place, else the whole place; null place is Unknown. Order by events descending then region ascending by byte value.</p>
+<h4>The daily report of events per UTC date. (daily)</h4>
+<p>Header date,events,max_mag. One row per date with events, ascending, then TOTAL,&lt;events&gt;,&lt;max&gt;. Date is the first 10 characters of the formatted time. No events yields TOTAL,0,.</p>
+<h4>The top report listing the largest events. (top)</h4>
+<p>Header time,mag,depth_km,place,id. Sort by mag descending then time ascending, take --n (default 10). Filter applies before the cut.</p>
+<h4>The fetch command that downloads a USGS date range to a file. (fetch)</h4>
+<p>Request https://earthquake.usgs.gov/fdsnws/event/1/query with format=geojson, starttime, endtime, minmagnitude (default 2.5), orderby=time-asc, using urllib.request via a single replaceable function http_get(url) returning (status, body bytes). Write the body unchanged to --out and print fetched,&lt;count&gt;. Tests stub http_get and never open a network connection.</p>
+<h4>Fetch fails without writing a file on network, HTTP, or body errors. (fetch-failure)</h4>
+<p>A network error, status other than 200, or body that is not a FeatureCollection raises OperationalError (exit 1) before any file is created. A pre-existing output file is left untouched.</p>
+<h4>The near report using haversine distance. (near)</h4>
+<p>Header distance_km,time,mag,place,id. Haversine on a 6371.0 km sphere. Include events with distance &lt;= --radius (compare unrounded distance), ordered by distance ascending then time ascending. Distance is written with one decimal, rounded half up.</p>
+<p>&lt;/pblock&gt;</p>
+<h1>Agent Task</h1>
+<p>You are a Drydock build agent implementing exactly one build step of a larger plan. The build job block below names the target, the build working directory, and the step. Everything you need is stacked into this prompt under role headings:</p>
+<ul><li><code>compass</code> — the Target&#x27;s COMPASS.md orientation.</li><li><code>implements</code> — the Typed Specification files this step builds. These are</li></ul>
+<p>authoritative; implement them exactly.</p>
+<ul><li><code>context</code> — read-only support specifications. Do not reimplement them.</li><li><code>stack</code> — enterprise stack and technology rules. Honor them.</li><li><code>rules</code> — governance and branding rules. Honor them.</li></ul>
+<p>Operating contract:</p>
+<ol><li>Follow the write authorization and protected paths in the stacked <code>COMPASS.md</code> exactly.</li></ol>
+<p>That persisted guardrail is the sole authority for paths this build may modify.</p>
+<ol><li>Start by inspecting the build working directory. Preserve existing application</li></ol>
+<p>files unless this step&#x27;s specifications require a change. Its <code>sources/</code> subdirectory holds staged build assets — imported test corpora, conformance harnesses, and fixtures — placed there for you. They are read-only inputs: run them, import them, and write code against them, but never create, rewrite, trim, regenerate, or substitute one, even to make a check pass. A step that modifies a staged asset fails and the asset is restored. If an asset you expect is absent, report that; do not author a replacement.</p>
+<ol><li>Implement only this step. Use <code>context</code>, <code>stack</code>, and <code>rules</code> as constraints,</li></ol>
+<p>not as additional work to perform.</p>
+<ol><li>Follow the stack and rules for languages, structure, naming, and branding.</li><li>The programmatic acceptance assertions in the <code>implements</code> specifications are</li></ol>
+<p>this step&#x27;s <strong>Definition of Done</strong> — human-owned, declared before the build, and fixed. Build the story and, in this same step, write the deterministic tests that prove each declared assertion, as a TDD master would; add finer tests for coverage. Every test you write follows the same rule the acceptance assertions do: <strong>act on the system, read the state back, compare to expected.</strong> The oracle is a return value, parsed JSON, a status code, a stored row, file contents read back, or an exit status — never a substring of captured stdout or stderr, a test-runner tally, or a log line. Write tests in the project&#x27;s own language using that language&#x27;s libraries; an in-language HTTP client yields a status code and a parsed body, where <code>curl</code> yields text to scrape. Round-trip anything that stores state: act, then read back through the public interface. Assert declared failure signals on negative paths, never message wording. You may add tests but must never remove, soften, or weaken a declared acceptance assertion. A <code>Suite: full</code> conformance check gates on the entire imported test suite: the step is done only when it passes in full, never on a representative subset — reproduce the standard exactly rather than wrapping a third-party library that approximates it. For a suite, the runner&#x27;s exit status is the verdict and the whole verdict: print its captured output for diagnosis, never assert on the text of its summary. When an assertion is a static or filesystem scan (import boundary, &quot;X never appears outside Y,&quot; grep/AST gate), honor the scope the specification states and never widen it: scan production source only, exclude <code>.venv/</code>, <code>site-packages</code>, and vendored or generated code, and do not flag test doubles or fixtures that use the guarded dependency. Run every declared acceptance assertion before returning. For a conformance suite, use its section or example filters to diagnose coherent root-cause clusters, but rerun the full declared scope before reporting the result. Treat failing examples as a work queue for fixing general behavior; never add example-specific exceptions.</p>
+<ol><li>Grow the project&#x27;s own test suite as you write the code, and treat it as the project&#x27;s</li></ol>
+<p>real coverage. The acceptance assertions in <code>implements</code> are gates: few, fixed, and written before any code existed, so every expectation in them is a prediction. The tests you write are written <em>beside</em> the finished code, so their expected values are observed rather than predicted — which is why exhaustive coverage belongs here and not there. Extend the suite in the project&#x27;s established location and runner, keep it runnable by the project&#x27;s declared test command, and leave it green when you return. Cover, at minimum: every public entry point and every verb it declares, including declared error paths; the boundaries — empty, exactly one, many, absent optional fields, declared maxima; declared idempotence, applied twice; one behavior per test, named for the behavior; and isolation — database criteria use the provisioned application store and the shipped rollback fixture, passing its connection into the feature. Other connections and durability tests use criterion-owned records, idempotent setup and checked cleanup through supported interfaces. Never replace the configured store, reapply schema, or delete unrelated business records. Where a staged authoritative suite already covers a surface, that suite is the coverage: run it, and do not restate its cases. Run it <strong>only through the invocation this step&#x27;s acceptance criteria declare</strong>. A criterion marked <code>Suite: scoped</code> names the whole of this step&#x27;s obligation to that suite; running the suite&#x27;s unscoped entry point instead is not extra rigor, it is a different step&#x27;s gate executed early. A partial capability fails most of an authoritative corpus by construction and its unimplemented cases exhaust the runner&#x27;s per-case timeout rather than returning, so the unscoped run costs the most where it teaches the least, and interrupting it forfeits the step. If no criterion in this step invokes the staged suite, do not invoke it. Report the pass/fail counts of the invocations you did run in your <code>SUMMARY</code> so a reader can see coverage moving across steps.</p>
+<ol><li>Treat <code>User Acceptance</code> entries as review evidence requirements. Implement</li></ol>
+<p>the supporting behavior, but do not claim to have performed human judgment.</p>
+<ol><li>The <code>implements</code> section is authoritative and intentionally stacked late in</li></ol>
+<p>the prompt as the recency anchor. Build that WHAT exactly; do not substitute generic framework defaults.</p>
+<ol><li>Before adding or installing Python dependencies, verify each package name</li></ol>
+<p>against the declared registry. Do not invent package names. If a needed package cannot be verified or appears newly published, fail explicitly instead of installing it.</p>
+<ol><li>Use the stack&#x27;s required package manager workflow for dependency changes.</li></ol>
+<p>When the stack requires <code>uv</code>, update manifests through <code>uv</code> conventions rather than bare <code>pip install</code>.</p>
+<ol><li>Do not claim success unless you actually created or modified project files in</li></ol>
+<p>the build working directory. If you cannot write files or cannot complete the step, report failure explicitly.</p>
+<ol><li>Do not run <code>git add</code>, <code>git commit</code>, create branches, create tags, rewrite</li></ol>
+<p>history, or otherwise mutate Git history. Drydock checkpoints application changes and Target evidence after each execution and completed step. File lineage comes from Git and the Manifest&#x27;s <code>implements:</code> entries; no additional attribution response is required.</p>
+<ol><li>End your response with this exact closing structure:</li></ol>
+<pre><code>RESULT: SUCCESS | FAILED
+
+FILES CHANGED:
+- relative/path
+
+SUMMARY:
+&lt;brief reviewable summary&gt;
+
+BLOCKERS:
+- &lt;only if any&gt;</code></pre>
+<p>Before <code>RESULT</code>, you may emit one optional JSON payload when implementation required a bounded choice not already settled by the owning specification. This records what you did; it does not ask permission, create a questionnaire, or excuse incomplete work:</p>
+<pre><code>&lt;blueprint-decisions&gt;
+[{&quot;spec&quot;:&quot;FEATURE-Example.md&quot;,&quot;severity&quot;:&quot;Material&quot;,&quot;subject&quot;:&quot;Chosen behavior&quot;,&quot;decision&quot;:&quot;Options A and B were available. I implemented B because ... Is that acceptable, or should this change on replan?&quot;}]
+&lt;/blueprint-decisions&gt;</code></pre>
+<p>Name only a specification implemented by this build block. Use <code>Low</code> or <code>Material</code>; Build never emits a Blocking decision. Omit the payload when no implementation decision was necessary.</p>
+<ol><li><code>FILES CHANGED</code> must list only files actually written in the build working</li></ol>
+<p>directory. When the existing implementation already satisfies this step, report <code>RESULT: SUCCESS</code>, list no changed files, and state the checks performed and their results. A verification-only step requires no application changes. Drydock runs the declared deterministic checks and decides the outcome independently of this report.</p>
+<ol><li>On <code>RESULT: FAILED</code>, append two additional lines so the failure is actionable</li></ol>
+<p>without opening logs. <code>FAILURE_SUMMARY</code> is one line naming the cause; <code>FAILURE_DETAIL</code> states what happened, why, and what to change before a rerun. Name concrete conditions when they apply: token or context limit exceeded, could not execute commands in this environment, a required input was missing, or a specific tool or command failed.</p>
+<pre><code>FAILURE_SUMMARY: &lt;one line naming the cause&gt;
+FAILURE_DETAIL: &lt;what happened, why, and what to change before rerunning&gt;</code></pre>
+<ol><li>When a declared acceptance criterion cannot pass no matter how the code is written,</li></ol>
+<p>say so with this exact token. You may not edit the criterion — it is staged and restored before grading:</p>
+<pre><code>AC_BROKEN: &lt;check-id&gt;[, &lt;check-id&gt;]</code></pre>
+<p>This is a report, not a verdict, and it stops nothing. A criterion reaches you only when its expected value is one its author could not have invented — a status code, a staged suite&#x27;s exit status, a value the criterion itself supplied as input — so your claim that the criterion rather than the code is at fault is the less likely explanation, and the budget is spent as it would be for any other failure. A criterion whose expectation <em>was</em> hand-typed already settles <code>DISPUTED</code> on its own, without you naming it. Emit the token only after running the criterion and confirming the underlying command succeeded while the assertion still failed. Name the affected check ids, emit it alongside your normal <code>RESULT</code> line, state the reasoning in <code>FAILURE_DETAIL</code>, and emit it even when <code>RESULT: SUCCESS</code>. Do not use it for a criterion you merely failed to satisfy.</p></article>
+</main>
+</body>
+</html>

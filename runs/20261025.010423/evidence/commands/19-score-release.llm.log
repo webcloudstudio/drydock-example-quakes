@@ -1,0 +1,4 @@
+--- llm 1/1 · score release · claude claude-haiku-5-5 · 20261025.013521.787Z-1d293ee9 ---
+2026-10-24 21:35:21 EDT  Calling CLAUDE/claude-haiku-5-5 (score release)...
+  Completed CLAUDE/claude-haiku-5-5 (score release)  rc=0
+    elapsed=1m 38.1s   provider=1m 36.9s   turns=12   cached=217,155 (100% hit)   uncached=14   write 44,666   out=10,784   cost=$0.0165   tps=109.9

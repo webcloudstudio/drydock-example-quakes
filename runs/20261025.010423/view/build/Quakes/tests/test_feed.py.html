@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>build/Quakes/tests/test_feed.py</title>
+<link rel="stylesheet" href="../../../../assets/kit.css">
+</head>
+<body>
+<main>
+<header class="fileheader"><div class="kind">Run artifact</div><h1>build/Quakes/tests/test_feed.py</h1><div class="filenav"><a href="../../../../index.html">&larr; Report</a><a href="../../../../build/Quakes/tests/test_feed.py">Raw file</a></div></header>
+<article class="doc"><pre>&quot;&quot;&quot;Feed-validation story: read_feed returns the features of a FeatureCollection or raises OperationalError.&quot;&quot;&quot;
+
+import json
+
+import pytest
+
+from cli.errors import OperationalError
+from cli.feed import read_feed
+
+
+def _write(tmp_path, name, text):
+    path = tmp_path / name
+    path.write_text(text, encoding=&quot;utf-8&quot;)
+    return path
+
+
+def _feature(ident):
+    return {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: ident, &quot;properties&quot;: {&quot;mag&quot;: 5.0}, &quot;geometry&quot;: None}
+
+
+# ── Declared acceptance assertions ──────────────────────────────────────────────────────
+
+
+def test_feed_valid_collection(tmp_path):
+    features = [_feature(&quot;a&quot;), _feature(&quot;b&quot;)]
+    full = _write(tmp_path, &quot;full.geojson&quot;, json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}))
+    assert read_feed(full) == features
+    assert read_feed(str(full)) == features
+
+    empty = _write(tmp_path, &quot;empty.geojson&quot;, json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}))
+    assert read_feed(empty) == []
+
+
+def test_feed_unreadable_file(tmp_path):
+    for target in (tmp_path / &quot;no-such-file.geojson&quot;, tmp_path):
+        with pytest.raises(OperationalError):
+            read_feed(target)
+
+
+def test_feed_not_json(tmp_path):
+    garbage = _write(tmp_path, &quot;garbage.json&quot;, &quot;this is not json\n&quot;)
+    with pytest.raises(OperationalError):
+        read_feed(garbage)
+
+
+@pytest.mark.parametrize(
+    &quot;value&quot;,
+    [
+        {&quot;type&quot;: &quot;Feature&quot;, &quot;properties&quot;: {}, &quot;geometry&quot;: None},
+        {&quot;type&quot;: &quot;FeatureCollection&quot;},
+        {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: {&quot;a&quot;: 1}},
+        {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: None},
+        {&quot;features&quot;: []},
+        [],
+        &quot;FeatureCollection&quot;,
+        None,
+    ],
+)
+def test_feed_wrong_shape(tmp_path, value):
+    path = _write(tmp_path, &quot;bad.json&quot;, json.dumps(value))
+    with pytest.raises(OperationalError):
+        read_feed(path)
+
+
+# ── Finer coverage: each failure branch and the returned value ──────────────────────────
+
+
+def test_read_feed_returns_features_in_feed_order_unchanged(tmp_path):
+    features = [_feature(&quot;z&quot;), _feature(&quot;a&quot;), {&quot;type&quot;: &quot;Feature&quot;, &quot;id&quot;: &quot;m&quot;, &quot;extra&quot;: [1, 2]}]
+    path = _write(tmp_path, &quot;order.geojson&quot;, json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: features}))
+    assert read_feed(path) == features
+
+
+def test_read_feed_ignores_other_top_level_members(tmp_path):
+    document = {&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;metadata&quot;: {&quot;count&quot;: 1}, &quot;features&quot;: [_feature(&quot;a&quot;)]}
+    assert read_feed(_write(tmp_path, &quot;meta.geojson&quot;, json.dumps(document))) == [_feature(&quot;a&quot;)]
+
+
+def test_read_feed_rejects_a_file_that_is_not_utf8(tmp_path):
+    path = tmp_path / &quot;latin.geojson&quot;
+    path.write_bytes(b&#x27;{&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [], &quot;place&quot;: &quot;\xff&quot;}&#x27;)
+    with pytest.raises(OperationalError):
+        read_feed(path)
+
+
+def test_read_feed_rejects_an_empty_file(tmp_path):
+    with pytest.raises(OperationalError):
+        read_feed(_write(tmp_path, &quot;empty.geojson&quot;, &quot;&quot;))
+
+
+def test_read_feed_rejects_a_json_array_at_the_top_level(tmp_path):
+    with pytest.raises(OperationalError):
+        read_feed(_write(tmp_path, &quot;array.json&quot;, &quot;[1, 2, 3]&quot;))
+
+
+def test_read_feed_accepts_a_path_string_and_a_path_object(tmp_path):
+    path = _write(tmp_path, &quot;ok.geojson&quot;, json.dumps({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []}))
+    assert read_feed(path) == read_feed(str(path)) == []
+
+
+def test_read_feed_writes_nothing_to_standard_output(tmp_path, capsys):
+    with pytest.raises(OperationalError):
+        read_feed(_write(tmp_path, &quot;garbage.json&quot;, &quot;nope&quot;))
+    assert capsys.readouterr().out == &quot;&quot;
+
+</pre></article>
+</main>
+</body>
+</html>
