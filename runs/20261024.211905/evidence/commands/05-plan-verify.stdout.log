@@ -1,6 +1,0 @@
-Drydock 0.8.0  Copyright (c) 2026 Web Cloud Studio. All rights reserved.
-plan verify: Quakes
-  1 criterion cannot run as written
-  ✗  FEATURE-ExitCodes.md [exit-parse-usage-errors]: calls `cli_runner` at line(s) 19 without asserting its exit status; bind it as `code, out, err = cli_runner(...)` and assert `code` before the next call
-  Run: drydock plan repair Quakes
-Target - committed project workspace git store
